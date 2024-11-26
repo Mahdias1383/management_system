@@ -30,6 +30,10 @@ class Shopping_Panel(User):
                     print("Please enter a valid amount!\n")
                     continue
                 
+                elif amount < 0:
+                    print("Please enter a valid amount!\n")
+                    continue
+                
                 else:
                     amount = float(amount)
                     self.balance += amount

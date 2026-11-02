@@ -22,8 +22,7 @@ export interface TicketBookingResult {
 }
 
 /**
- * Atomic wallet deposit (`add_money`) scoped strictly to `userId`.
- * Fixes legacy bug where empty string `""` or negative string threw TypeError.
+ * Atomic wallet deposit scoped strictly to `userId`.
  */
 export function depositToWallet(
   db: PlatformDatabaseV2,
@@ -89,8 +88,7 @@ export function depositToWallet(
 }
 
 /**
- * Atomic wallet withdrawal (`decrease_money`) scoped strictly to `userId`.
- * Fixes legacy bug where `decrease_money` called `self.add_money()` when user chose "no" in `get_back()`.
+ * Atomic wallet withdrawal scoped strictly to `userId`.
  */
 export function withdrawFromWallet(
   db: PlatformDatabaseV2,
@@ -139,7 +137,7 @@ export function withdrawFromWallet(
     amount: parsed.value,
     runningBalance: updatedBalance,
     descriptionEn: `Wallet Withdrawal (-$${parsed.value.toFixed(2)})`,
-    descriptionFa: `برداشت از کیف پول (-$${parsed.value.toFixed(2)})`,
+    descriptionFa: `برداشت وجه از کیف پول (-$${parsed.value.toFixed(2)})`,
     timestamp: new Date().toISOString(),
   };
 
@@ -163,15 +161,15 @@ export function withdrawFromWallet(
 }
 
 /**
- * Atomic Ticket Purchase Engine (`user_shopping`).
- * Validates train existence (case-insensitive), integer ticket count > 0, remaining seat capacity,
- * and passenger wallet balance, then atomically updates wallet, capacity, ledger, and issues a PNR ticket.
+ * Atomic Ticket Purchase Engine with optional coach & seat numbers assignment.
  */
 export function purchaseTrainTicket(
   db: PlatformDatabaseV2,
   userId: string,
   trainIdInput: string,
-  rawTicketCount: unknown
+  rawTicketCount: unknown,
+  selectedSeats?: string[],
+  coachNumber: number = 1
 ): TicketBookingResult {
   const countCheck = parsePositiveInteger(rawTicketCount);
   if (!countCheck.valid) {
@@ -192,7 +190,7 @@ export function purchaseTrainTicket(
     return {
       success: false,
       db,
-      errorEn: `Train ID "${trainIdInput}" was not found.`,
+      errorEn: `Train "${trainIdInput}" was not found.`,
       errorFa: `قطار با شناسه «${trainIdInput}» یافت نشد.`,
     };
   }
@@ -232,12 +230,20 @@ export function purchaseTrainTicket(
     };
   }
 
-  // Find corresponding line for origin/destination metadata
   const line = nextDb.lines.find((l) => normalizeIdentifier(l.name_line) === normalizeIdentifier(train.name_line));
   const origin = line ? line.origin : 'Origin Station';
   const destination = line ? line.destination : 'Destination Station';
 
-  // Atomic updates
+  // Assign seat numbers if not explicitly provided
+  const assignedSeats =
+    selectedSeats && selectedSeats.length === ticketCount
+      ? [...selectedSeats]
+      : Array.from({ length: ticketCount }, (_, idx) => {
+          const row = Math.floor((train.totalCapacity - train.capacity + idx) / 4) + 1;
+          const col = ['A', 'B', 'C', 'D'][(train.totalCapacity - train.capacity + idx) % 4];
+          return `${row}${col}`;
+        });
+
   user.balance = Math.round((user.balance - totalCost) * 100) / 100;
   train.capacity -= ticketCount;
 
@@ -257,12 +263,14 @@ export function purchaseTrainTicket(
     destination,
     departureTime: train.departureTime,
     ticketCount,
+    seatNumbers: assignedSeats,
+    coachNumber,
     unitPrice: train.cost_ticket,
     totalPrice: totalCost,
     quality: train.quality,
     status: 'Confirmed',
     purchasedAt: nowIso,
-    qrPayload: `RAILPULSE|PNR:${pnr}|TRAIN:${train.id_train}|USER:${user.username}|SEATS:${ticketCount}|VERIFIED`,
+    qrPayload: `RAILPULSE|PNR:${pnr}|TRAIN:${train.id_train}|COACH:${coachNumber}|SEATS:${assignedSeats.join(',')}|USER:${user.username}|VERIFIED`,
   };
 
   const tx: WalletTransaction = {
@@ -272,8 +280,8 @@ export function purchaseTrainTicket(
     type: 'TICKET_PURCHASE',
     amount: totalCost,
     runningBalance: user.balance,
-    descriptionEn: `Booked ${ticketCount}x seat(s) on ${train.id_train} (${train.name_line}) • PNR ${pnr}`,
-    descriptionFa: `خرید ${ticketCount} صندلی در قطار ${train.id_train} (${train.name_line}) • کد رزرو ${pnr}`,
+    descriptionEn: `Booked ${ticketCount}x seat(s) (${assignedSeats.join(', ')}) on ${train.id_train} (${train.name_line}) • PNR ${pnr}`,
+    descriptionFa: `خرید ${ticketCount} صندلی (${assignedSeats.join('، ')}) در قطار ${train.id_train} (${train.name_line}) • کد رزرو ${pnr}`,
     referenceId: pnr,
     timestamp: nowIso,
   };
@@ -286,8 +294,8 @@ export function purchaseTrainTicket(
     actorRole: 'passenger',
     actorUsername: user.username,
     action: 'TICKET_BOOKED',
-    detailsEn: `Passenger ${user.username} booked ${ticketCount} ticket(s) on ${train.id_train} for $${totalCost.toFixed(2)} (PNR: ${pnr}).`,
-    detailsFa: `مسافر ${user.username} تعداد ${ticketCount} بلیط در قطار ${train.id_train} به مبلغ $${totalCost.toFixed(2)} خریداری کرد (کد: ${pnr}).`,
+    detailsEn: `Passenger ${user.username} booked ${ticketCount} seat(s) (${assignedSeats.join(', ')}) on ${train.id_train} for $${totalCost.toFixed(2)} (PNR: ${pnr}).`,
+    detailsFa: `مسافر ${user.username} تعداد ${ticketCount} صندلی (${assignedSeats.join('، ')}) در قطار ${train.id_train} به مبلغ $${totalCost.toFixed(2)} رزرو کرد (کد: ${pnr}).`,
   });
 
   return {

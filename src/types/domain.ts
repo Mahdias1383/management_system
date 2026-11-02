@@ -39,33 +39,33 @@ export interface PassengerUser {
 
 export interface StationSegment {
   stationName: string;
-  distanceFromPrevKm: number; // Default 100km if not specified
+  distanceFromPrevKm: number;
 }
 
 export interface TrainLine {
   id: string;
-  name_line: string; // Display name, normalized for uniqueness checks
+  name_line: string;
   origin: string;
   destination: string;
   num_state: number;
-  list_state: string[]; // Intermediate station names in order
-  segmentDistancesKm: number[]; // Length = num_state + 1 (Origin->S1, ..., Sn->Destination)
+  list_state: string[];
+  segmentDistancesKm: number[];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface TrainSchedule {
   id: string;
-  id_train: string; // e.g., TR-101
+  id_train: string;
   name_train: string;
-  name_line: string; // Foreign key to TrainLine.name_line
-  departureTime: string; // HH:mm format e.g. "08:00"
-  speed: number; // Average speed in km/h
-  list_stop_time: Record<string, number>; // Stop duration in minutes for each intermediate station
+  name_line: string;
+  departureTime: string;
+  speed: number;
+  list_stop_time: Record<string, number>;
   quality: QualityTier;
   cost_ticket: number;
   totalCapacity: number;
-  capacity: number; // Remaining available seats
+  capacity: number;
   status: 'Scheduled' | 'In-Transit' | 'Delayed' | 'Maintenance';
   createdAt: string;
 }
@@ -74,8 +74,8 @@ export interface StationNodeTiming {
   stationIndex: number;
   stationName: string;
   distanceFromOriginKm: number;
-  arrivalMinutes: number; // Minutes from 00:00
-  departureMinutes: number; // Minutes from 00:00
+  arrivalMinutes: number;
+  departureMinutes: number;
   stopMinutes: number;
   arrivalFormatted: string;
   departureFormatted: string;
@@ -89,7 +89,7 @@ export interface SafetyConflict {
   conflictingTrainId: string;
   conflictingTrainName: string;
   lineName: string;
-  locationLabel: string; // Station name or Segment A -> B
+  locationLabel: string;
   overlapWindowFormatted: string;
   descriptionEn: string;
   descriptionFa: string;
@@ -116,6 +116,8 @@ export interface TicketRecord {
   destination: string;
   departureTime: string;
   ticketCount: number;
+  seatNumbers: string[];
+  coachNumber: number;
   unitPrice: number;
   totalPrice: number;
   quality: QualityTier;
@@ -202,6 +204,7 @@ export interface ActiveSession {
   username: string;
   displayName: string;
   email: string;
+  sessionToken: string;
 }
 
 export interface TestCaseResult {

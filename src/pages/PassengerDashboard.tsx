@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  Clock,
   CreditCard,
+  Eye,
+  MapPin,
   QrCode,
   RotateCcw,
   Search,
@@ -15,6 +18,7 @@ import {
   Language,
   PassengerUser,
   PlatformDatabaseV2,
+  TicketRecord,
   TrainSchedule,
 } from '../types/domain';
 import {
@@ -30,26 +34,40 @@ import {
 } from '../services/bookingEngine';
 import { computeTrainStationTimings } from '../services/collisionEngine';
 import { deepClone } from '../services/storageAndMigration';
+import { SeatMapSelector } from '../components/SeatMapSelector';
+import { DigitalBoardingPassModal } from '../components/DigitalBoardingPassModal';
 
-interface PassengerPortalProps {
+interface PassengerDashboardProps {
   db: PlatformDatabaseV2;
   onUpdateDb: (nextDb: PlatformDatabaseV2) => void;
   currentUser: PassengerUser;
+  initialTab?: 'BOOKING' | 'TICKETS' | 'WALLET' | 'PROFILE';
+  preselectedTrain?: TrainSchedule | null;
+  onClearPreselectedTrain?: () => void;
   onUpdateSessionUsername: (newUsername: string, newDisplayName: string, newEmail: string) => void;
   lang: Language;
   notify: (msgEn: string, msgFa: string, type?: 'success' | 'error') => void;
 }
 
-export const PassengerPortal: React.FC<PassengerPortalProps> = ({
+export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
   db,
   onUpdateDb,
   currentUser,
+  initialTab = 'BOOKING',
+  preselectedTrain = null,
+  onClearPreselectedTrain,
   onUpdateSessionUsername,
   lang,
   notify,
 }) => {
   const isFa = lang === 'fa';
-  const [activeTab, setActiveTab] = useState<'BOOKING' | 'TICKETS' | 'WALLET' | 'PROFILE'>('BOOKING');
+  const [activeTab, setActiveTab] = useState<'BOOKING' | 'TICKETS' | 'WALLET' | 'PROFILE'>(
+    initialTab
+  );
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   // --- SEARCH & FILTER STATE ---
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,24 +75,39 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
   const [selectedQualityFilter, setSelectedQualityFilter] = useState('ALL');
   const [minSeatsFilter, setMinSeatsFilter] = useState(1);
 
-  // --- BOOKING DRAWER / MODAL STATE ---
-  const [selectedTrain, setSelectedTrain] = useState<TrainSchedule | null>(null);
-  const [ticketCount, setTicketCount] = useState(1);
+  // --- SEAT MAP BOOKING MODAL STATE ---
+  const [selectedTrain, setSelectedTrain] = useState<TrainSchedule | null>(preselectedTrain);
   const [lowBalanceShortfall, setLowBalanceShortfall] = useState<number | null>(null);
+  const [viewingTicketModal, setViewingTicketModal] = useState<TicketRecord | null>(null);
+
+  useEffect(() => {
+    if (preselectedTrain) {
+      setSelectedTrain(preselectedTrain);
+      setActiveTab('BOOKING');
+    }
+  }, [preselectedTrain]);
 
   // --- WALLET STATE ---
   const [depositAmount, setDepositAmount] = useState('100');
   const [withdrawAmount, setWithdrawAmount] = useState('50');
 
-  // --- PROFILE STATE (Strictly scoped to currentUser.id!) ---
+  // --- PROFILE STATE (Strictly scoped to currentUser.id) ---
   const [profName, setProfName] = useState(currentUser.name);
   const [profEmail, setProfEmail] = useState(currentUser.email);
   const [profUsername, setProfUsername] = useState(currentUser.username);
   const [profPassword, setProfPassword] = useState('');
 
-  // Filter available trains
+  useEffect(() => {
+    setProfName(currentUser.name);
+    setProfEmail(currentUser.email);
+    setProfUsername(currentUser.username);
+  }, [currentUser.id, currentUser.name, currentUser.email, currentUser.username]);
+
   const filteredTrains = db.trains.filter((t) => {
-    if (selectedLineFilter !== 'ALL' && normalizeIdentifier(t.name_line) !== normalizeIdentifier(selectedLineFilter)) {
+    if (
+      selectedLineFilter !== 'ALL' &&
+      normalizeIdentifier(t.name_line) !== normalizeIdentifier(selectedLineFilter)
+    ) {
       return false;
     }
     if (selectedQualityFilter !== 'ALL' && t.quality !== selectedQualityFilter) {
@@ -85,8 +118,12 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
     }
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
-      const line = db.lines.find((l) => normalizeIdentifier(l.name_line) === normalizeIdentifier(t.name_line));
-      const hay = `${t.id_train} ${t.name_train} ${t.name_line} ${line?.origin || ''} ${line?.destination || ''}`.toLowerCase();
+      const line = db.lines.find(
+        (l) => normalizeIdentifier(l.name_line) === normalizeIdentifier(t.name_line)
+      );
+      const hay = `${t.id_train} ${t.name_train} ${t.name_line} ${line?.origin || ''} ${
+        line?.destination || ''
+      }`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
@@ -95,39 +132,54 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
   const userTickets = db.tickets.filter((t) => t.userId === currentUser.id);
   const userTransactions = db.transactions.filter((tx) => tx.userId === currentUser.id);
 
-  const handleConfirmBooking = () => {
+  const handleConfirmSeatPurchase = (
+    ticketCount: number,
+    selectedSeats: string[],
+    coachNumber: number
+  ) => {
     if (!selectedTrain) return;
     setLowBalanceShortfall(null);
 
-    const res = purchaseTrainTicket(db, currentUser.id, selectedTrain.id_train, ticketCount);
+    const res = purchaseTrainTicket(
+      db,
+      currentUser.id,
+      selectedTrain.id_train,
+      ticketCount,
+      selectedSeats,
+      coachNumber
+    );
     if (!res.success) {
       if (res.lowBalanceRedirect && res.requiredShortfall) {
         setLowBalanceShortfall(res.requiredShortfall);
       }
-      notify(res.errorEn || 'Booking failed', res.errorFa || 'خطا در خرید بلیط', 'error');
+      notify(res.errorEn || 'Booking failed', res.errorFa || 'خطا در رزرو بلیط', 'error');
       return;
     }
 
     onUpdateDb(res.db);
     setSelectedTrain(null);
+    if (onClearPreselectedTrain) onClearPreselectedTrain();
     setActiveTab('TICKETS');
+    if (res.ticket) {
+      setViewingTicketModal(res.ticket);
+    }
     notify(
       `Ticket booked! PNR: ${res.ticket?.pnr}`,
-      `خرید بلیط با موفقیت انجام شد! کد رزرو (PNR): ${res.ticket?.pnr}`
+      `رزرو بلیط با موفقیت انجام شد! کد رهگیری: ${res.ticket?.pnr}`
     );
   };
 
   const handleDeposit = (amountVal: unknown) => {
     const res = depositToWallet(db, currentUser.id, amountVal);
     if (!res.success) {
-      notify(res.errorEn || 'Invalid deposit', res.errorFa || 'مبلغ نامعتبر است', 'error');
+      notify(res.errorEn || 'Invalid deposit', res.errorFa || 'مبلغ وارد شده معتبر نیست', 'error');
       return;
     }
     onUpdateDb(res.db);
     setLowBalanceShortfall(null);
     notify(
       `Wallet credited! New balance: $${res.newBalance?.toFixed(2)}`,
-      `کیف پول شارژ شد! موجودی جدید: $${res.newBalance?.toFixed(2)}`
+      `کیف پول شما شارژ شد! موجودی جدید: $${res.newBalance?.toFixed(2)}`
     );
   };
 
@@ -141,7 +193,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
     onUpdateDb(res.db);
     notify(
       `Withdrawal complete! Remaining balance: $${res.newBalance?.toFixed(2)}`,
-      `برداشت با موفقیت انجام شد! موجودی باقیمانده: $${res.newBalance?.toFixed(2)}`
+      `برداشت وجه انجام شد! موجودی باقیمانده: $${res.newBalance?.toFixed(2)}`
     );
   };
 
@@ -154,7 +206,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
     onUpdateDb(res.db);
     notify(
       `Ticket ${res.ticket?.pnr} refunded to your wallet ($${res.ticket?.totalPrice.toFixed(2)}).`,
-      `بلیط ${res.ticket?.pnr} لغو و مبلغ $${res.ticket?.totalPrice.toFixed(2)} به کیف پول شما بازگشت داده شد.`
+      `بلیط ${res.ticket?.pnr} لغو و مبلغ $${res.ticket?.totalPrice.toFixed(2)} به کیف پول شما بازگردانده شد.`
     );
   };
 
@@ -165,12 +217,20 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
     const trimUsername = profUsername.trim();
 
     if (!trimName || !trimEmail || !trimUsername) {
-      notify('Name, Email, and Username cannot be empty.', 'نام، ایمیل و نام کاربری نمی‌توانند خالی باشند.', 'error');
+      notify(
+        'Name, Email, and Username cannot be empty.',
+        'نام، ایمیل و نام کاربری نمی‌توانند خالی باشند.',
+        'error'
+      );
       return;
     }
 
     if (!isValidEmail(trimEmail)) {
-      notify('Please enter a valid email address.', 'لطفاً یک آدرس ایمیل معتبر وارد کنید.', 'error');
+      notify(
+        'Please enter a valid email address.',
+        'لطفاً یک آدرس ایمیل معتبر وارد کنید.',
+        'error'
+      );
       return;
     }
 
@@ -182,7 +242,11 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
         (u) => u.id !== currentUser.id && normalizeIdentifier(u.email) === normEmail
       )
     ) {
-      notify('This email is already taken by another user!', 'این ایمیل قبلاً توسط کاربر دیگری ثبت شده است!', 'error');
+      notify(
+        'This email is already taken by another user!',
+        'این ایمیل قبلاً توسط کاربر دیگری ثبت شده است!',
+        'error'
+      );
       return;
     }
 
@@ -193,7 +257,11 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
       db.employees.some((emp) => normalizeIdentifier(emp.username) === normUser) ||
       normalizeIdentifier(db.admin.username) === normUser
     ) {
-      notify('This username is already taken!', 'این نام کاربری قبلاً انتخاب شده است!', 'error');
+      notify(
+        'This username is already taken!',
+        'این نام کاربری قبلاً انتخاب شده است!',
+        'error'
+      );
       return;
     }
 
@@ -207,7 +275,6 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
         nextDb.passengers[idx].passwordHash = hashPassword(profPassword.trim());
       }
 
-      // Cascade username update across user's tickets & transactions
       nextDb.tickets.forEach((t) => {
         if (t.userId === currentUser.id) {
           t.passengerName = trimName;
@@ -226,20 +293,23 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
         actorRole: 'passenger',
         actorUsername: trimUsername,
         action: 'PROFILE_UPDATED',
-        detailsEn: `Passenger updated own profile (scoped to userId: ${currentUser.id}).`,
-        detailsFa: `مسافر اطلاعات پروفایل خود را بروزرسانی کرد (ایزوله برای شناسه ${currentUser.id}).`,
+        detailsEn: `Passenger updated own profile (${currentUser.id}).`,
+        detailsFa: `مسافر اطلاعات پروفایل حساب خود را بروزرسانی کرد.`,
       });
 
       onUpdateDb(nextDb);
       onUpdateSessionUsername(trimUsername, trimName, trimEmail.toLowerCase());
       setProfPassword('');
-      notify('Your profile has been updated!', 'اطلاعات حساب کاربری شما با موفقیت بروزرسانی شد!');
+      notify(
+        'Your profile has been updated!',
+        'اطلاعات حساب کاربری شما با موفقیت بروزرسانی شد!'
+      );
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Top Passenger Summary & Sub-Navigation */}
+      {/* Top Passenger Navigation Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5">
         <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 dark:bg-slate-950 rounded-lg">
           <button
@@ -251,7 +321,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                 : 'text-slate-600 dark:text-slate-400'
             }`}
           >
-            {isFa ? 'جستجو و رزرو بلیط (user_shopping)' : 'Search & Book Trains (user_shopping)'}
+            {isFa ? 'جستجو و رزرو آنلاین بلیط' : 'Search & Book Tickets'}
           </button>
           <button
             type="button"
@@ -264,7 +334,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
           >
             {isFa
               ? `بلیط‌های من و کارت سوارشدن (${userTickets.length})`
-              : `My Tickets & Boarding Pass (${userTickets.length})`}
+              : `My Tickets & Boarding Passes (${userTickets.length})`}
           </button>
           <button
             type="button"
@@ -275,7 +345,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                 : 'text-slate-600 dark:text-slate-400'
             }`}
           >
-            {isFa ? 'کیف پول دیجیتال (Wallet)' : 'Digital Wallet & Ledger'}
+            {isFa ? 'کیف پول دیجیتال و تراکنش‌ها' : 'Digital Wallet & Ledger'}
           </button>
           <button
             type="button"
@@ -286,14 +356,14 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                 : 'text-slate-600 dark:text-slate-400'
             }`}
           >
-            {isFa ? 'ویرایش پروفایل (edit_profile)' : 'Edit Profile (edit_profile)'}
+            {isFa ? 'تنظیمات حساب کاربری' : 'Account Profile'}
           </button>
         </div>
 
         {/* Active Passenger Balance Indicator */}
         <div className="flex items-center gap-3">
           <div className="text-xs text-slate-500 dark:text-slate-400">
-            {isFa ? 'موجودی کیف پول شما:' : 'Your Wallet Balance:'}
+            {isFa ? 'موجودی کیف پول شما:' : 'Available Balance:'}
           </div>
           <div className="font-mono text-base font-bold text-emerald-600 dark:text-emerald-400">
             ${currentUser.balance.toFixed(2)}
@@ -303,7 +373,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
             onClick={() => setActiveTab('WALLET')}
             className="px-2.5 py-1 text-xs font-medium rounded-lg bg-blue-600/10 text-blue-600 dark:text-blue-400 hover:bg-blue-600/20 cursor-pointer"
           >
-            + {isFa ? 'شارژ سریع' : 'Top Up'}
+            + {isFa ? 'افزایش اعتبار' : 'Top Up'}
           </button>
         </div>
       </div>
@@ -311,7 +381,6 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
       {/* TAB 1: SMART TRAIN SEARCH & TICKET BOOKING */}
       {activeTab === 'BOOKING' && (
         <div className="space-y-5">
-          {/* Search & Filter Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute top-2.5 start-3 pointer-events-none" />
@@ -319,7 +388,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={isFa ? 'جستجوی شهر، قطار یا شناسه...' : 'Search station, train ID...'}
+                placeholder={isFa ? 'جستجوی شهر، قطار یا شماره سرویس...' : 'Search station or train...'}
                 className="w-full ps-9 pe-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
               />
             </div>
@@ -342,10 +411,10 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
               onChange={(e) => setSelectedQualityFilter(e.target.value)}
               className="px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
             >
-              <option value="ALL">{isFa ? 'همه کلاس‌های سالن' : 'All Quality Tiers'}</option>
-              <option value="VIP 5-Star">VIP 5-Star</option>
-              <option value="Business 4-Star">Business 4-Star</option>
-              <option value="Economy 3-Star">Economy 3-Star</option>
+              <option value="ALL">{isFa ? 'همه کلاس‌های سالن' : 'All Travel Classes'}</option>
+              <option value="VIP 5-Star">{isFa ? '۵ ستاره ویژه (VIP)' : 'VIP 5-Star'}</option>
+              <option value="Business 4-Star">{isFa ? '۴ ستاره تجاری' : 'Business 4-Star'}</option>
+              <option value="Economy 3-Star">{isFa ? '۳ ستاره اقتصادی' : 'Economy 3-Star'}</option>
             </select>
 
             <div className="flex items-center gap-2">
@@ -363,15 +432,17 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
             </div>
           </div>
 
-          {/* Train Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredTrains.map((train) => {
               const line = db.lines.find(
                 (l) => normalizeIdentifier(l.name_line) === normalizeIdentifier(train.name_line)
               );
               const timings = line ? computeTrainStationTimings(train, line) : [];
-              const destArrival = timings.length > 0 ? timings[timings.length - 1].arrivalFormatted : '--:--';
-              const capPercent = Math.round((train.capacity / Math.max(1, train.totalCapacity)) * 100);
+              const destArrival =
+                timings.length > 0 ? timings[timings.length - 1].arrivalFormatted : '--:--';
+              const capPercent = Math.round(
+                (train.capacity / Math.max(1, train.totalCapacity)) * 100
+              );
 
               return (
                 <div
@@ -403,20 +474,21 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                           ${train.cost_ticket.toFixed(2)}
                         </div>
                         <div className="text-[11px] text-slate-400">
-                          {isFa ? 'هر صندلی' : 'per passenger'}
+                          {isFa ? 'بهای هر صندلی' : 'per passenger'}
                         </div>
                       </div>
                     </div>
 
-                    {/* Route & Timing Summary */}
                     {line && (
                       <div className="my-4 p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/70 dark:border-slate-800">
                         <div className="flex items-center justify-between text-xs">
                           <div>
-                            <div className="font-semibold text-slate-900 dark:text-slate-100">
+                            <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5 text-blue-500" />
                               {line.origin}
                             </div>
-                            <div className="font-mono text-blue-600 dark:text-blue-400 mt-0.5">
+                            <div className="font-mono text-blue-600 dark:text-blue-400 mt-0.5 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
                               {train.departureTime}
                             </div>
                           </div>
@@ -459,12 +531,11 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                       type="button"
                       onClick={() => {
                         setSelectedTrain(train);
-                        setTicketCount(1);
                         setLowBalanceShortfall(null);
                       }}
                       className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors cursor-pointer"
                     >
-                      {isFa ? 'انتخاب قطار و رزرو بلیط' : 'Select Train & Book Tickets'}
+                      {isFa ? 'انتخاب صندلی از نقشه واگن و رزرو' : 'Select Coach Seats & Book'}
                     </button>
                   </div>
                 </div>
@@ -485,7 +556,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
               </div>
               <p className="text-xs text-slate-500 mt-1 mb-4">
                 {isFa
-                  ? 'از بخش جستجو و رزرو بلیط، قطار مورد نظر خود را انتخاب کنید.'
+                  ? 'از بخش جستجو و رزرو بلیط، قطار و صندلی مورد نظر خود را انتخاب کنید.'
                   : 'Browse available trains to book your first digital boarding pass.'}
               </p>
               <button
@@ -493,7 +564,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                 onClick={() => setActiveTab('BOOKING')}
                 className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium cursor-pointer"
               >
-                {isFa ? 'مشاهده قطارها' : 'Browse Trains'}
+                {isFa ? 'مشاهده سرویس‌های قطار' : 'Browse Trains'}
               </button>
             </div>
           ) : (
@@ -506,7 +577,9 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                   <div>
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-3">
                       <div>
-                        <span className="text-[11px] text-slate-400 font-mono">PNR CODE</span>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          {isFa ? 'کد رهگیری (PNR)' : 'PNR REFERENCE'}
+                        </span>
                         <div className="text-lg font-bold font-mono text-blue-600 dark:text-blue-400">
                           {tkt.pnr}
                         </div>
@@ -521,10 +594,10 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                         >
                           {tkt.status === 'Confirmed'
                             ? isFa
-                              ? 'تایید شده (Confirmed)'
+                              ? 'قطعی و تایید شده'
                               : 'Confirmed'
                             : isFa
-                            ? 'مسترد شده (Refunded)'
+                            ? 'لغو و مسترد شده'
                             : 'Refunded'}
                         </span>
                         <div className="text-[11px] font-mono text-slate-400 mt-0.5">
@@ -541,7 +614,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500">{isFa ? 'مسیر:' : 'Route:'}</span>
+                        <span className="text-slate-500">{isFa ? 'مسیر سفر:' : 'Route:'}</span>
                         <span className="font-medium text-slate-800 dark:text-slate-200">
                           {tkt.origin} → {tkt.destination}
                         </span>
@@ -551,13 +624,16 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                         <span className="font-mono font-semibold">{tkt.departureTime}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500">{isFa ? 'مسافر:' : 'Passenger:'}</span>
-                        <span>{tkt.passengerName}</span>
+                        <span className="text-slate-500">{isFa ? 'واگن و صندلی‌ها:' : 'Coach & Seats:'}</span>
+                        <span className="font-mono font-semibold text-blue-600 dark:text-blue-400">
+                          {isFa ? `واگن ${tkt.coachNumber || 1}` : `Coach ${tkt.coachNumber || 1}`} ·{' '}
+                          {(tkt.seatNumbers || ['1A']).join(', ')}
+                        </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500">{isFa ? 'تعداد صندلی و مبلغ کل:' : 'Seats & Total Paid:'}</span>
+                        <span className="text-slate-500">{isFa ? 'مبلغ کل:' : 'Total Paid:'}</span>
                         <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          {tkt.ticketCount}x (${tkt.unitPrice}) = ${tkt.totalPrice.toFixed(2)}
+                          ${tkt.totalPrice.toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -569,25 +645,36 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                       </div>
                       <div className="overflow-hidden">
                         <div className="text-[10px] font-semibold text-slate-500">
-                          {isFa ? 'امضای دیجیتال کارت سوارشدن' : 'VERIFIED QR BOARDING PAYLOAD'}
+                          {isFa ? 'بارکد دیجیتال کارت سوارشدن' : 'DIGITAL BOARDING PASS QR'}
                         </div>
-                        <div className="text-[10px] font-mono text-slate-600 dark:text-slate-400 truncate mt-0.5">
+                        <div className="text-[10px] font-mono text-slate-600 dark:text-slate-400 truncate mt-0.5" dir="ltr">
                           {tkt.qrPayload}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {tkt.status === 'Confirmed' && (
+                  <div className="mt-4 grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => handleRefundTicket(tkt.id)}
-                      className="mt-4 w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-red-300 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-medium transition-colors cursor-pointer"
+                      onClick={() => setViewingTicketModal(tkt)}
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                     >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>{isFa ? 'لغو بلیط و استرداد وجه به کیف پول' : 'Cancel Ticket & Refund to Wallet'}</span>
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>{isFa ? 'کارت سوارشدن' : 'Boarding Pass'}</span>
                     </button>
-                  )}
+
+                    {tkt.status === 'Confirmed' && (
+                      <button
+                        type="button"
+                        onClick={() => handleRefundTicket(tkt.id)}
+                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-red-300 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-medium transition-colors cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>{isFa ? 'لغو و استرداد وجه' : 'Cancel & Refund'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -599,19 +686,18 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
       {activeTab === 'WALLET' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className="lg:col-span-5 space-y-5">
-            {/* Interactive Visual Bank Card */}
             <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-lg">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-blue-400" />
                   <span className="text-xs font-mono tracking-wider text-slate-300">
-                    RAILPULSE PAY WALLET
+                    RAILPULSE PASSENGER WALLET
                   </span>
                 </div>
                 <span className="text-xs font-mono text-emerald-400">ACTIVE</span>
               </div>
               <div className="text-xs text-slate-400">
-                {isFa ? 'موجودی قابل برداشت و خرید بلیط' : 'Available Balance'}
+                {isFa ? 'موجودی قابل خرید بلیط و برداشت آنی' : 'Available Balance'}
               </div>
               <div className="text-3xl font-bold font-mono tabular-nums mt-1">
                 ${currentUser.balance.toFixed(2)}
@@ -622,12 +708,12 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
               </div>
             </div>
 
-            {/* Increase Balance (`add_money`) */}
+            {/* Increase Balance */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
               <div className="flex items-center gap-2 mb-3">
                 <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
                 <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  {isFa ? 'افزایش موجودی کیف پول (add_money)' : 'Increase Wallet Balance (add_money)'}
+                  {isFa ? 'افزایش اعتبار کیف پول' : 'Top Up Wallet Balance'}
                 </h4>
               </div>
 
@@ -659,17 +745,17 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                   onClick={() => handleDeposit(depositAmount)}
                   className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer"
                 >
-                  {isFa ? 'شارژ حساب' : 'Deposit'}
+                  {isFa ? 'افزایش موجودی' : 'Deposit'}
                 </button>
               </div>
             </div>
 
-            {/* Decrease Balance (`decrease_money`) */}
+            {/* Withdraw Balance */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
               <div className="flex items-center gap-2 mb-3">
                 <ArrowUpRight className="w-4 h-4 text-amber-500" />
                 <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  {isFa ? 'برداشت وجه از کیف پول (decrease_money)' : 'Withdraw Balance (decrease_money)'}
+                  {isFa ? 'برداشت وجه و انتقال به حساب بانکی' : 'Withdraw Funds'}
                 </h4>
               </div>
               <form onSubmit={handleWithdraw} className="flex gap-2">
@@ -684,9 +770,9 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold cursor-pointer"
                 >
-                  {isFa ? 'برداشت وجه' : 'Withdraw'}
+                  {isFa ? 'ثبت برداشت' : 'Withdraw'}
                 </button>
               </form>
             </div>
@@ -697,7 +783,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
             <div className="flex items-center gap-2 mb-4">
               <Wallet className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                {isFa ? 'دفتر کل تراکنش‌های مالی مسافر' : 'Immutable Passenger Financial Ledger'}
+                {isFa ? 'صورتحساب و گردش مالی کیف پول شما' : 'Personal Wallet Transaction History'}
               </h3>
             </div>
 
@@ -706,9 +792,8 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] font-semibold text-slate-500">
                     <th className="py-2.5 px-3 text-start">{isFa ? 'شرح تراکنش' : 'Description'}</th>
-                    <th className="py-2.5 px-3 text-start">{isFa ? 'نوع' : 'Type'}</th>
                     <th className="py-2.5 px-3 text-end">{isFa ? 'مبلغ' : 'Amount'}</th>
-                    <th className="py-2.5 px-3 text-end">{isFa ? 'مانده حساب' : 'Balance'}</th>
+                    <th className="py-2.5 px-3 text-end">{isFa ? 'مانده حساب' : 'Running Balance'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800/70 text-xs">
@@ -724,7 +809,6 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
                             {new Date(tx.timestamp).toLocaleString()}
                           </div>
                         </td>
-                        <td className="py-3 px-3 font-mono text-[11px]">{tx.type}</td>
                         <td
                           className={`py-3 px-3 text-end font-mono font-semibold ${
                             isCredit
@@ -747,27 +831,25 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
         </div>
       )}
 
-      {/* TAB 4: AUTHENTICATED PROFILE MANAGEMENT (`edit_profile`) */}
+      {/* TAB 4: AUTHENTICATED PROFILE MANAGEMENT */}
       {activeTab === 'PROFILE' && (
         <div className="max-w-xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6">
           <div className="flex items-center gap-2.5 mb-2">
             <UserCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-              {isFa
-                ? 'ویرایش اطلاعات حساب کاربری شخصی (edit_profile)'
-                : 'Authenticated Passenger Profile Management (edit_profile)'}
+              {isFa ? 'تنظیمات و مشخصات حساب کاربری مسافر' : 'Personal Account Profile Settings'}
             </h3>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
             {isFa
-              ? `ایزوله شده برای نشست فعال شما (${currentUser.id}) — رفع باگ امنیتی نسخه پایتون که اجازه ویرایش سایر کاربران را می‌داد.`
-              : `Strictly bound to your active session (${currentUser.id}) — prevents cross-account profile tampering.`}
+              ? 'اطلاعات حساب کاربری شما به صورت اختصاصی و ایمن مدیریت می‌شود.'
+              : 'Update your personal traveler details and account security credentials.'}
           </p>
 
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                {isFa ? 'نام و نام خانوادگی (name)' : 'Full Name (name)'}
+                {isFa ? 'نام و نام خانوادگی' : 'Full Name'}
               </label>
               <input
                 type="text"
@@ -779,7 +861,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
 
             <div>
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                {isFa ? 'نام کاربری یکتا (username)' : 'Username (username)'}
+                {isFa ? 'نام کاربری یکتا' : 'Username'}
               </label>
               <input
                 type="text"
@@ -792,7 +874,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
 
             <div>
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                {isFa ? 'آدرس ایمیل یکتا (email)' : 'Email Address (email)'}
+                {isFa ? 'آدرس پست الکترونیک' : 'Email Address'}
               </label>
               <input
                 type="email"
@@ -805,7 +887,7 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
 
             <div>
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                {isFa ? 'رمز عبور جدید (اختیاری)' : 'New Password (leave blank to keep current)'}
+                {isFa ? 'رمز عبور جدید (اختیاری)' : 'New Password (optional)'}
               </label>
               <input
                 type="password"
@@ -821,132 +903,48 @@ export const PassengerPortal: React.FC<PassengerPortalProps> = ({
               type="submit"
               className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors cursor-pointer"
             >
-              {isFa ? 'ذخیره تغییرات پروفایل' : 'Save Profile Changes'}
+              {isFa ? 'ذخیره تغییرات حساب کاربری' : 'Save Profile Changes'}
             </button>
           </form>
         </div>
       )}
 
-      {/* Interactive Ticket Booking Drawer / Modal */}
+      {/* Interactive Coach Seat Map Selector Modal */}
       {selectedTrain && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-lg w-full p-5 shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <Train className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <div>
-                  <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                    {selectedTrain.id_train} — {selectedTrain.name_train}
-                  </h4>
-                  <div className="text-xs text-slate-500">{selectedTrain.name_line}</div>
-                </div>
-              </div>
-              <span className="font-mono text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                ${selectedTrain.cost_ticket.toFixed(2)}
-              </span>
-            </div>
+        <SeatMapSelector
+          train={selectedTrain}
+          timings={(() => {
+            const line = db.lines.find(
+              (l) => normalizeIdentifier(l.name_line) === normalizeIdentifier(selectedTrain.name_line)
+            );
+            return line ? computeTrainStationTimings(selectedTrain, line) : [];
+          })()}
+          passengerBalance={currentUser.balance}
+          occupiedSeats={db.tickets
+            .filter(
+              (t) =>
+                t.status === 'Confirmed' &&
+                normalizeIdentifier(t.id_train) === normalizeIdentifier(selectedTrain.id_train)
+            )
+            .flatMap((t) => t.seatNumbers || [])}
+          lang={lang}
+          lowBalanceShortfall={lowBalanceShortfall}
+          onQuickDeposit={(amt) => handleDeposit(amt)}
+          onConfirmPurchase={handleConfirmSeatPurchase}
+          onClose={() => {
+            setSelectedTrain(null);
+            if (onClearPreselectedTrain) onClearPreselectedTrain();
+          }}
+        />
+      )}
 
-            {/* Station-by-Station Timetable inside Booking Modal */}
-            {(() => {
-              const line = db.lines.find(
-                (l) => normalizeIdentifier(l.name_line) === normalizeIdentifier(selectedTrain.name_line)
-              );
-              const timings = line ? computeTrainStationTimings(selectedTrain, line) : [];
-              return (
-                timings.length > 0 && (
-                  <div className="mb-4">
-                    <div className="text-xs font-medium text-slate-500 mb-2">
-                      {isFa ? 'جدول زمانبندی ایستگاه‌ها و توقف‌ها:' : 'Station-by-Station Timetable:'}
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-36 overflow-y-auto">
-                      {timings.map((node) => (
-                        <div
-                          key={node.stationIndex}
-                          className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px]"
-                        >
-                          <div className="font-semibold text-slate-800 dark:text-slate-200 truncate">
-                            {node.stationName}
-                          </div>
-                          <div className="font-mono text-slate-500">
-                            {node.arrivalFormatted} → {node.departureFormatted}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              );
-            })()}
-
-            <div className="space-y-3 bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 mb-4">
-              <div className="flex items-center justify-between text-xs">
-                <span>{isFa ? 'تعداد بلیط درخواستی:' : 'Number of Tickets:'}</span>
-                <input
-                  type="number"
-                  dir="ltr"
-                  min={1}
-                  max={selectedTrain.capacity}
-                  value={ticketCount}
-                  onChange={(e) => setTicketCount(Math.max(1, Math.round(Number(e.target.value))))}
-                  className="w-24 px-2.5 py-1 text-sm font-mono text-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
-                />
-              </div>
-
-              <div className="flex items-center justify-between text-xs">
-                <span>{isFa ? 'ظرفیت صندلی موجود:' : 'Available Seats:'}</span>
-                <span className="font-mono">{selectedTrain.capacity}</span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs">
-                <span>{isFa ? 'موجودی فعلی کیف پول شما:' : 'Your Wallet Balance:'}</span>
-                <span className="font-mono font-semibold">${currentUser.balance.toFixed(2)}</span>
-              </div>
-
-              <div className="flex items-center justify-between text-sm font-bold pt-2 border-t border-slate-200 dark:border-slate-800">
-                <span>{isFa ? 'مبلغ قابل پرداخت (کل):' : 'Total Cost:'}</span>
-                <span className="font-mono text-blue-600 dark:text-blue-400">
-                  ${(ticketCount * selectedTrain.cost_ticket).toFixed(2)}
-                </span>
-              </div>
-            </div>
-
-            {lowBalanceShortfall !== null && (
-              <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-2 text-xs text-amber-700 dark:text-amber-300">
-                <span>
-                  {isFa
-                    ? `کمبود موجودی کیف پول: $${lowBalanceShortfall.toFixed(2)}`
-                    : `Wallet shortfall: $${lowBalanceShortfall.toFixed(2)}`}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleDeposit(Math.ceil(lowBalanceShortfall))}
-                  className="px-3 py-1 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium cursor-pointer whitespace-nowrap"
-                >
-                  {isFa
-                    ? `شارژ آنی +$${Math.ceil(lowBalanceShortfall)}`
-                    : `Instant Top-Up +$${Math.ceil(lowBalanceShortfall)}`}
-                </button>
-              </div>
-            )}
-
-            <div className="flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedTrain(null)}
-                className="px-4 py-2 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 cursor-pointer"
-              >
-                {isFa ? 'انصراف' : 'Cancel'}
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmBooking}
-                className="px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
-              >
-                {isFa ? 'پرداخت از کیف پول و صدور بلیط' : 'Pay with Wallet & Issue Boarding Pass'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Perforated Digital Boarding Pass Modal */}
+      {viewingTicketModal && (
+        <DigitalBoardingPassModal
+          ticket={viewingTicketModal}
+          lang={lang}
+          onClose={() => setViewingTicketModal(null)}
+        />
       )}
     </div>
   );

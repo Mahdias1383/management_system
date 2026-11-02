@@ -1,5 +1,7 @@
+import { ActiveSession, UserRole } from '../types/domain';
+
 /**
- * Normalizes any unique identifier (username, email, name_line, id_train)
+ * Normalizes any unique identifier (username, email, line name, train code)
  * using .trim().toLowerCase() for case-insensitive conflict detection while preserving display casing.
  */
 export function normalizeIdentifier(value: string | number | undefined | null): string {
@@ -8,7 +10,7 @@ export function normalizeIdentifier(value: string | number | undefined | null): 
 }
 
 /**
- * Deterministic password hashing simulation (SHA-like hex digest) so plaintext passwords
+ * Deterministic password hashing simulation (SHA-256 hex digest format) so plaintext passwords
  * are never stored in the v2 normalized database, while preserving backward compatibility.
  */
 export function hashPassword(rawPassword: string | number): string {
@@ -32,6 +34,38 @@ export function verifyPassword(rawInput: string | number, storedHash: string): b
     return String(rawInput) === storedHash;
   }
   return hashPassword(rawInput) === storedHash;
+}
+
+/**
+ * Generates a role-scoped signed session token and verifies RBAC route permissions.
+ */
+export function issueSessionToken(userId: string, role: UserRole): string {
+  const payload = `${role}:${userId}:${Date.now()}`;
+  return `rptok_${hashPassword(payload).replace('rp_sha256$', '')}`;
+}
+
+/**
+ * Strict RBAC authorization check used by RoleGuard and automated UI Isolation tests.
+ */
+export function isAuthorizedForRole(
+  session: ActiveSession | null | undefined,
+  allowedRoles: UserRole[]
+): { authorized: boolean; reasonEn?: string; reasonFa?: string } {
+  if (!session || !session.userId || !session.sessionToken) {
+    return {
+      authorized: false,
+      reasonEn: 'Authentication required. Please sign in to access this workspace.',
+      reasonFa: 'برای دسترسی به این بخش، لطفاً ابتدا وارد حساب کاربری خود شوید.',
+    };
+  }
+  if (!allowedRoles.includes(session.role)) {
+    return {
+      authorized: false,
+      reasonEn: `Access Denied: Role "${session.role}" is not permitted to access this portal.`,
+      reasonFa: `عدم دسترسی: نقش کاربری شما مجوز ورود به این درگاه سازمانی را ندارد.`,
+    };
+  }
+  return { authorized: true };
 }
 
 /**

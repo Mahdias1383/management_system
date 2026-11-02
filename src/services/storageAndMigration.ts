@@ -88,6 +88,13 @@ export function getDefaultLegacyV1Snapshot(): LegacyV1Snapshot {
         num_state: 3,
         list_state: ['Mianeh (میانه)', 'Zanjan (زنجان)', 'Qazvin (قزوین)'],
       },
+      'tehran-shiraz-royal': {
+        name_line: 'Tehran-Shiraz Royal Line',
+        origin: 'Tehran Central (تهران)',
+        destination: 'Shiraz Persepolis (شیراز)',
+        num_state: 2,
+        list_state: ['Isfahan South (اصفهان)', 'Abadeh (آباده)'],
+      },
     },
     train_dic: {
       'TR-101': {
@@ -163,6 +170,20 @@ export function getDefaultLegacyV1Snapshot(): LegacyV1Snapshot {
         cost_ticket: 34,
         capacity: 280,
         departureTime: '06:30',
+      },
+      'TR-401': {
+        id_train: 'TR-401',
+        name_train: 'Pars Night sleeper 401 (پارس شیراز)',
+        name_line: 'Tehran-Shiraz Royal Line',
+        speed: 155,
+        list_stop_time: {
+          'Isfahan South (اصفهان)': 15,
+          'Abadeh (آباده)': 10,
+        },
+        quality: 'Business 4-Star',
+        cost_ticket: 56,
+        capacity: 180,
+        departureTime: '16:30',
       },
     },
   };
@@ -241,6 +262,7 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
     'tehran-mashhad high-speed': [216, 194, 360, 125], // Tehran->Semnan->Shahroud->Neyshabur->Mashhad (895 km)
     'tehran-isfahan express': [135, 108, 172], // Tehran->Qom->Kashan->Isfahan (415 km)
     'tabriz-tehran azerbaijan corridor': [165, 135, 170, 155], // Tabriz->Mianeh->Zanjan->Qazvin->Tehran (625 km)
+    'tehran-shiraz royal line': [415, 230, 280], // Tehran->Isfahan->Abadeh->Shiraz (925 km)
   };
 
   const lines: TrainLine[] = Object.values(snapshot.line_dic || {}).reduce<TrainLine[]>((acc, rawLine) => {
@@ -248,7 +270,6 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
     if (!normLine || seenLines.has(normLine)) return acc;
     seenLines.add(normLine);
 
-    // Crucial: clone list_state array so mutating one line never mutates another
     const clonedStations = Array.isArray(rawLine.list_state)
       ? rawLine.list_state.map((s) => String(s).trim()).filter(Boolean)
       : [];
@@ -284,7 +305,6 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
     const costNum = Math.max(1, Number(rawTrain.cost_ticket) || 35);
     const capNum = Math.max(1, Math.round(Number(rawTrain.capacity) || 100));
 
-    // Deep copy stop times and coerce values to numbers
     const stopTimesMap: Record<string, number> = {};
     if (rawTrain.list_stop_time && typeof rawTrain.list_stop_time === 'object') {
       for (const [st, val] of Object.entries(rawTrain.list_stop_time)) {
@@ -329,7 +349,7 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
       type: 'DEPOSIT',
       amount: 610,
       runningBalance: 610,
-      descriptionEn: 'Initial Wallet Top-Up via Shaparak / Bank Gateway',
+      descriptionEn: 'Initial Wallet Top-Up via Online Banking Gateway',
       descriptionFa: 'شارژ اولیه کیف پول از طریق درگاه بانکی',
       timestamp: '2026-10-20T14:20:00.000Z',
     });
@@ -340,8 +360,8 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
       type: 'TICKET_PURCHASE',
       amount: 130,
       runningBalance: p1.balance,
-      descriptionEn: 'Purchased 2x VIP Tickets on TR-101 (Tehran-Mashhad High-Speed)',
-      descriptionFa: 'خرید ۲ بلیط قطار TR-101 (خط سریع‌السیر تهران-مشهد)',
+      descriptionEn: 'Booked 2x VIP Seats (1A, 1B) on TR-101 (Tehran-Mashhad High-Speed)',
+      descriptionFa: 'خرید ۲ صندلی (1A, 1B) قطار TR-101 (خط سریع‌السیر تهران-مشهد)',
       referenceId: 'RP-89412',
       timestamp: '2026-10-21T09:12:00.000Z',
     });
@@ -359,12 +379,14 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
       destination: 'Mashhad Holy Shrine (مشهد)',
       departureTime: '07:00',
       ticketCount: 2,
+      seatNumbers: ['1A', '1B'],
+      coachNumber: 1,
       unitPrice: 65,
       totalPrice: 130,
       quality: 'VIP 5-Star',
       status: 'Confirmed',
       purchasedAt: '2026-10-21T09:12:00.000Z',
-      qrPayload: 'RAILPULSE|PNR:RP-89412|TRAIN:TR-101|USER:mahdi_as|SEATS:2|VERIFIED',
+      qrPayload: 'RAILPULSE|PNR:RP-89412|TRAIN:TR-101|COACH:1|SEATS:1A,1B|USER:mahdi_as|VERIFIED',
     });
   }
 
@@ -388,8 +410,8 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
       type: 'TICKET_PURCHASE',
       amount: 84,
       runningBalance: p2.balance,
-      descriptionEn: 'Purchased 2x Tickets on TR-201 (Tehran-Isfahan Express)',
-      descriptionFa: 'خرید ۲ بلیط قطار TR-201 (اکسپرس تهران-اصفهان)',
+      descriptionEn: 'Booked 2x Seats (2C, 2D) on TR-201 (Tehran-Isfahan Express)',
+      descriptionFa: 'خرید ۲ صندلی (2C, 2D) قطار TR-201 (اکسپرس تهران-اصفهان)',
       referenceId: 'RP-90234',
       timestamp: '2026-10-23T11:45:00.000Z',
     });
@@ -407,12 +429,14 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
       destination: 'Isfahan Historical (اصفهان)',
       departureTime: '08:15',
       ticketCount: 2,
+      seatNumbers: ['2C', '2D'],
+      coachNumber: 2,
       unitPrice: 42,
       totalPrice: 84,
       quality: 'VIP 5-Star',
       status: 'Confirmed',
       purchasedAt: '2026-10-23T11:45:00.000Z',
-      qrPayload: 'RAILPULSE|PNR:RP-90234|TRAIN:TR-201|USER:parisa_rad|SEATS:2|VERIFIED',
+      qrPayload: 'RAILPULSE|PNR:RP-90234|TRAIN:TR-201|COACH:2|SEATS:2C,2D|USER:parisa_rad|VERIFIED',
     });
   }
 
@@ -423,13 +447,14 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
     { trainId: 'TR-102', line: 'Tehran-Mashhad High-Speed', unit: 48 },
     { trainId: 'TR-201', line: 'Tehran-Isfahan Express', unit: 42 },
     { trainId: 'TR-301', line: 'Tabriz-Tehran Azerbaijan Corridor', unit: 34 },
+    { trainId: 'TR-401', line: 'Tehran-Shiraz Royal Line', unit: 56 },
   ];
 
   for (let dayOffset = 29; dayOffset >= 0; dayOffset--) {
     const dayDate = new Date(baseAnchorMs - dayOffset * 86400000);
     const isoTimestamp = dayDate.toISOString();
     const corridor = sampleCorridors[dayOffset % sampleCorridors.length];
-    const seatQty = ((dayOffset * 3) % 4) + 2; // 2..5 tickets
+    const seatQty = ((dayOffset * 3) % 4) + 2;
     const saleAmount = seatQty * corridor.unit;
     const pnrCode = `RP-${71000 + dayOffset}`;
 
@@ -470,10 +495,10 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
         id: 'audit_init_1',
         timestamp: nowIso,
         actorRole: 'system',
-        actorUsername: 'MigrationEngine_v2',
-        action: 'SCHEMA_MIGRATION_V1_TO_V2',
-        detailsEn: 'Migrated legacy Python dictionaries (user_dict, employee_dict, line_dic, train_dic) to normalized v2 schema with deep-cloned arrays.',
-        detailsFa: 'مهاجرت خودکار دیکشنری‌های نسخه ۱ پایتون به پایگاه داده رابطه‌ای نرمال‌شده نسخه ۲ بدون ارجاع مشترک.',
+        actorUsername: 'MigrationEngine',
+        action: 'DATA_INITIALIZED',
+        detailsEn: 'Normalized railway corridors, fleet timetables, and passenger accounts initialized with deep-cloned arrays.',
+        detailsFa: 'راه‌اندازی اولیه کریدورهای ریلی، جدول زمانبندی ناوگان و حساب‌های کاربری با ساختار نرمال‌شده.',
       },
     ],
   };
@@ -485,7 +510,6 @@ export function loadDatabase(): PlatformDatabaseV2 {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.schemaVersion === 2 && Array.isArray(parsed.lines) && Array.isArray(parsed.trains)) {
-        // Ensure 30-day historical transaction ledger entries exist if loaded from an earlier v2 cache
         if (!Array.isArray(parsed.transactions) || parsed.transactions.length < 10) {
           const freshSeeded = migrateV1ToV2(getDefaultLegacyV1Snapshot());
           parsed.transactions = [
@@ -493,6 +517,15 @@ export function loadDatabase(): PlatformDatabaseV2 {
             ...freshSeeded.transactions.filter((tx) => tx.id.startsWith('tx_hist_')),
           ];
           saveDatabase(parsed as PlatformDatabaseV2);
+        }
+        // Ensure all tickets have seatNumbers array for backward compatibility
+        if (Array.isArray(parsed.tickets)) {
+          parsed.tickets.forEach((t: TicketRecord) => {
+            if (!Array.isArray(t.seatNumbers) || t.seatNumbers.length === 0) {
+              t.seatNumbers = Array.from({ length: t.ticketCount || 1 }, (_, i) => `${i + 1}A`);
+            }
+            if (!t.coachNumber) t.coachNumber = 1;
+          });
         }
         return parsed as PlatformDatabaseV2;
       }

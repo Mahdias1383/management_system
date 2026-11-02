@@ -31,12 +31,12 @@ export const QATestSuitePanel: React.FC<QATestSuitePanelProps> = ({ lang }) => {
     selectedSuite === 'ALL' ? results : results.filter((r) => r.suite === selectedSuite);
 
   const suiteBadges: { id: string; labelEn: string; labelFa: string }[] = [
-    { id: 'ALL', labelEn: 'All 5 Phases (11 Suites)', labelFa: 'همه ۵ فاز تست (۱۱ سناریو)' },
+    { id: 'ALL', labelEn: 'All 5 Phases (12 Suites)', labelFa: 'همه ۵ فاز تست (۱۲ سناریو)' },
     { id: 'UNIT', labelEn: '1. Unit Tests (UT)', labelFa: '۱. تست‌های واحد (Unit)' },
     { id: 'INTEGRATION', labelEn: '2. Integration (IT)', labelFa: '۲. تست یکپارچه‌سازی (Integration)' },
-    { id: 'MIGRATION', labelEn: '3. Migration v1->v2 (MT)', labelFa: '۳. تست مهاجرت داده (Migration)' },
+    { id: 'MIGRATION', labelEn: '3. Migration (MT)', labelFa: '۳. تست مهاجرت داده (Migration)' },
     { id: 'E2E', labelEn: '4. End-to-End (E2E)', labelFa: '۴. تست سرتاسری (E2E)' },
-    { id: 'UI_ISOLATION', labelEn: '5. Session & UI Isolation', labelFa: '۵. ایزولاسیون نشست و رابط کاربری' },
+    { id: 'UI_ISOLATION', labelEn: '5. RBAC & Session Isolation', labelFa: '۵. ایزولاسیون نقش و نشست' },
   ];
 
   return (

@@ -38,7 +38,6 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
   const [chartMode, setChartMode] = useState<'AREA' | 'BAR'>('AREA');
   const [corridorFilter, setCorridorFilter] = useState<string>('ALL');
 
-  // Compute 30-day rolling revenue series directly from database transaction history (`db.transactions`)
   const dailyData = useMemo<DailyRevenuePoint[]>(() => {
     const ticketTxList = (transactions || []).filter(
       (tx) => tx.type === 'TICKET_PURCHASE' || tx.type === 'TICKET_REFUND'
@@ -53,7 +52,6 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
               tx.descriptionFa.toLowerCase().includes(corridorFilter.trim().toLowerCase())
           );
 
-    // Anchor end date to latest transaction timestamp or current date
     let anchorDate = new Date();
     if (ticketTxList.length > 0) {
       const validTimestamps = ticketTxList
@@ -135,26 +133,25 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
           <div>
             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
               {isFa
-                ? 'تحلیل ۳۰ روزه درآمد فروش بلیط از تاریخچه تراکنش‌ها (30-Day Revenue Analysis)'
-                : '30-Day Ticket Sales Revenue Analysis (From Transaction Ledger)'}
+                ? 'تحلیل ۳۰ روزه درآمد فروش بلیط در شبکه ریلی'
+                : '30-Day Ticket Sales Revenue Analytics'}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {isFa
-                ? 'استخراج مستقیم از تاریخچه تراکنش‌های پایگاه داده (TICKET_PURCHASE و TICKET_REFUND)'
-                : 'Aggregated directly from database transaction history (TICKET_PURCHASE & TICKET_REFUND records)'}
+                ? 'گزارش تجمیعی فروش و استرداد بلیط بر اساس تاریخچه تراکنش‌های مالی'
+                : 'Daily gross and net ticket revenue aggregated from passenger ledger transactions'}
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Corridor Filter */}
           {lines.length > 0 && (
             <select
               value={corridorFilter}
               onChange={(e) => setCorridorFilter(e.target.value)}
               className="px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="ALL">{isFa ? 'همه خطوط ریلی' : 'All Railway Lines'}</option>
+              <option value="ALL">{isFa ? 'همه خطوط ریلی' : 'All Railway Corridors'}</option>
               {lines.map((line) => (
                 <option key={line.id} value={line.name_line}>
                   {line.name_line}
@@ -163,7 +160,6 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
             </select>
           )}
 
-          {/* Chart Type Toggle */}
           <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
             <button
               type="button"
@@ -174,7 +170,7 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              {isFa ? 'نمودار مساحتی (Area)' : 'Area Trend'}
+              {isFa ? 'نمودار مساحتی' : 'Area Trend'}
             </button>
             <button
               type="button"
@@ -185,7 +181,7 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              {isFa ? 'نمودار ستونی (Bar)' : 'Daily Bars'}
+              {isFa ? 'نمودار ستونی' : 'Daily Bars'}
             </button>
           </div>
         </div>
@@ -195,7 +191,7 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
           <div className="text-[11px] text-slate-500 dark:text-slate-400">
-            {isFa ? 'درآمد خالص ۳۰ روزه (Net)' : '30-Day Net Ticket Revenue'}
+            {isFa ? 'درآمد خالص ۳۰ روزه' : '30-Day Net Ticket Revenue'}
           </div>
           <div className="text-lg font-bold font-mono tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">
             ${summary.totalNet30d.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -213,7 +209,7 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
 
         <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
           <div className="text-[11px] text-slate-500 dark:text-slate-400">
-            {isFa ? 'بیشترین فروش روزانه (Peak)' : 'Peak Revenue Day'}
+            {isFa ? 'بیشترین فروش روزانه' : 'Peak Revenue Day'}
           </div>
           <div className="text-lg font-bold font-mono tabular-nums text-blue-600 dark:text-blue-400 mt-0.5">
             ${summary.peakDay.netRevenue.toFixed(2)}{' '}
@@ -223,7 +219,7 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
 
         <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
           <div className="text-[11px] text-slate-500 dark:text-slate-400">
-            {isFa ? 'تعداد تراکنش‌های خرید بلیط' : 'Ticket Purchase Transactions'}
+            {isFa ? 'تعداد تراکنش‌های خرید بلیط' : 'Completed Ticket Orders'}
           </div>
           <div className="text-lg font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
             {summary.totalTxCount30d}
@@ -331,11 +327,11 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
           <BarChart3 className="w-3.5 h-3.5 text-blue-500" />
           <span>
             {isFa
-              ? 'متصل به تاریخچه تراکنش‌های پایگاه داده (db.transactions) با بروزرسانی آنی'
-              : 'Pulled directly from database transaction history (db.transactions) with live updates'}
+              ? 'بروزرسانی آنی نمودار بر اساس دفتر کل تراکنش‌های مالی سامانه'
+              : 'Real-time synchronization with the platform financial transaction ledger'}
           </span>
         </div>
-        <span className="font-mono">Source: db.transactions</span>
+        <span>{isFa ? 'بازه زمانی ۳۰ روزه' : '30-Day Rolling Window'}</span>
       </div>
     </div>
   );

@@ -1,6 +1,8 @@
 import { TestCaseResult, TrainLine, TrainSchedule } from '../types/domain';
 import {
   hashPassword,
+  isAuthorizedForRole,
+  issueSessionToken,
   isValidEmail,
   normalizeIdentifier,
   parsePositiveNumber,
@@ -851,6 +853,84 @@ export function runAllAutomatedTests(): TestCaseResult[] {
       passed,
       durationMs: Math.max(1, Math.round((performance.now() - start) * 10) / 10),
       assertionsCount: 3,
+      logs,
+      errorDetails,
+    });
+  }
+
+  // UI-03: RBAC Route & Portal Isolation — Passenger and unauthenticated sessions are strictly blocked from Staff and Admin backoffice portals
+  {
+    const start = performance.now();
+    const logs: string[] = [];
+    let passed = true;
+    let errorDetails: string | undefined;
+
+    try {
+      // 1. Unauthenticated session must be rejected by all protected portals
+      if (
+        isAuthorizedForRole(null, ['passenger']).authorized ||
+        isAuthorizedForRole(null, ['staff']).authorized ||
+        isAuthorizedForRole(null, ['admin']).authorized
+      ) {
+        throw new Error('Unauthenticated session bypassed RoleGuard protection.');
+      }
+
+      // 2. Passenger session must only access passenger routes, NEVER staff or admin
+      const passengerSession = {
+        userId: 'usr_mahdi',
+        username: 'mahdi_as',
+        displayName: 'Mahdi Asadi',
+        email: 'mahdi.asadi@example.com',
+        role: 'passenger' as const,
+        sessionToken: issueSessionToken('usr_mahdi', 'passenger'),
+      };
+
+      if (!isAuthorizedForRole(passengerSession, ['passenger']).authorized) {
+        throw new Error('Valid passenger session was denied access to Passenger Portal.');
+      }
+      if (
+        isAuthorizedForRole(passengerSession, ['staff']).authorized ||
+        isAuthorizedForRole(passengerSession, ['admin']).authorized
+      ) {
+        throw new Error('Security breach: Passenger session allowed into Staff or Admin backoffice!');
+      }
+
+      // 3. Staff session must access staff routes, NEVER admin executive portal
+      const staffSession = {
+        userId: 'emp_1',
+        username: 'sara_ahmadi',
+        displayName: 'Sara Ahmadi',
+        email: 'sara.ahmadi@railpulse.ir',
+        role: 'staff' as const,
+        sessionToken: issueSessionToken('emp_1', 'staff'),
+      };
+
+      if (!isAuthorizedForRole(staffSession, ['staff']).authorized) {
+        throw new Error('Valid staff session was denied access to Staff Portal.');
+      }
+      if (isAuthorizedForRole(staffSession, ['admin']).authorized) {
+        throw new Error('Security breach: Staff session allowed into Admin Executive Portal!');
+      }
+
+      logs.push('✓ Unauthenticated (null) session blocked from /passenger, /staff, and /admin routes.');
+      logs.push('✓ Passenger session ("mahdi_as") strictly blocked from Staff Operations and System Admin portals.');
+      logs.push('✓ Operations Staff session ("sara_ahmadi") isolated from System Admin Executive portal.');
+    } catch (err: any) {
+      passed = false;
+      errorDetails = err?.message || String(err);
+      logs.push(`✗ Assertion Failed: ${errorDetails}`);
+    }
+
+    results.push({
+      id: 'UI-03',
+      suite: 'UI_ISOLATION',
+      titleEn: 'RBAC Route Guard & Zero Cross-Role Leakage Verification',
+      titleFa: 'نگهبان دسترسی مبتنی بر نقش (RoleGuard) و ایزولاسیون کامل پنل‌ها',
+      descriptionEn: 'Verifies unauthenticated and passenger sessions cannot access Staff or Admin backoffice routes.',
+      descriptionFa: 'تأیید مسدودسازی کامل دسترسی مسافر و کاربران غیرمجاز به پنل‌های کارشناسان عملیات و مدیریت کل سازمان.',
+      passed,
+      durationMs: Math.max(1, Math.round((performance.now() - start) * 10) / 10),
+      assertionsCount: 5,
       logs,
       errorDetails,
     });

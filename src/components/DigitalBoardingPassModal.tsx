@@ -1,0 +1,151 @@
+import React from 'react';
+import { CheckCircle2, Printer, QrCode, Train, X } from 'lucide-react';
+import { Language, TicketRecord } from '../types/domain';
+
+interface DigitalBoardingPassModalProps {
+  ticket: TicketRecord;
+  lang: Language;
+  onClose: () => void;
+}
+
+export const DigitalBoardingPassModal: React.FC<DigitalBoardingPassModalProps> = ({
+  ticket,
+  lang,
+  onClose,
+}) => {
+  const isFa = lang === 'fa';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
+        {/* Top Ticket Header Banner */}
+        <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Train className="w-5 h-5 text-blue-400" />
+            <div>
+              <div className="text-xs font-mono text-slate-400">RAILPULSE BOARDING PASS</div>
+              <div className="text-sm font-bold">{ticket.name_train}</div>
+            </div>
+          </div>
+
+          <div className="text-end font-mono">
+            <div className="text-[10px] text-slate-400">PNR REFERENCE</div>
+            <div className="text-base font-bold text-emerald-400">{ticket.pnr}</div>
+          </div>
+        </div>
+
+        {/* Ticket Body */}
+        <div className="p-6 space-y-5">
+          {/* Origin -> Destination */}
+          <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+            <div>
+              <div className="text-[11px] text-slate-400">
+                {isFa ? 'ایستگاه مبدا' : 'Origin Station'}
+              </div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
+                {ticket.origin}
+              </div>
+              <div className="text-xs font-mono text-blue-600 dark:text-blue-400 mt-0.5">
+                {isFa ? 'حرکت:' : 'Dep:'} {ticket.departureTime}
+              </div>
+            </div>
+
+            <div className="text-slate-400 font-mono text-xs px-2">───►</div>
+
+            <div className="text-end">
+              <div className="text-[11px] text-slate-400">
+                {isFa ? 'ایستگاه مقصد' : 'Destination'}
+              </div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
+                {ticket.destination}
+              </div>
+              <div className="text-xs font-mono text-slate-500 mt-0.5">{ticket.quality}</div>
+            </div>
+          </div>
+
+          {/* Passenger & Seat Metadata Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+              <div className="text-[10px] text-slate-400">
+                {isFa ? 'نام مسافر' : 'Passenger'}
+              </div>
+              <div className="font-semibold text-slate-900 dark:text-white mt-0.5 truncate">
+                {ticket.passengerName}
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+              <div className="text-[10px] text-slate-400">
+                {isFa ? 'شماره قطار' : 'Train No.'}
+              </div>
+              <div className="font-mono font-bold text-slate-900 dark:text-white mt-0.5">
+                {ticket.id_train}
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+              <div className="text-[10px] text-slate-400">
+                {isFa ? 'واگن و صندلی' : 'Coach & Seats'}
+              </div>
+              <div className="font-mono font-bold text-blue-600 dark:text-blue-400 mt-0.5">
+                C{ticket.coachNumber || 1} · {(ticket.seatNumbers || ['1A']).join(', ')}
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+              <div className="text-[10px] text-slate-400">
+                {isFa ? 'مبلغ پرداخت شده' : 'Total Paid'}
+              </div>
+              <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                ${ticket.totalPrice.toFixed(2)}
+              </div>
+            </div>
+          </div>
+
+          {/* Perforated Divider */}
+          <div className="border-t-2 border-dashed border-slate-200 dark:border-slate-800 pt-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shrink-0">
+                <QrCode className="w-12 h-12 text-slate-900 dark:text-white" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>
+                    {isFa
+                      ? 'کارت سوارشدن معتبر و تایید شده'
+                      : 'Verified Digital Boarding Pass'}
+                  </span>
+                </div>
+                <div className="text-[10px] font-mono text-slate-400 truncate mt-1" dir="ltr">
+                  {ticket.qrPayload}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="px-6 py-3.5 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>{isFa ? 'چاپ بلیط' : 'Print Ticket'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>{isFa ? 'بستن' : 'Close'}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

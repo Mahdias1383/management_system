@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Play, ShieldCheck, Terminal, XCircle } from 'lucide-react';
 import { Language, TestCaseResult } from '../types/domain';
 import { runAllAutomatedTests } from '../services/qaTestSuite';
+import { formatDateTime, toPersianDigits } from '../services/authService';
 
 interface QATestSuitePanelProps {
   lang: Language;
@@ -11,12 +12,12 @@ export const QATestSuitePanel: React.FC<QATestSuitePanelProps> = ({ lang }) => {
   const isFa = lang === 'fa';
   const [results, setResults] = useState<TestCaseResult[]>([]);
   const [selectedSuite, setSelectedSuite] = useState<string>('ALL');
-  const [lastRunAt, setLastRunAt] = useState<string>('');
+  const [lastRunAt, setLastRunAt] = useState<string>(() => new Date().toISOString());
 
   const executeSuite = () => {
     const res = runAllAutomatedTests();
     setResults(res);
-    setLastRunAt(new Date().toLocaleTimeString());
+    setLastRunAt(new Date().toISOString());
   };
 
   useEffect(() => {
@@ -32,17 +33,29 @@ export const QATestSuitePanel: React.FC<QATestSuitePanelProps> = ({ lang }) => {
 
   const suiteBadges: { id: string; labelEn: string; labelFa: string }[] = [
     { id: 'ALL', labelEn: 'All 5 Phases (12 Suites)', labelFa: 'همه ۵ فاز تست (۱۲ سناریو)' },
-    { id: 'UNIT', labelEn: '1. Unit Tests (UT)', labelFa: '۱. تست‌های واحد (Unit)' },
-    { id: 'INTEGRATION', labelEn: '2. Integration (IT)', labelFa: '۲. تست یکپارچه‌سازی (Integration)' },
-    { id: 'MIGRATION', labelEn: '3. Migration (MT)', labelFa: '۳. تست مهاجرت داده (Migration)' },
-    { id: 'E2E', labelEn: '4. End-to-End (E2E)', labelFa: '۴. تست سرتاسری (E2E)' },
+    { id: 'UNIT', labelEn: '1. Unit Tests (UT)', labelFa: '۱. تست‌های واحد' },
+    { id: 'INTEGRATION', labelEn: '2. Integration (IT)', labelFa: '۲. تست یکپارچه‌سازی' },
+    { id: 'MIGRATION', labelEn: '3. Migration (MT)', labelFa: '۳. تست مهاجرت داده' },
+    { id: 'E2E', labelEn: '4. End-to-End (E2E)', labelFa: '۴. تست سرتاسری' },
     { id: 'UI_ISOLATION', labelEn: '5. RBAC & Session Isolation', labelFa: '۵. ایزولاسیون نقش و نشست' },
   ];
 
+  const localizeSuiteCode = (suite: string) => {
+    if (!isFa) return suite;
+    const map: Record<string, string> = {
+      UNIT: 'تست واحد',
+      INTEGRATION: 'یکپارچه‌سازی',
+      MIGRATION: 'مهاجرت داده',
+      E2E: 'سرتاسری',
+      UI_ISOLATION: 'ایزولاسیون امنیتی',
+    };
+    return map[suite] || suite;
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 rp-animate-in">
       {/* Header Banner */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+      <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-xs">
         <div className="flex items-start gap-3">
           <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
             <ShieldCheck className="w-6 h-6" />
@@ -50,12 +63,12 @@ export const QATestSuitePanel: React.FC<QATestSuitePanelProps> = ({ lang }) => {
           <div>
             <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
               {isFa
-                ? 'پنل مهندسی تست و تضمین کیفیت خودکار ۵ مرحله‌ای (Automated QA Suite)'
+                ? 'پنل مهندسی تست و تضمین کیفیت خودکار ۵ مرحله‌ای'
                 : 'Engineering QA & 5-Phase Automated Verification Suite'}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {isFa
-                ? 'اجرای زنده و برنامه‌نویسی‌شده تمام تست‌های واحد، یکپارچه‌سازی، مهاجرت اسکیمای v1 به v2، سناریوهای سرتاسری و ایزولاسیون نشست'
+                ? 'اجرای زنده و برنامه‌نویسی‌شده تمام تست‌های واحد، یکپارچه‌سازی، مهاجرت داده، سناریوهای سرتاسری و ایزولاسیون نشست'
                 : 'Live programmatic execution verifying wallet math, checkAccident collision geometry, v1->v2 migration, and session isolation'}
             </p>
           </div>
@@ -64,17 +77,21 @@ export const QATestSuitePanel: React.FC<QATestSuitePanelProps> = ({ lang }) => {
         <div className="flex items-center gap-4">
           <div className="text-end font-mono text-xs">
             <div className="font-bold text-emerald-600 dark:text-emerald-400">
-              {passedCount} / {results.length} PASSED (100%)
+              {isFa
+                ? `${toPersianDigits(passedCount, lang)} از ${toPersianDigits(results.length, lang)} تست موفق (۱۰۰٪)`
+                : `${passedCount} / ${results.length} PASSED (100%)`}
             </div>
             <div className="text-slate-400">
-              {totalAssertions} assertions · {totalDuration.toFixed(1)} ms · {lastRunAt}
+              {isFa
+                ? `${toPersianDigits(totalAssertions, lang)} گزاره بررسی شد · ${toPersianDigits(totalDuration.toFixed(1), lang)} میلی‌ثانیه · ${formatDateTime(lastRunAt, lang, 'full')}`
+                : `${totalAssertions} assertions · ${totalDuration.toFixed(1)} ms · ${formatDateTime(lastRunAt, lang, 'full')}`}
             </div>
           </div>
 
           <button
             type="button"
             onClick={executeSuite}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors cursor-pointer"
+            className="rp-btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-xs font-semibold cursor-pointer"
           >
             <Play className="w-4 h-4" />
             <span>{isFa ? 'اجرای مجدد تمام تست‌ها' : 'Re-Run All 5 Suites'}</span>
@@ -83,7 +100,7 @@ export const QATestSuitePanel: React.FC<QATestSuitePanelProps> = ({ lang }) => {
       </div>
 
       {/* Phase Filter Controls */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
+      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs">
         {suiteBadges.map((b) => (
           <button
             key={b.id}
@@ -102,10 +119,10 @@ export const QATestSuitePanel: React.FC<QATestSuitePanelProps> = ({ lang }) => {
 
       {/* Test Cases Results Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredResults.map((test) => (
+        {filteredResults.map((test, idx) => (
           <div
             key={test.id}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between"
+            className={`rp-card-hover rp-animate-in rp-stagger-${(idx % 4) + 1} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-xs`}
           >
             <div>
               <div className="flex items-start justify-between gap-2 mb-2">
@@ -116,14 +133,18 @@ export const QATestSuitePanel: React.FC<QATestSuitePanelProps> = ({ lang }) => {
                     <XCircle className="w-4 h-4 text-red-500 shrink-0" />
                   )}
                   <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
-                    {test.id}
+                    {toPersianDigits(test.id, lang)}
                   </span>
                   <span className="text-slate-400">·</span>
-                  <span className="font-mono text-[11px] text-slate-500">{test.suite}</span>
+                  <span className="font-mono text-[11px] text-slate-500">
+                    {localizeSuiteCode(test.suite)}
+                  </span>
                 </div>
 
                 <span className="font-mono text-[11px] text-slate-400">
-                  {test.assertionsCount} asserts · {test.durationMs} ms
+                  {isFa
+                    ? `${toPersianDigits(test.assertionsCount, lang)} بررسی · ${toPersianDigits(test.durationMs, lang)} میلی‌ثانیه`
+                    : `${test.assertionsCount} asserts · ${test.durationMs} ms`}
                 </span>
               </div>
 
@@ -141,11 +162,11 @@ export const QATestSuitePanel: React.FC<QATestSuitePanelProps> = ({ lang }) => {
               >
                 <div className="flex items-center gap-1.5 text-slate-400 text-[10px] mb-1">
                   <Terminal className="w-3 h-3" />
-                  <span>ASSERTION TRACE LOG</span>
+                  <span>{isFa ? 'گزارش اجرای گزاره‌های تست' : 'ASSERTION TRACE LOG'}</span>
                 </div>
                 {test.logs.map((line, idx) => (
                   <div key={idx} className="text-emerald-400 leading-relaxed">
-                    {line}
+                    {toPersianDigits(line, lang)}
                   </div>
                 ))}
               </div>

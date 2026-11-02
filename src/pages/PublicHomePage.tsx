@@ -12,7 +12,15 @@ import {
   Wallet,
 } from 'lucide-react';
 import { Language, PlatformDatabaseV2, QualityTier, TicketRecord, TrainSchedule } from '../types/domain';
-import { formatRial, normalizeIdentifier } from '../services/authService';
+import {
+  formatNumber,
+  formatCurrency,
+  formatTime,
+  localizeQuality,
+  localizeText,
+  normalizeIdentifier,
+  toPersianDigits,
+} from '../services/authService';
 import { computeTrainStationTimings } from '../services/collisionEngine';
 import { DigitalBoardingPassModal } from '../components/DigitalBoardingPassModal';
 
@@ -90,12 +98,12 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
   };
 
   return (
-    <div className="space-y-14 pb-8">
+    <div className="space-y-14 pb-8 rp-animate-in">
       {/* 1. HERO BOOKING ENGINE SECTION */}
       <section id="search-engine" className="space-y-6">
-        <div className="bg-slate-900 text-white rounded-2xl p-6 sm:p-10 border border-slate-800">
-          <div className="max-w-3xl">
-            <div className="text-xs font-medium text-blue-400 mb-2">
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 text-white rounded-2xl p-6 sm:p-10 border border-slate-800 shadow-xl">
+          <div className="relative z-10 max-w-3xl">
+            <div className="text-xs font-semibold text-blue-400 mb-2">
               {isFa
                 ? 'شبکه یکپارچه قطارهای سریع‌السیر و مسافربری کشور'
                 : 'National High-Speed & Intercity Railway Reservation'}
@@ -113,67 +121,67 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
           </div>
 
           {/* Interactive Search Engine Widget */}
-          <div className="mt-8 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+          <div className="relative z-10 mt-8 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md text-slate-900 dark:text-slate-100 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-end">
               {/* Origin */}
-              <div className="md:col-span-3">
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+              <div className="md:col-span-3 group">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 mb-1.5">
                   {isFa ? 'ایستگاه مبدا' : 'Origin Station'}
                 </label>
                 <select
                   value={originFilter}
                   onChange={(e) => setOriginFilter(e.target.value)}
-                  className="w-full px-3 py-2.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3.5 py-2.5 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
                 >
                   <option value="ALL">{isFa ? 'همه ایستگاه‌های مبدا' : 'All Origins'}</option>
                   {allOrigins.map((orig) => (
                     <option key={orig} value={orig}>
-                      {orig}
+                      {localizeText(orig, lang)}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Swap Button */}
+              {/* Swap Button with 180-deg Rotation Animation */}
               <div className="md:col-span-1 flex justify-center">
                 <button
                   type="button"
                   onClick={handleSwapStations}
-                  className="p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+                  className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-blue-600 hover:border-blue-600 hover:text-white transition-all duration-200 cursor-pointer group"
                   title={isFa ? 'جابجایی مبدا و مقصد' : 'Swap Origin & Destination'}
                 >
-                  <ArrowLeftRight className="w-4 h-4" />
+                  <ArrowLeftRight className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />
                 </button>
               </div>
 
               {/* Destination */}
-              <div className="md:col-span-3">
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+              <div className="md:col-span-3 group">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 mb-1.5">
                   {isFa ? 'ایستگاه مقصد' : 'Destination Station'}
                 </label>
                 <select
                   value={destinationFilter}
                   onChange={(e) => setDestinationFilter(e.target.value)}
-                  className="w-full px-3 py-2.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3.5 py-2.5 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
                 >
                   <option value="ALL">{isFa ? 'همه ایستگاه‌های مقصد' : 'All Destinations'}</option>
                   {allDestinations.map((dest) => (
                     <option key={dest} value={dest}>
-                      {dest}
+                      {localizeText(dest, lang)}
                     </option>
                   ))}
                 </select>
               </div>
 
               {/* Class Tier */}
-              <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+              <div className="md:col-span-2 group">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 mb-1.5">
                   {isFa ? 'کلاس سالن' : 'Travel Class'}
                 </label>
                 <select
                   value={qualityFilter}
                   onChange={(e) => setQualityFilter(e.target.value)}
-                  className="w-full px-3 py-2.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3.5 py-2.5 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
                 >
                   <option value="ALL">{isFa ? 'همه کلاس‌ها' : 'All Classes'}</option>
                   <option value="VIP 5-Star">{isFa ? '۵ ستاره ویژه (VIP)' : 'VIP 5-Star'}</option>
@@ -183,8 +191,8 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
               </div>
 
               {/* Passenger Count */}
-              <div className="md:col-span-1">
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+              <div className="md:col-span-1 group">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 mb-1.5">
                   {isFa ? 'مسافران' : 'Seats'}
                 </label>
                 <input
@@ -193,7 +201,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                   max={6}
                   value={passengerCount}
                   onChange={(e) => setPassengerCount(Math.max(1, Number(e.target.value)))}
-                  className="w-full px-2.5 py-2.5 text-xs font-mono text-center rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-2.5 py-2.5 text-xs font-mono font-bold text-center rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
                 />
               </div>
 
@@ -201,7 +209,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
               <div className="md:col-span-2">
                 <a
                   href="#live-departures"
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors whitespace-nowrap"
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl rp-btn-primary text-white text-xs font-semibold transition-all whitespace-nowrap"
                 >
                   <Search className="w-4 h-4" />
                   <span>{isFa ? 'جستجوی قطارها' : 'Search Trains'}</span>
@@ -228,20 +236,20 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
             </p>
           </div>
 
-          <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute top-2.5 start-3 pointer-events-none" />
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 text-slate-400 absolute top-2.5 start-3.5 pointer-events-none" />
             <input
               type="text"
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
               placeholder={isFa ? 'جستجوی نام قطار، شهر یا ایستگاه...' : 'Filter by train or station...'}
-              className="w-full ps-9 pe-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+              className="w-full ps-9 pe-3.5 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
             />
           </div>
         </div>
 
         {filteredTrains.length === 0 ? (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-10 text-center">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-10 text-center rp-animate-in">
             <Train className="w-8 h-8 text-slate-400 mx-auto mb-2" />
             <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
               {isFa
@@ -256,43 +264,51 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                 setQualityFilter('ALL');
                 setSearchKeyword('');
               }}
-              className="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium cursor-pointer"
+              className="mt-4 px-4 py-2 rounded-xl rp-btn-primary text-white text-xs font-semibold cursor-pointer"
             >
               {isFa ? 'نمایش همه قطارها' : 'Reset All Filters'}
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTrains.map((train) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredTrains.map((train, idx) => {
               const line = db.lines.find(
                 (l) => normalizeIdentifier(l.name_line) === normalizeIdentifier(train.name_line)
               );
               const timings = line ? computeTrainStationTimings(train, line) : [];
               const arrivalFormatted =
                 timings.length > 0 ? timings[timings.length - 1].arrivalFormatted : '--:--';
+              const staggerClass =
+                idx % 4 === 0
+                  ? 'rp-stagger-1'
+                  : idx % 4 === 1
+                  ? 'rp-stagger-2'
+                  : idx % 4 === 2
+                  ? 'rp-stagger-3'
+                  : 'rp-stagger-4';
 
               return (
                 <div
                   key={train.id}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between hover:border-blue-500/60 transition-colors"
+                  className={`group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col justify-between rp-card-hover rp-animate-in ${staggerClass}`}
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="text-xs font-mono text-blue-600 dark:text-blue-400 font-semibold">
-                          {train.id_train} · {train.quality}
+                          {toPersianDigits(train.id_train, lang)} · {localizeQuality(train.quality, lang)}
                         </div>
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1">
-                          {train.name_train}
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {localizeText(train.name_train, lang)}
                         </h3>
                         <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {train.name_line}
+                          {localizeText(train.name_line, lang)}
                         </div>
                       </div>
 
                       <div className="text-end">
                         <div className="text-base sm:text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                          {formatRial(train.cost_ticket, lang)}
+                          {formatCurrency(train.cost_ticket, isFa ? 'Rial' : 'USD')}
                         </div>
                         <div className="text-[11px] text-slate-400">
                           {isFa ? 'بهای هر صندلی' : 'per seat'}
@@ -301,48 +317,50 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                     </div>
 
                     {line && (
-                      <div className="my-4 p-3.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-xs">
+                      <div className="my-4 p-3.5 rounded-xl bg-slate-50/90 dark:bg-slate-950/90 border border-slate-200/80 dark:border-slate-800 text-xs">
                         <div className="flex items-center justify-between font-semibold text-slate-900 dark:text-white">
                           <span className="flex items-center gap-1">
                             <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                            {line.origin}
+                            {localizeText(line.origin, lang)}
                           </span>
-                          <span className="text-slate-400">→</span>
-                          <span>{line.destination}</span>
+                          <span className="text-blue-500 font-mono">{isFa ? '◄───' : '───►'}</span>
+                          <span>{localizeText(line.destination, lang)}</span>
                         </div>
 
                         <div className="flex items-center justify-between font-mono text-[11px] text-slate-500 mt-2">
                           <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold">
                             <Clock className="w-3 h-3" />
-                            {train.departureTime}
+                            {formatTime(train.departureTime, lang)}
                           </span>
-                          <span>{train.speed} km/h</span>
+                          <span>
+                            {formatNumber(train.speed, lang)} {isFa ? 'کیلومتر/ساعت' : 'km/h'}
+                          </span>
                           <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                            {isFa ? 'ورود:' : 'Arr:'} {arrivalFormatted}
+                            {isFa ? 'ورود:' : 'Arr:'} {formatTime(arrivalFormatted, lang)}
                           </span>
                         </div>
 
                         {line.list_state.length > 0 && (
                           <div className="mt-2 pt-2 border-t border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-500 truncate">
                             {isFa ? 'ایستگاه‌های عبوری:' : 'Stops:'}{' '}
-                            {line.list_state.join(' · ')}
+                            {line.list_state.map((st) => localizeText(st, lang)).join(' · ')}
                           </div>
                         )}
                       </div>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
-                    <span className="text-xs font-mono text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                    <span className="text-xs font-mono font-medium text-slate-600 dark:text-slate-400">
                       {isFa
-                        ? `${train.capacity} صندلی خالی`
+                        ? `${formatNumber(train.capacity, lang)} صندلی خالی`
                         : `${train.capacity} seats left`}
                     </span>
 
                     <button
                       type="button"
                       onClick={() => onSelectTrainForBooking(train)}
-                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors cursor-pointer"
+                      className="px-4 py-2 rounded-xl rp-btn-primary text-white text-xs font-semibold cursor-pointer"
                     >
                       {isFa ? 'انتخاب صندلی و خرید' : 'Select Seats & Book'}
                     </button>
@@ -355,7 +373,10 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
       </section>
 
       {/* 3. PNR TICKET TRACKER & DIGITAL BOARDING PASS VERIFICATION */}
-      <section id="pnr-tracker" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8">
+      <section
+        id="pnr-tracker"
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 rp-card-hover"
+      >
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           <div className="lg:col-span-7">
             <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-xs font-semibold mb-1.5">
@@ -379,7 +400,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
           </div>
 
           <div className="lg:col-span-5">
-            <form onSubmit={handleLookupPnr} className="flex gap-2">
+            <form onSubmit={handleLookupPnr} className="flex gap-2.5">
               <input
                 type="text"
                 dir="ltr"
@@ -390,14 +411,14 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
               />
               <button
                 type="submit"
-                className="px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer whitespace-nowrap"
+                className="px-5 py-2.5 rounded-xl rp-btn-primary text-white text-xs font-semibold cursor-pointer whitespace-nowrap"
               >
                 {isFa ? 'بررسی بلیط' : 'Track PNR'}
               </button>
             </form>
 
             {pnrSearched && !foundTicket && (
-              <div className="mt-2 text-xs text-red-600 dark:text-red-400">
+              <div className="mt-2 text-xs text-red-600 dark:text-red-400 rp-animate-in">
                 {isFa
                   ? 'بلیطی با این کد رزرو یافت نشد. لطفاً کد PNR را بررسی کنید.'
                   : 'No ticket found matching that PNR reference code.'}
@@ -409,8 +430,10 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
 
       {/* 4. WHY RAILPULSE ENTERPRISE GUARANTEES */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
-          <ShieldCheck className="w-6 h-6 text-emerald-500 mb-3" />
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 rp-card-hover">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3.5">
+            <ShieldCheck className="w-5 h-5 text-emerald-500" />
+          </div>
           <h4 className="text-sm font-bold text-slate-900 dark:text-white">
             {isFa ? 'سیستم هوشمند ایمنی و پیشگیری از تداخل' : 'Automated Dispatch Collision Safety'}
           </h4>
@@ -421,8 +444,10 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
           </p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
-          <Ticket className="w-6 h-6 text-blue-500 mb-3" />
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 rp-card-hover">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mb-3.5">
+            <Ticket className="w-5 h-5 text-blue-500" />
+          </div>
           <h4 className="text-sm font-bold text-slate-900 dark:text-white">
             {isFa ? 'انتخاب صندلی از روی نقشه شماتیک واگن' : 'Interactive Coach Seat Map Selection'}
           </h4>
@@ -433,8 +458,10 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
           </p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
-          <Wallet className="w-6 h-6 text-amber-500 mb-3" />
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 rp-card-hover">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3.5">
+            <Wallet className="w-5 h-5 text-amber-500" />
+          </div>
           <h4 className="text-sm font-bold text-slate-900 dark:text-white">
             {isFa ? 'کیف پول اختصاصی و استرداد آنی وجه' : 'Instant Online Cancellation & Wallet Refund'}
           </h4>

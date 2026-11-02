@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -26,10 +26,18 @@ import {
   TrainSchedule,
 } from '../types/domain';
 import {
-  formatRial,
+  formatDateTime,
+  formatNumber,
+  formatCurrency,
+  formatTime,
+  localizeQuality,
+  localizeText,
+  normalizeCurrencyInputToIrr,
   normalizeIdentifier,
   parsePositiveInteger,
   parsePositiveNumber,
+  toDisplayCurrencyInput,
+  toPersianDigits,
 } from '../services/authService';
 import {
   checkAccident,
@@ -104,8 +112,14 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
   const [departureTime, setDepartureTime] = useState('08:30');
   const [speed, setSpeed] = useState('160');
   const [quality, setQuality] = useState<QualityTier>('VIP 5-Star');
-  const [ticketCost, setTicketCost] = useState('4500000');
+  const [ticketCost, setTicketCost] = useState(() =>
+    toDisplayCurrencyInput(4_500_000, lang)
+  );
   const [capacity, setCapacity] = useState('120');
+
+  useEffect(() => {
+    setTicketCost(toDisplayCurrencyInput(4_500_000, lang));
+  }, [lang]);
   const [stopTimesMap, setStopTimesMap] = useState<Record<string, string>>({});
   const [trainFeedback, setTrainFeedback] = useState<{
     type: 'success' | 'error';
@@ -496,7 +510,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
       speed: parsedSpeedObj.value,
       list_stop_time: isolatedStopRecord,
       quality,
-      cost_ticket: parsedCostObj.value,
+      cost_ticket: normalizeCurrencyInputToIrr(parsedCostObj.value, lang),
       totalCapacity: parsedCapacityObj.value,
       capacity: parsedCapacityObj.value,
       status: 'Scheduled',
@@ -616,9 +630,9 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
           SECTION 1: CORRIDOR & LINE TOPOLOGY
           ===================================================================== */}
       {activeSection === 'TOPOLOGY' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 rp-animate-in">
           {/* Left 5 Cols: Create New Railway Corridor */}
-          <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 h-fit">
+          <div className="rp-card-hover lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 h-fit shadow-xs">
             <div className="flex items-center gap-2.5 mb-4">
               <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                 <Plus className="w-5 h-5" />
@@ -702,7 +716,10 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                     {isFa
-                      ? `ایستگاه‌های میانی مسیر (${stationsDraft.filter((s) => s.name.trim()).length} ایستگاه فعال)`
+                      ? `ایستگاه‌های میانی مسیر (${formatNumber(
+                          stationsDraft.filter((s) => s.name.trim()).length,
+                          lang
+                        )} ایستگاه فعال)`
                       : `Intermediate Stations (${stationsDraft.filter((s) => s.name.trim()).length} active)`}
                   </label>
                   <button
@@ -719,7 +736,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                   {stationsDraft.map((st, idx) => (
                     <div key={idx} className="flex items-center gap-2">
                       <span className="font-mono text-xs text-slate-400 w-5">
-                        #{idx + 1}
+                        #{formatNumber(idx + 1, lang)}
                       </span>
                       <input
                         type="text"
@@ -808,7 +825,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors cursor-pointer"
+                className="rp-btn-primary w-full py-2.5 px-4 rounded-lg text-white font-semibold text-sm cursor-pointer"
               >
                 {isFa ? 'ثبت کریدور در شبکه ریلی' : 'Register Railway Corridor'}
               </button>
@@ -817,7 +834,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
 
           {/* Right 7 Cols: Active Railway Corridors */}
           <div className="lg:col-span-7 space-y-4">
-            {db.lines.map((line) => {
+            {db.lines.map((line, idx) => {
               const lineTrainsCount = db.trains.filter(
                 (t) =>
                   normalizeIdentifier(t.name_line) ===
@@ -831,26 +848,28 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
               return (
                 <div
                   key={line.id}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5"
+                  className={`rp-card-hover rp-animate-in rp-stagger-${(idx % 4) + 1} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                     <div>
                       <div className="flex items-center gap-2.5">
                         <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                          {line.name_line}
+                          {localizeText(line.name_line, lang)}
                         </h3>
                         <span className="px-2 py-0.5 text-[11px] font-mono rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                          {line.num_state} {isFa ? 'ایستگاه میانی' : 'intermediate stops'}
+                          {formatNumber(line.num_state, lang)}{' '}
+                          {isFa ? 'ایستگاه میانی' : 'intermediate stops'}
                         </span>
                         <span className="px-2 py-0.5 text-[11px] font-mono rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                          {totalKm} km · {lineTrainsCount}{' '}
+                          {formatNumber(totalKm, lang)} {isFa ? 'کیلومتر' : 'km'} ·{' '}
+                          {formatNumber(lineTrainsCount, lang)}{' '}
                           {isFa ? 'قطار فعال' : 'active trains'}
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         {isFa
-                          ? `مبدأ: ${line.origin} ← مقصد: ${line.destination}`
-                          : `Origin: ${line.origin} -> Destination: ${line.destination}`}
+                          ? `مبدأ: ${localizeText(line.origin, lang)} ← مقصد: ${localizeText(line.destination, lang)} · ثبت: ${formatDateTime(line.createdAt, lang, 'date')}`
+                          : `Origin: ${localizeText(line.origin, lang)} -> Destination: ${localizeText(line.destination, lang)} · Created: ${formatDateTime(line.createdAt, lang, 'date')}`}
                       </p>
                     </div>
 
@@ -885,33 +904,38 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                     <div className="flex items-center min-w-max gap-2 py-1">
                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold">
                         <MapPin className="w-3.5 h-3.5" />
-                        <span>{line.origin}</span>
+                        <span>{localizeText(line.origin, lang)}</span>
                       </div>
 
                       {line.list_state.map((st, idx) => (
                         <React.Fragment key={`${line.id}-st-${idx}`}>
                           <div className="flex flex-col items-center px-1">
                             <span className="text-[10px] font-mono text-slate-400">
-                              {line.segmentDistancesKm?.[idx] ?? 120} km
+                              {formatNumber(line.segmentDistancesKm?.[idx] ?? 120, lang)}{' '}
+                              {isFa ? 'کیلومتر' : 'km'}
                             </span>
                             <div className="w-10 h-0.5 bg-slate-300 dark:bg-slate-700" />
                           </div>
                           <div className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200">
-                            {st}
+                            {localizeText(st, lang)}
                           </div>
                         </React.Fragment>
                       ))}
 
                       <div className="flex flex-col items-center px-1">
                         <span className="text-[10px] font-mono text-slate-400">
-                          {line.segmentDistancesKm?.[line.list_state.length] ?? 140} km
+                          {formatNumber(
+                            line.segmentDistancesKm?.[line.list_state.length] ?? 140,
+                            lang
+                          )}{' '}
+                          {isFa ? 'کیلومتر' : 'km'}
                         </span>
                         <div className="w-10 h-0.5 bg-slate-300 dark:bg-slate-700" />
                       </div>
 
                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold">
                         <MapPin className="w-3.5 h-3.5" />
-                        <span>{line.destination}</span>
+                        <span>{localizeText(line.destination, lang)}</span>
                       </div>
                     </div>
                   </div>
@@ -926,10 +950,10 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
           SECTION 2: FLEET & TIMETABLE DISPATCH
           ===================================================================== */}
       {activeSection === 'DISPATCH' && (
-        <div className="space-y-6">
+        <div className="space-y-6 rp-animate-in">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Left 5 Cols: Schedule New Train Service */}
-            <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 h-fit">
+            <div className="rp-card-hover lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 h-fit shadow-xs">
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                   <Train className="w-5 h-5" />
@@ -975,7 +999,8 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                   >
                     {db.lines.map((l) => (
                       <option key={l.id} value={l.name_line}>
-                        {l.name_line} ({l.origin} → {l.destination})
+                        {localizeText(l.name_line, lang)} ({localizeText(l.origin, lang)}{' '}
+                        {isFa ? '←' : '→'} {localizeText(l.destination, lang)})
                       </option>
                     ))}
                   </select>
@@ -1056,7 +1081,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                           className="flex items-center justify-between gap-2 bg-white dark:bg-slate-900 px-2.5 py-1.5 rounded border border-slate-200 dark:border-slate-800"
                         >
                           <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
-                            {stName}
+                            {localizeText(stName, lang)}
                           </span>
                           <input
                             type="number"
@@ -1088,19 +1113,25 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                       onChange={(e) => setQuality(e.target.value as QualityTier)}
                       className="w-full px-2 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100"
                     >
-                      <option value="VIP 5-Star">VIP 5-Star</option>
-                      <option value="Business 4-Star">Business 4-Star</option>
-                      <option value="Economy 3-Star">Economy 3-Star</option>
+                      <option value="VIP 5-Star">
+                        {isFa ? '۵ ستاره ویژه (VIP)' : 'VIP 5-Star'}
+                      </option>
+                      <option value="Business 4-Star">
+                        {isFa ? '۴ ستاره تجاری' : 'Business 4-Star'}
+                      </option>
+                      <option value="Economy 3-Star">
+                        {isFa ? '۳ ستاره اقتصادی' : 'Economy 3-Star'}
+                      </option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      {isFa ? 'بهای بلیط (ریال)' : 'Ticket Fare (IRR)'}
+                      {isFa ? 'بهای بلیط (ریال)' : 'Ticket Fare (USD)'}
                     </label>
                     <input
                       type="number"
-                      step="10000"
-                      min={10000}
+                      step={isFa ? '10000' : '1'}
+                      min={isFa ? 10000 : 1}
                       dir="ltr"
                       value={ticketCost}
                       onChange={(e) => setTicketCost(e.target.value)}
@@ -1157,10 +1188,12 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                             className="p-2 rounded bg-red-950/20 border border-red-500/20 text-[11px]"
                           >
                             <div className="font-semibold">
-                              {isFa ? c.descriptionFa : c.descriptionEn}
+                              {isFa ? toPersianDigits(c.descriptionFa, 'fa') : c.descriptionEn}
                             </div>
                             <div className="font-mono text-[10px] opacity-80 mt-0.5">
-                              {c.locationLabel} · Window: {c.overlapWindowFormatted}
+                              {localizeText(c.locationLabel, lang)} ·{' '}
+                              {isFa ? 'بازه تداخل:' : 'Window:'}{' '}
+                              {formatTime(c.overlapWindowFormatted, lang)}
                             </div>
                           </div>
                         ))}
@@ -1178,7 +1211,10 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                             <Sparkles className="w-3.5 h-3.5" />
                             <span>
                               {isFa
-                                ? `اعمال نزدیک‌ترین زمان حرکت ایمن پیشنهادی (${dispatchSafetyReport.suggestedSafeDeparture})`
+                                ? `اعمال نزدیک‌ترین زمان حرکت ایمن پیشنهادی (${formatTime(
+                                    dispatchSafetyReport.suggestedSafeDeparture,
+                                    lang
+                                  )})`
                                 : `Apply Suggested Safe Departure Slot (${dispatchSafetyReport.suggestedSafeDeparture})`}
                             </span>
                           </button>
@@ -1190,7 +1226,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
 
                 <button
                   type="submit"
-                  className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors cursor-pointer"
+                  className="rp-btn-primary w-full py-2.5 px-4 rounded-lg text-white font-semibold text-sm cursor-pointer"
                 >
                   {isFa ? 'ثبت نهایی قطار در جدول سیر' : 'Commit Train to Timetable'}
                 </button>
@@ -1204,8 +1240,8 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                   line={selectedLineObj}
                   trains={db.trains}
                   candidateTrain={{
-                    id_train: trainId.trim() || 'PREVIEW',
-                    name_train: trainName.trim() || 'Candidate Service',
+                    id_train: trainId.trim() || (isFa ? 'قطار جدید' : 'PREVIEW'),
+                    name_train: trainName.trim() || (isFa ? 'سرویس پیشنهادی' : 'Candidate Service'),
                     departureTime,
                     speed: parsedDispatchSpeed.valid ? parsedDispatchSpeed.value : 140,
                     list_stop_time: Object.fromEntries(
@@ -1221,18 +1257,18 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
               )}
 
               {/* Active Fleet Table */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+              <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                     {isFa
-                      ? `ناوگان فعال در جدول سیر (${db.trains.length} رام قطار)`
+                      ? `ناوگان فعال در جدول سیر (${formatNumber(db.trains.length, lang)} رام قطار)`
                       : `Active Scheduled Fleet (${db.trains.length} Services)`}
                   </h3>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-start">
-                    <thead className="bg-slate-50 dark:bg-slate-950/60 text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">
+                    <thead className="bg-slate-50 dark:bg-slate-950/60 text-slate-500 border-b border-slate-200 dark:border-slate-800">
                       <tr>
                         <th className="py-3 px-4 text-start">
                           {isFa ? 'کد و نام قطار' : 'Train Service'}
@@ -1259,28 +1295,34 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                         >
                           <td className="py-3 px-4">
                             <div className="font-mono font-bold text-blue-600 dark:text-blue-400">
-                              {t.id_train}
+                              {toPersianDigits(t.id_train, lang)} ·{' '}
+                              {localizeQuality(t.quality, lang)}
                             </div>
                             <div className="text-slate-700 dark:text-slate-300 font-medium">
-                              {t.name_train}
+                              {localizeText(t.name_train, lang)}
                             </div>
                           </td>
                           <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
-                            {t.name_line}
+                            {localizeText(t.name_line, lang)}
                           </td>
                           <td className="py-3 px-4 font-mono">
                             <span className="font-bold text-slate-900 dark:text-slate-100">
-                              {t.departureTime}
-                            </span>{' '}
-                            · <span className="text-slate-500">{t.speed} km/h</span>
-                          </td>
-                          <td className="py-3 px-4 font-mono">
-                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                              {formatRial(t.cost_ticket, lang)}
+                              {formatTime(t.departureTime, lang)}
                             </span>{' '}
                             ·{' '}
                             <span className="text-slate-500">
-                              {t.capacity}/{t.totalCapacity}
+                              {formatNumber(t.speed, lang)}{' '}
+                              {isFa ? 'کیلومتر/ساعت' : 'km/h'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-mono">
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                              {formatCurrency(t.cost_ticket, isFa ? 'Rial' : 'USD')}
+                            </span>{' '}
+                            ·{' '}
+                            <span className="text-slate-500">
+                              {formatNumber(t.capacity, lang)}/
+                              {formatNumber(t.totalCapacity, lang)}
                             </span>
                           </td>
                           <td className="py-3 px-4 text-end">
@@ -1308,8 +1350,8 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
           SECTION 3: COLLISION RADAR & MAREY CHART SIMULATOR
           ===================================================================== */}
       {activeSection === 'MAREY' && mareyLineObj && (
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+        <div className="space-y-6 rp-animate-in">
+          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
               <div>
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -1322,7 +1364,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                 >
                   {db.lines.map((l) => (
                     <option key={l.id} value={l.name_line}>
-                      {l.name_line}
+                      {localizeText(l.name_line, lang)}
                     </option>
                   ))}
                 </select>
@@ -1383,7 +1425,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                   <span className="font-semibold">
                     {simSafetyReport.hasConflict
                       ? isFa
-                        ? `تشخیص ${simSafetyReport.conflicts.length} نقطه برخورد در شبیه‌سازی! زمان حرکت ایمن پیشنهادی: ${simSafetyReport.suggestedSafeDeparture}`
+                        ? `تشخیص ${formatNumber(simSafetyReport.conflicts.length, lang)} نقطه برخورد در شبیه‌سازی! زمان حرکت ایمن پیشنهادی: ${formatTime(simSafetyReport.suggestedSafeDeparture, lang)}`
                         : `Detected ${simSafetyReport.conflicts.length} collision conflict(s)! Suggested safe slot: ${simSafetyReport.suggestedSafeDeparture}`
                       : isFa
                       ? 'مسیر شبیه‌سازی‌شده بدون هیچ‌گونه تداخل سکوی ایستگاهی یا برخورد در بلاک ریلی است.'
@@ -1401,7 +1443,10 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                       className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs cursor-pointer"
                     >
                       {isFa
-                        ? `انتقال به ساعت ایمن (${simSafetyReport.suggestedSafeDeparture})`
+                        ? `انتقال به ساعت ایمن (${formatTime(
+                            simSafetyReport.suggestedSafeDeparture,
+                            lang
+                          )})`
                         : `Snap to Safe Slot (${simSafetyReport.suggestedSafeDeparture})`}
                     </button>
                   )}
@@ -1426,7 +1471,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
           />
 
           {/* Station Arrival/Departure Breakdown */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-3">
               {isFa
                 ? 'جدول محاسباتی زمان ورود و خروج ایستگاه‌ها (بر اساس معادلات دیفرانسیل حرکت)'
@@ -1466,19 +1511,22 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                   ).map((node) => (
                     <tr key={node.stationIndex}>
                       <td className="py-2.5 px-3 font-sans font-medium text-slate-900 dark:text-slate-100">
-                        #{node.stationIndex + 1} · {node.stationName}
+                        #{formatNumber(node.stationIndex + 1, lang)} ·{' '}
+                        {localizeText(node.stationName, lang)}
                       </td>
                       <td className="py-2.5 px-3 text-slate-500">
-                        {node.distanceFromOriginKm} km
+                        {formatNumber(node.distanceFromOriginKm, lang)}{' '}
+                        {isFa ? 'کیلومتر' : 'km'}
                       </td>
                       <td className="py-2.5 px-3 text-blue-600 dark:text-blue-400 font-bold">
-                        {node.arrivalFormatted}
+                        {formatTime(node.arrivalFormatted, lang)}
                       </td>
                       <td className="py-2.5 px-3 text-amber-600 dark:text-amber-400">
-                        {node.stopMinutes} min
+                        {formatNumber(node.stopMinutes, lang)}{' '}
+                        {isFa ? 'دقیقه' : 'min'}
                       </td>
                       <td className="py-2.5 px-3 text-emerald-600 dark:text-emerald-400 font-bold">
-                        {node.departureFormatted}
+                        {formatTime(node.departureFormatted, lang)}
                       </td>
                     </tr>
                   ))}
@@ -1491,8 +1539,8 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
 
       {/* Edit Corridor Modal */}
       {editingLine && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+        <div className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {isFa ? 'ویرایش مسیر ریلی' : 'Edit Railway Corridor'}
@@ -1581,8 +1629,8 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
 
       {/* Delete Corridor Confirmation Modal */}
       {deletingLine && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+        <div className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-2">
               {isFa ? 'تأیید حذف مسیر ریلی' : 'Confirm Corridor Deletion'}
             </h3>

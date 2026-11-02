@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Check, Train, X } from 'lucide-react';
 import { Language, StationNodeTiming, TrainSchedule } from '../types/domain';
-import { formatRial } from '../services/authService';
+import {
+  formatCurrency,
+  formatTime,
+  localizeQuality,
+  localizeText,
+  toPersianDigits,
+} from '../services/authService';
 
 interface SeatMapSelectorProps {
   train: TrainSchedule;
@@ -62,8 +68,8 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
   const totalCost = Math.round(selectedSeats.length * train.cost_ticket * 100) / 100;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full p-6 shadow-2xl my-auto">
+    <div className="rp-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 overflow-y-auto">
+      <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full p-6 shadow-2xl my-auto">
         {/* Modal Header */}
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4 mb-5">
           <div className="flex items-center gap-3">
@@ -72,15 +78,15 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2 text-xs font-mono text-blue-600 dark:text-blue-400 font-semibold">
-                <span>{train.id_train}</span>
+                <span>{toPersianDigits(train.id_train, lang)}</span>
                 <span>·</span>
-                <span>{train.quality}</span>
+                <span>{localizeQuality(train.quality, lang)}</span>
               </div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                {train.name_train}
+                {localizeText(train.name_train, lang)}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {train.name_line}
+                {localizeText(train.name_line, lang)}
               </p>
             </div>
           </div>
@@ -107,13 +113,13 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
                     key={cn}
                     type="button"
                     onClick={() => setCoachNumber(cn)}
-                    className={`px-2.5 py-1 text-xs rounded-md cursor-pointer ${
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors cursor-pointer ${
                       coachNumber === cn
-                        ? 'bg-blue-600 text-white font-semibold'
-                        : 'bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                        ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                        : 'bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400'
                     }`}
                   >
-                    {isFa ? `واگن ${cn}` : `Coach ${cn}`}
+                    {isFa ? `واگن ${toPersianDigits(cn, lang)}` : `Coach ${cn}`}
                   </button>
                 ))}
               </div>
@@ -149,21 +155,21 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
                         type="button"
                         disabled={isTaken}
                         onClick={() => toggleSeat(code)}
-                        className={`py-2 rounded-lg text-xs font-mono font-semibold border transition-colors ${
+                        className={`py-2 rounded-lg text-xs font-mono font-semibold border transition-all duration-150 ${
                           isTaken
                             ? 'bg-slate-200 dark:bg-slate-800/50 border-slate-300 dark:border-slate-800 text-slate-400 cursor-not-allowed'
                             : isSelected
-                            ? 'bg-blue-600 border-blue-600 text-white cursor-pointer'
-                            : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-blue-500 cursor-pointer'
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-sm scale-[1.03] cursor-pointer'
+                            : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 cursor-pointer'
                         }`}
                       >
-                        {code}
+                        {toPersianDigits(code, lang)}
                       </button>
                     );
                   })}
 
                   <div className="text-center text-[10px] font-mono text-slate-400">
-                    R{r}
+                    {isFa ? `ردیف ${toPersianDigits(r, lang)}` : `R${r}`}
                   </div>
 
                   {['C', 'D'].map((c) => {
@@ -176,15 +182,15 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
                         type="button"
                         disabled={isTaken}
                         onClick={() => toggleSeat(code)}
-                        className={`py-2 rounded-lg text-xs font-mono font-semibold border transition-colors ${
+                        className={`py-2 rounded-lg text-xs font-mono font-semibold border transition-all duration-150 ${
                           isTaken
                             ? 'bg-slate-200 dark:bg-slate-800/50 border-slate-300 dark:border-slate-800 text-slate-400 cursor-not-allowed'
                             : isSelected
-                            ? 'bg-blue-600 border-blue-600 text-white cursor-pointer'
-                            : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-blue-500 cursor-pointer'
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-sm scale-[1.03] cursor-pointer'
+                            : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 cursor-pointer'
                         }`}
                       >
-                        {code}
+                        {toPersianDigits(code, lang)}
                       </button>
                     );
                   })}
@@ -207,10 +213,11 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
                     className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs"
                   >
                     <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
-                      {node.stationName}
+                      {localizeText(node.stationName, lang)}
                     </div>
                     <div className="font-mono text-[11px] text-slate-500 mt-0.5">
-                      {node.arrivalFormatted} → {node.departureFormatted}
+                      {formatTime(node.arrivalFormatted, lang)} {isFa ? '←' : '→'}{' '}
+                      {formatTime(node.departureFormatted, lang)}
                     </div>
                   </div>
                 ))}
@@ -224,8 +231,11 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
                   {isFa ? 'صندلی‌های انتخاب شده:' : 'Selected Seats:'}
                 </span>
                 <span className="font-mono font-bold text-slate-900 dark:text-white">
-                  {isFa ? `واگن ${coachNumber}` : `Coach ${coachNumber}`} ·{' '}
-                  {selectedSeats.join(', ')} ({selectedSeats.length})
+                  {isFa
+                    ? `واگن ${toPersianDigits(coachNumber, lang)}`
+                    : `Coach ${coachNumber}`}{' '}
+                  · {toPersianDigits(selectedSeats.join(isFa ? '، ' : ', '), lang)} (
+                  {toPersianDigits(selectedSeats.length, lang)})
                 </span>
               </div>
 
@@ -233,7 +243,7 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
                 <span className="text-slate-500">
                   {isFa ? 'بهای هر صندلی:' : 'Unit Ticket Fare:'}
                 </span>
-                <span className="font-mono">{formatRial(train.cost_ticket, lang)}</span>
+                <span className="font-mono">{formatCurrency(train.cost_ticket, isFa ? 'Rial' : 'USD')}</span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -241,14 +251,14 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
                   {isFa ? 'موجودی فعلی کیف پول شما:' : 'Your Wallet Balance:'}
                 </span>
                 <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                  {formatRial(passengerBalance, lang)}
+                  {formatCurrency(passengerBalance, isFa ? 'Rial' : 'USD')}
                 </span>
               </div>
 
               <div className="flex items-center justify-between text-sm font-bold pt-2.5 border-t border-slate-200 dark:border-slate-800">
                 <span>{isFa ? 'مبلغ کل قابل پرداخت:' : 'Total Amount Due:'}</span>
                 <span className="font-mono text-blue-600 dark:text-blue-400">
-                  {formatRial(totalCost, lang)}
+                  {formatCurrency(totalCost, isFa ? 'Rial' : 'USD')}
                 </span>
               </div>
             </div>
@@ -257,8 +267,8 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-2 text-xs text-amber-700 dark:text-amber-300">
                 <span>
                   {isFa
-                    ? `کمبود موجودی کیف پول: ${formatRial(lowBalanceShortfall, lang)}`
-                    : `Insufficient balance (Shortfall: ${formatRial(lowBalanceShortfall, lang)})`}
+                    ? `کمبود موجودی کیف پول: ${formatCurrency(lowBalanceShortfall, 'Rial')}`
+                    : `Insufficient balance (Shortfall: ${formatCurrency(lowBalanceShortfall, 'USD')})`}
                 </span>
                 <button
                   type="button"
@@ -266,8 +276,8 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
                   className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold cursor-pointer whitespace-nowrap"
                 >
                   {isFa
-                    ? `شارژ فوری +${formatRial(Math.ceil(lowBalanceShortfall), lang)}`
-                    : `Instant Top-Up +${formatRial(Math.ceil(lowBalanceShortfall), lang)}`}
+                    ? `شارژ فوری +${formatCurrency(Math.ceil(lowBalanceShortfall), 'Rial')}`
+                    : `Instant Top-Up +${formatCurrency(Math.ceil(lowBalanceShortfall), 'USD')}`}
                 </button>
               </div>
             )}
@@ -276,7 +286,7 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                className="px-4 py-2.5 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 {isFa ? 'انصراف' : 'Cancel'}
               </button>
@@ -285,7 +295,7 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
                 onClick={() =>
                   onConfirmPurchase(selectedSeats.length, selectedSeats, coachNumber)
                 }
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                className="rp-btn-primary inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold rounded-xl text-white cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 <span>

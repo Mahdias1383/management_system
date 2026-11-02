@@ -1,5 +1,7 @@
 import { TestCaseResult, TrainLine, TrainSchedule } from '../types/domain';
 import {
+  formatCurrency,
+  formatDateTime,
   hashPassword,
   isAuthorizedForRole,
   issueSessionToken,
@@ -23,7 +25,7 @@ export function runAllAutomatedTests(): TestCaseResult[] {
   // SUITE 1: UNIT TESTS (UT-01 to UT-05)
   // ============================================================================
 
-  // UT-01: Wallet deposit validation (rejects empty strings, negative numbers, and NaN without throwing TypeError)
+  // UT-01: Wallet deposit validation & formatCurrency Intl.NumberFormat check
   {
     const start = performance.now();
     const logs: string[] = [];
@@ -48,9 +50,24 @@ export function runAllAutomatedTests(): TestCaseResult[] {
         throw new Error(`Expected new balance ${initialBalance + 1250000}, got ${validRes.newBalance}`);
       }
 
+      const faCurrency = formatCurrency(4500000, 'Rial');
+      const enCurrency = formatCurrency(4500000, 'USD');
+      if (!faCurrency.includes('ریال') || !faCurrency.includes('۴')) {
+        throw new Error(`Expected Persian Rial formatting, got: ${faCurrency}`);
+      }
+      if (!enCurrency.startsWith('$45')) {
+        throw new Error(`Expected "$45" USD in English mode, got: ${enCurrency}`);
+      }
+
+      const faDate = formatDateTime('2026-03-25T10:30:00.000Z', 'fa', 'full');
+      if (!/[\u06F0-\u06F9]/.test(faDate)) {
+        throw new Error(`Expected Persian numerals in formatDateTime, got: ${faDate}`);
+      }
+
       logs.push('✓ Empty string "" rejected cleanly without Python TypeError.');
       logs.push('✓ Negative string "-50" and NaN "abc_nan" rejected prior to float addition.');
-      logs.push(`✓ Valid Rial string "1250000" parsed and added atomically (${initialBalance.toLocaleString('en-US')} IRR -> ${validRes.newBalance.toLocaleString('en-US')} IRR).`);
+      logs.push(`✓ Centralized formatCurrency ('Rial' / 'USD') & formatDateTime verified: "${faCurrency}" / "${enCurrency}" / "${faDate}".`);
+      logs.push(`✓ Valid Rial string "1250000" parsed and added atomically (${formatCurrency(initialBalance, 'USD')} -> ${formatCurrency(validRes.newBalance, 'USD')}).`);
     } catch (err: any) {
       passed = false;
       errorDetails = err?.message || String(err);

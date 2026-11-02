@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -22,10 +23,18 @@ import {
   TrainSchedule,
 } from '../types/domain';
 import {
-  formatRial,
+  formatNumber,
+  formatCurrency,
+  formatDateTime,
+  formatTime,
   hashPassword,
   isValidEmail,
+  localizeQuality,
+  localizeText,
+  normalizeCurrencyInputToIrr,
   normalizeIdentifier,
+  toDisplayCurrencyInput,
+  toPersianDigits,
 } from '../services/authService';
 import {
   depositToWallet,
@@ -89,20 +98,29 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
   }, [preselectedTrain]);
 
   // --- WALLET STATE ---
-  const [depositAmount, setDepositAmount] = useState('10000000');
-  const [withdrawAmount, setWithdrawAmount] = useState('5000000');
+  const [depositAmount, setDepositAmount] = useState(() =>
+    toDisplayCurrencyInput(10_000_000, lang)
+  );
+  const [withdrawAmount, setWithdrawAmount] = useState(() =>
+    toDisplayCurrencyInput(5_000_000, lang)
+  );
+
+  useEffect(() => {
+    setDepositAmount(toDisplayCurrencyInput(10_000_000, lang));
+    setWithdrawAmount(toDisplayCurrencyInput(5_000_000, lang));
+  }, [lang]);
 
   // --- PROFILE STATE (Strictly scoped to currentUser.id) ---
-  const [profName, setProfName] = useState(currentUser.name);
+  const [profName, setProfName] = useState(() => localizeText(currentUser.name, lang));
   const [profEmail, setProfEmail] = useState(currentUser.email);
   const [profUsername, setProfUsername] = useState(currentUser.username);
   const [profPassword, setProfPassword] = useState('');
 
   useEffect(() => {
-    setProfName(currentUser.name);
+    setProfName(localizeText(currentUser.name, lang));
     setProfEmail(currentUser.email);
     setProfUsername(currentUser.username);
-  }, [currentUser.id, currentUser.name, currentUser.email, currentUser.username]);
+  }, [currentUser.id, currentUser.name, currentUser.email, currentUser.username, lang]);
 
   const filteredTrains = db.trains.filter((t) => {
     if (
@@ -170,8 +188,11 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
     );
   };
 
-  const handleDeposit = (amountVal: unknown) => {
-    const res = depositToWallet(db, currentUser.id, amountVal);
+  const handleDeposit = (amountVal: unknown, isBaseIrrPreset = false) => {
+    const normalizedAmount = isBaseIrrPreset
+      ? amountVal
+      : normalizeCurrencyInputToIrr(amountVal, lang);
+    const res = depositToWallet(db, currentUser.id, normalizedAmount);
     if (!res.success) {
       notify(res.errorEn || 'Invalid deposit', res.errorFa || 'مبلغ وارد شده معتبر نیست', 'error');
       return;
@@ -179,22 +200,23 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
     onUpdateDb(res.db);
     setLowBalanceShortfall(null);
     notify(
-      `Wallet credited! New balance: ${formatRial(res.newBalance || 0, 'en')}`,
-      `کیف پول شما شارژ شد! موجودی جدید: ${formatRial(res.newBalance || 0, 'fa')}`
+      `Wallet credited! New balance: ${formatCurrency(res.newBalance || 0, 'USD')}`,
+      `کیف پول شما شارژ شد! موجودی جدید: ${formatCurrency(res.newBalance || 0, 'Rial')}`
     );
   };
 
   const handleWithdraw = (e: React.FormEvent) => {
     e.preventDefault();
-    const res = withdrawFromWallet(db, currentUser.id, withdrawAmount);
+    const normalizedWithdraw = normalizeCurrencyInputToIrr(withdrawAmount, lang);
+    const res = withdrawFromWallet(db, currentUser.id, normalizedWithdraw);
     if (!res.success) {
       notify(res.errorEn || 'Withdrawal failed', res.errorFa || 'خطا در برداشت وجه', 'error');
       return;
     }
     onUpdateDb(res.db);
     notify(
-      `Withdrawal complete! Remaining balance: ${formatRial(res.newBalance || 0, 'en')}`,
-      `برداشت وجه انجام شد! موجودی باقیمانده: ${formatRial(res.newBalance || 0, 'fa')}`
+      `Withdrawal complete! Remaining balance: ${formatCurrency(res.newBalance || 0, 'USD')}`,
+      `برداشت وجه انجام شد! موجودی باقیمانده: ${formatCurrency(res.newBalance || 0, 'Rial')}`
     );
   };
 
@@ -206,8 +228,8 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
     }
     onUpdateDb(res.db);
     notify(
-      `Ticket ${res.ticket?.pnr} refunded to your wallet (${formatRial(res.ticket?.totalPrice || 0, 'en')}).`,
-      `بلیط ${res.ticket?.pnr} لغو و مبلغ ${formatRial(res.ticket?.totalPrice || 0, 'fa')} به کیف پول شما بازگردانده شد.`
+      `Ticket ${res.ticket?.pnr} refunded to your wallet (${formatCurrency(res.ticket?.totalPrice || 0, 'USD')}).`,
+      `بلیط ${res.ticket?.pnr} لغو و مبلغ ${formatCurrency(res.ticket?.totalPrice || 0, 'Rial')} به کیف پول شما بازگردانده شد.`
     );
   };
 
@@ -334,7 +356,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
             }`}
           >
             {isFa
-              ? `بلیط‌های من و کارت سوارشدن (${userTickets.length})`
+              ? `بلیط‌های من و کارت سوارشدن (${formatNumber(userTickets.length, lang)})`
               : `My Tickets & Boarding Passes (${userTickets.length})`}
           </button>
           <button
@@ -367,7 +389,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
             {isFa ? 'موجودی کیف پول شما:' : 'Available Balance:'}
           </div>
           <div className="font-mono text-sm sm:text-base font-bold text-emerald-600 dark:text-emerald-400">
-            {formatRial(currentUser.balance, lang)}
+            {formatCurrency(currentUser.balance, isFa ? 'Rial' : 'USD')}
           </div>
           <button
             type="button"
@@ -379,10 +401,18 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
         </div>
       </div>
 
-      {/* TAB 1: SMART TRAIN SEARCH & TICKET BOOKING */}
-      {activeTab === 'BOOKING' && (
-        <div className="space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {/* TAB 1: SMART TRAIN SEARCH & TICKET BOOKING */}
+          {activeTab === 'BOOKING' && (
+            <div className="space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-4 shadow-xs">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute top-2.5 start-3 pointer-events-none" />
               <input
@@ -402,7 +432,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
               <option value="ALL">{isFa ? 'همه خطوط ریلی' : 'All Railway Corridors'}</option>
               {db.lines.map((l) => (
                 <option key={l.id} value={l.name_line}>
-                  {l.name_line}
+                  {localizeText(l.name_line, lang)}
                 </option>
               ))}
             </select>
@@ -434,7 +464,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredTrains.map((train) => {
+            {filteredTrains.map((train, idx) => {
               const line = db.lines.find(
                 (l) => normalizeIdentifier(l.name_line) === normalizeIdentifier(train.name_line)
               );
@@ -448,31 +478,31 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
               return (
                 <div
                   key={train.id}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between hover:border-blue-500/50 transition-colors"
+                  className={`rp-card-hover rp-animate-in rp-stagger-${(idx % 4) + 1} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-xs`}
                 >
                   <div>
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">
-                            {train.id_train}
+                            {toPersianDigits(train.id_train, lang)}
                           </span>
                           <span className="text-slate-400">·</span>
                           <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                            {train.quality}
+                            {localizeQuality(train.quality, lang)}
                           </span>
                         </div>
                         <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
-                          {train.name_train}
+                          {localizeText(train.name_train, lang)}
                         </h4>
                         <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {train.name_line}
+                          {localizeText(train.name_line, lang)}
                         </div>
                       </div>
 
                       <div className="text-end">
                         <div className="text-base sm:text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                          {formatRial(train.cost_ticket, lang)}
+                          {formatCurrency(train.cost_ticket, isFa ? 'Rial' : 'USD')}
                         </div>
                         <div className="text-[11px] text-slate-400">
                           {isFa ? 'بهای هر صندلی' : 'per passenger'}
@@ -486,25 +516,26 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                           <div>
                             <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1">
                               <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                              {line.origin}
+                              {localizeText(line.origin, lang)}
                             </div>
                             <div className="font-mono text-blue-600 dark:text-blue-400 mt-0.5 flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {train.departureTime}
+                              {formatTime(train.departureTime, lang)}
                             </div>
                           </div>
                           <div className="text-center px-2">
                             <div className="text-[11px] font-mono text-slate-400">
-                              {train.speed} km/h · {line.num_state} {isFa ? 'توقف' : 'stops'}
+                              {formatNumber(train.speed, lang)} {isFa ? 'کیلومتر/ساعت' : 'km/h'} ·{' '}
+                              {formatNumber(line.num_state, lang)} {isFa ? 'توقف' : 'stops'}
                             </div>
                             <div className="w-24 h-0.5 bg-slate-300 dark:bg-slate-700 my-1 mx-auto" />
                           </div>
                           <div className="text-end">
                             <div className="font-semibold text-slate-900 dark:text-slate-100">
-                              {line.destination}
+                              {localizeText(line.destination, lang)}
                             </div>
                             <div className="font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
-                              {destArrival}
+                              {formatTime(destArrival, lang)}
                             </div>
                           </div>
                         </div>
@@ -518,12 +549,13 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                         {isFa ? 'ظرفیت صندلی باقیمانده:' : 'Remaining Seat Capacity:'}
                       </span>
                       <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
-                        {train.capacity} / {train.totalCapacity} ({capPercent}%)
+                        {formatNumber(train.capacity, lang)} / {formatNumber(train.totalCapacity, lang)} (
+                        {toPersianDigits(capPercent, lang)}%)
                       </span>
                     </div>
                     <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mb-4">
                       <div
-                        className="h-full bg-blue-600 rounded-full"
+                        className="h-full bg-blue-600 rounded-full transition-all duration-300"
                         style={{ width: `${Math.min(100, capPercent)}%` }}
                       />
                     </div>
@@ -534,7 +566,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                         setSelectedTrain(train);
                         setLowBalanceShortfall(null);
                       }}
-                      className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors cursor-pointer"
+                      className="rp-btn-primary w-full py-2.5 px-4 rounded-xl text-white text-xs font-semibold cursor-pointer"
                     >
                       {isFa ? 'انتخاب صندلی از نقشه واگن و رزرو' : 'Select Coach Seats & Book'}
                     </button>
@@ -548,7 +580,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
 
       {/* TAB 2: MY TICKETS & QR BOARDING PASS */}
       {activeTab === 'TICKETS' && (
-        <div className="space-y-4">
+        <div className="space-y-4 rp-animate-in">
           {userTickets.length === 0 ? (
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-10 text-center">
               <Ticket className="w-8 h-8 text-slate-400 mx-auto mb-2" />
@@ -563,17 +595,17 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('BOOKING')}
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium cursor-pointer"
+                className="rp-btn-primary px-4 py-2 rounded-lg text-white text-xs font-medium cursor-pointer"
               >
                 {isFa ? 'مشاهده سرویس‌های قطار' : 'Browse Trains'}
               </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {userTickets.map((tkt) => (
+              {userTickets.map((tkt, idx) => (
                 <div
                   key={tkt.id}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between"
+                  className={`rp-card-hover rp-animate-in rp-stagger-${(idx % 4) + 1} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-xs`}
                 >
                   <div>
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-3">
@@ -582,7 +614,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                           {isFa ? 'کد رهگیری (PNR)' : 'PNR REFERENCE'}
                         </span>
                         <div className="text-lg font-bold font-mono text-blue-600 dark:text-blue-400">
-                          {tkt.pnr}
+                          {toPersianDigits(tkt.pnr, lang)}
                         </div>
                       </div>
                       <div className="text-end">
@@ -602,7 +634,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                             : 'Refunded'}
                         </span>
                         <div className="text-[11px] font-mono text-slate-400 mt-0.5">
-                          {new Date(tkt.purchasedAt).toLocaleDateString()}
+                          {formatDateTime(tkt.purchasedAt, lang, 'date')}
                         </div>
                       </div>
                     </div>
@@ -611,30 +643,35 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                       <div className="flex justify-between">
                         <span className="text-slate-500">{isFa ? 'قطار:' : 'Train:'}</span>
                         <span className="font-semibold text-slate-900 dark:text-slate-100">
-                          {tkt.id_train} — {tkt.name_train}
+                          {toPersianDigits(tkt.id_train, lang)} — {localizeText(tkt.name_train, lang)}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">{isFa ? 'مسیر سفر:' : 'Route:'}</span>
                         <span className="font-medium text-slate-800 dark:text-slate-200">
-                          {tkt.origin} → {tkt.destination}
+                          {localizeText(tkt.origin, lang)} {isFa ? '←' : '→'}{' '}
+                          {localizeText(tkt.destination, lang)}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">{isFa ? 'ساعت حرکت:' : 'Departure:'}</span>
-                        <span className="font-mono font-semibold">{tkt.departureTime}</span>
+                        <span className="font-mono font-semibold">
+                          {formatTime(tkt.departureTime, lang)}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">{isFa ? 'واگن و صندلی‌ها:' : 'Coach & Seats:'}</span>
                         <span className="font-mono font-semibold text-blue-600 dark:text-blue-400">
-                          {isFa ? `واگن ${tkt.coachNumber || 1}` : `Coach ${tkt.coachNumber || 1}`} ·{' '}
-                          {(tkt.seatNumbers || ['1A']).join(', ')}
+                          {isFa
+                            ? `واگن ${toPersianDigits(tkt.coachNumber || 1, lang)}`
+                            : `Coach ${tkt.coachNumber || 1}`}{' '}
+                          · {toPersianDigits((tkt.seatNumbers || ['1A']).join(isFa ? '، ' : ', '), lang)}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">{isFa ? 'مبلغ کل:' : 'Total Paid:'}</span>
                         <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          {formatRial(tkt.totalPrice, lang)}
+                          {formatCurrency(tkt.totalPrice, isFa ? 'Rial' : 'USD')}
                         </span>
                       </div>
                     </div>
@@ -659,7 +696,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                     <button
                       type="button"
                       onClick={() => setViewingTicketModal(tkt)}
-                      className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>{isFa ? 'کارت سوارشدن' : 'Boarding Pass'}</span>
@@ -685,36 +722,38 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
 
       {/* TAB 3: DIGITAL WALLET & FINANCIAL LEDGER */}
       {activeTab === 'WALLET' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start rp-animate-in">
           <div className="lg:col-span-5 space-y-5">
-            <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-lg">
+            <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 text-white rounded-2xl p-6 border border-slate-800 shadow-lg">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-blue-400" />
-                  <span className="text-xs font-mono tracking-wider text-slate-300">
-                    RAILPULSE PASSENGER WALLET
+                  <span className="text-xs font-semibold text-slate-300">
+                    {isFa ? 'کیف پول اختصاصی مسافر ریل‌پالس' : 'RAILPULSE PASSENGER WALLET'}
                   </span>
                 </div>
-                <span className="text-xs font-mono text-emerald-400">ACTIVE</span>
+                <span className="text-xs font-semibold text-emerald-400">
+                  {isFa ? 'فعال' : 'ACTIVE'}
+                </span>
               </div>
               <div className="text-xs text-slate-400">
                 {isFa ? 'موجودی قابل خرید بلیط و برداشت آنی' : 'Available Balance'}
               </div>
               <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums mt-1">
-                {formatRial(currentUser.balance, lang)}
+                {formatCurrency(currentUser.balance, isFa ? 'Rial' : 'USD')}
               </div>
-              <div className="flex items-center justify-between text-xs text-slate-400 mt-6 pt-4 border-t border-slate-800 font-mono">
-                <span>{currentUser.name}</span>
-                <span>@{currentUser.username}</span>
+              <div className="flex items-center justify-between text-xs text-slate-400 mt-6 pt-4 border-t border-slate-800">
+                <span>{localizeText(currentUser.name, lang)}</span>
+                <span dir="ltr" className="font-mono">@{currentUser.username}</span>
               </div>
             </div>
 
             {/* Increase Balance */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
               <div className="flex items-center gap-2 mb-3">
                 <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
                 <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  {isFa ? 'افزایش اعتبار کیف پول (ریال)' : 'Top Up Wallet Balance (IRR)'}
+                  {isFa ? 'افزایش اعتبار کیف پول (ریال)' : 'Top Up Wallet Balance (USD)'}
                 </h4>
               </div>
 
@@ -723,10 +762,10 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                   <button
                     key={preset}
                     type="button"
-                    onClick={() => handleDeposit(preset)}
-                    className="flex-1 py-1.5 px-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-[11px] font-mono font-semibold cursor-pointer"
+                    onClick={() => handleDeposit(preset, true)}
+                    className="flex-1 py-1.5 px-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-[11px] font-mono font-semibold transition-colors cursor-pointer"
                   >
-                    +{formatRial(preset, lang)}
+                    +{formatCurrency(preset, isFa ? 'Rial' : 'USD')}
                   </button>
                 ))}
               </div>
@@ -735,16 +774,16 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                 <input
                   type="number"
                   dir="ltr"
-                  min={10000}
-                  step="10000"
+                  min={isFa ? 10000 : 1}
+                  step={isFa ? '10000' : '1'}
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
                   className="flex-1 px-3 py-2 text-sm font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
                 />
                 <button
                   type="button"
-                  onClick={() => handleDeposit(depositAmount)}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer"
+                  onClick={() => handleDeposit(depositAmount, false)}
+                  className="rp-btn-emerald px-4 py-2 rounded-lg text-white text-xs font-semibold cursor-pointer"
                 >
                   {isFa ? 'افزایش موجودی' : 'Deposit'}
                 </button>
@@ -752,26 +791,26 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
             </div>
 
             {/* Withdraw Balance */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
               <div className="flex items-center gap-2 mb-3">
                 <ArrowUpRight className="w-4 h-4 text-amber-500" />
                 <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  {isFa ? 'برداشت وجه و انتقال به حساب بانکی (ریال)' : 'Withdraw Funds (IRR)'}
+                  {isFa ? 'برداشت وجه و انتقال به حساب بانکی (ریال)' : 'Withdraw Funds (USD)'}
                 </h4>
               </div>
               <form onSubmit={handleWithdraw} className="flex gap-2">
                 <input
                   type="number"
                   dir="ltr"
-                  min={10000}
-                  step="10000"
+                  min={isFa ? 10000 : 1}
+                  step={isFa ? '10000' : '1'}
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
                   className="flex-1 px-3 py-2 text-sm font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-colors cursor-pointer"
                 >
                   {isFa ? 'ثبت برداشت' : 'Withdraw'}
                 </button>
@@ -780,7 +819,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
           </div>
 
           {/* Immutable Transaction Ledger */}
-          <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+          <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
             <div className="flex items-center gap-2 mb-4">
               <Wallet className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
@@ -801,13 +840,13 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                   {userTransactions.map((tx) => {
                     const isCredit = tx.type === 'DEPOSIT' || tx.type === 'TICKET_REFUND';
                     return (
-                      <tr key={tx.id}>
+                      <tr key={tx.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
                         <td className="py-3 px-3">
                           <div className="font-medium text-slate-900 dark:text-slate-100">
-                            {isFa ? tx.descriptionFa : tx.descriptionEn}
+                            {isFa ? toPersianDigits(tx.descriptionFa, 'fa') : tx.descriptionEn}
                           </div>
                           <div className="text-[10px] font-mono text-slate-400">
-                            {new Date(tx.timestamp).toLocaleString()}
+                            {formatDateTime(tx.timestamp, lang, 'full')}
                           </div>
                         </td>
                         <td
@@ -817,10 +856,10 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                               : 'text-red-600 dark:text-red-400'
                           }`}
                         >
-                          {isCredit ? '+' : '-'}{formatRial(tx.amount, lang)}
+                          {isCredit ? '+' : '-'}{formatCurrency(tx.amount, isFa ? 'Rial' : 'USD')}
                         </td>
                         <td className="py-3 px-3 text-end font-mono text-slate-700 dark:text-slate-300">
-                          {formatRial(tx.runningBalance, lang)}
+                          {formatCurrency(tx.runningBalance, isFa ? 'Rial' : 'USD')}
                         </td>
                       </tr>
                     );
@@ -834,7 +873,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
 
       {/* TAB 4: AUTHENTICATED PROFILE MANAGEMENT */}
       {activeTab === 'PROFILE' && (
-        <div className="max-w-xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+        <div className="max-w-xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs rp-animate-in">
           <div className="flex items-center gap-2.5 mb-2">
             <UserCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
@@ -848,8 +887,8 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
           </p>
 
           <form onSubmit={handleUpdateProfile} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <div className="group">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                 {isFa ? 'نام و نام خانوادگی' : 'Full Name'}
               </label>
               <input
@@ -860,8 +899,8 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <div className="group">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                 {isFa ? 'نام کاربری یکتا' : 'Username'}
               </label>
               <input
@@ -873,8 +912,8 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <div className="group">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                 {isFa ? 'آدرس پست الکترونیک' : 'Email Address'}
               </label>
               <input
@@ -886,8 +925,8 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <div className="group">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                 {isFa ? 'رمز عبور جدید (اختیاری)' : 'New Password (optional)'}
               </label>
               <input
@@ -902,13 +941,15 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
 
             <button
               type="submit"
-              className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors cursor-pointer"
+              className="rp-btn-primary w-full py-2.5 px-4 rounded-xl text-white text-sm font-semibold cursor-pointer"
             >
               {isFa ? 'ذخیره تغییرات حساب کاربری' : 'Save Profile Changes'}
             </button>
           </form>
         </div>
       )}
+        </motion.div>
+      </AnimatePresence>
 
       {/* Interactive Coach Seat Map Selector Modal */}
       {selectedTrain && (
@@ -930,7 +971,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
             .flatMap((t) => t.seatNumbers || [])}
           lang={lang}
           lowBalanceShortfall={lowBalanceShortfall}
-          onQuickDeposit={(amt) => handleDeposit(amt)}
+          onQuickDeposit={(amt) => handleDeposit(amt, true)}
           onConfirmPurchase={handleConfirmSeatPurchase}
           onClose={() => {
             setSelectedTrain(null);

@@ -18,7 +18,7 @@ import {
   ThemeMode,
   UserRole,
 } from '../types/domain';
-import { formatRial } from '../services/authService';
+import { formatCurrency, localizeText } from '../services/authService';
 
 interface CustomerStorefrontLayoutProps {
   lang: Language;
@@ -50,6 +50,7 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
   children,
 }) => {
   const isFa = lang === 'fa';
+  const currencyType = isFa ? 'Rial' : 'USD';
   const [showDevDocsModal, setShowDevDocsModal] = useState(false);
 
   return (
@@ -65,7 +66,7 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
           }}
           className="text-lg font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0"
         >
-          RailPulse
+          {isFa ? 'سامانه جامع ریل‌پالس' : 'RailPulse'}
         </a>
 
         {/* Zone 2: 4–5 Concise Single-Line Navigation Links */}
@@ -73,7 +74,7 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
           <button
             type="button"
             onClick={() => onNavigateHome('search-engine')}
-            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1 border-b-2 border-transparent hover:border-blue-500/60"
           >
             {isFa ? 'رزرو بلیط قطار' : 'Book Tickets'}
           </button>
@@ -81,7 +82,7 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
           <button
             type="button"
             onClick={() => onNavigateHome('live-departures')}
-            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1 border-b-2 border-transparent hover:border-blue-500/60"
           >
             {isFa ? 'تابلوی حرکت قطارها' : 'Live Departures'}
           </button>
@@ -89,7 +90,7 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
           <button
             type="button"
             onClick={() => onNavigateHome('pnr-tracker')}
-            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1 border-b-2 border-transparent hover:border-blue-500/60"
           >
             {isFa ? 'پیگیری بلیط با کد رزرو' : 'Track Booking'}
           </button>
@@ -98,10 +99,10 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
             <button
               type="button"
               onClick={() => onNavigatePassengerPortal('BOOKING')}
-              className={`hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1 border-b-2 ${
                 activeRoute === 'PASSENGER_PORTAL'
-                  ? 'text-blue-600 dark:text-blue-400 font-semibold'
-                  : ''
+                  ? 'text-blue-600 dark:text-blue-400 font-semibold border-blue-600 dark:border-blue-400'
+                  : 'border-transparent hover:border-blue-500/60'
               }`}
             >
               {isFa ? 'پنل کاربری و کیف پول من' : 'My Trips & Wallet'}
@@ -115,7 +116,7 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
             <button
               type="button"
               onClick={() => onNavigatePassengerPortal('BOOKING')}
-              className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold text-white rp-btn-primary rounded-lg whitespace-nowrap shrink-0 cursor-pointer"
             >
               {isFa ? 'حساب کاربری مسافر' : 'Passenger Account'}
             </button>
@@ -123,7 +124,7 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
             <button
               type="button"
               onClick={() => onNavigateAuth('passenger', 'LOGIN')}
-              className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold text-white rp-btn-primary rounded-lg whitespace-nowrap shrink-0 cursor-pointer"
             >
               {isFa ? 'ورود / ثبت‌نام مسافر' : 'Sign In / Register'}
             </button>
@@ -151,7 +152,7 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
                   <Wallet className="w-3.5 h-3.5 text-emerald-500" />
                   <span>{isFa ? 'کیف پول:' : 'Wallet:'}</span>
                   <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    {formatRial(activePassenger.balance, lang)}
+                    {formatCurrency(activePassenger.balance, currencyType)}
                   </span>
                 </button>
 
@@ -163,7 +164,7 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
                   className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
                 >
                   <Ticket className="w-3.5 h-3.5 text-blue-500" />
-                  <span>{activePassenger.name}</span>
+                  <span>{localizeText(activePassenger.name, lang)}</span>
                 </button>
 
                 <span className="text-slate-300 dark:text-slate-700">·</span>
@@ -213,7 +214,7 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
           <div>
             <div className="font-bold text-slate-900 dark:text-white text-sm">
               {isFa
-                ? 'RailPulse — پلتفرم جامع رزرواسیون و خدمات مسافرتی ریلی'
+                ? 'ریل‌پالس — پلتفرم جامع رزرواسیون و خدمات مسافرتی ریلی'
                 : 'RailPulse — National Passenger Railway Reservation Platform'}
             </div>
             <p className="mt-1 text-slate-500 dark:text-slate-400">
@@ -253,8 +254,8 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
 
       {/* Discreet Developer Documentation Modal (Accessible ONLY via footer link) */}
       {showDevDocsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 rp-modal-backdrop">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl rp-modal-content">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -279,28 +280,36 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
                 : 'In accordance with production security standards, credentials are never printed on public screens. Evaluators may use the seed accounts documented in README.md to test each isolated role:'}
             </p>
 
-            <div className="space-y-2.5 text-xs font-mono bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800" dir="ltr">
+            <div className="space-y-2.5 text-xs font-mono bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
               <div className="flex items-center justify-between py-1 border-b border-slate-200/70 dark:border-slate-800">
-                <span className="text-slate-500">1. System Admin:</span>
-                <span className="text-slate-900 dark:text-slate-100 font-semibold">
+                <span className="text-slate-500">
+                  {isFa ? '۱. مدیر کل سازمان:' : '1. System Admin:'}
+                </span>
+                <span className="text-slate-900 dark:text-slate-100 font-semibold" dir="ltr">
                   Admin_train / admin_train
                 </span>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-200/70 dark:border-slate-800">
-                <span className="text-slate-500">2. Operations Staff:</span>
-                <span className="text-slate-900 dark:text-slate-100 font-semibold">
+                <span className="text-slate-500">
+                  {isFa ? '۲. کارشناس عملیات ریلی:' : '2. Operations Staff:'}
+                </span>
+                <span className="text-slate-900 dark:text-slate-100 font-semibold" dir="ltr">
                   sara_ahmadi / staff123
                 </span>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-200/70 dark:border-slate-800">
-                <span className="text-slate-500">3. Passenger A (48,000,000 IRR):</span>
-                <span className="text-slate-900 dark:text-slate-100 font-semibold">
+                <span className="text-slate-500">
+                  {isFa ? '۳. مسافر نمونه اول (۴۸,۰۰۰,۰۰۰ ریال):' : '3. Passenger A (48,000,000 IRR):'}
+                </span>
+                <span className="text-slate-900 dark:text-slate-100 font-semibold" dir="ltr">
                   mahdi_as / user123
                 </span>
               </div>
               <div className="flex items-center justify-between py-1">
-                <span className="text-slate-500">4. Passenger B (21,500,000 IRR):</span>
-                <span className="text-slate-900 dark:text-slate-100 font-semibold">
+                <span className="text-slate-500">
+                  {isFa ? '۴. مسافر نمونه دوم (۲۱,۵۰۰,۰۰۰ ریال):' : '4. Passenger B (21,500,000 IRR):'}
+                </span>
+                <span className="text-slate-900 dark:text-slate-100 font-semibold" dir="ltr">
                   parisa_rad / user123
                 </span>
               </div>

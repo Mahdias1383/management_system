@@ -2,168 +2,448 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: 'Vazirmatn', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Vazirmatn', ui-monospace, SFMono-Regular, monospace;
+  --font-sans: 'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Vazirmatn FD', 'JetBrains Mono', monospace;
+}
+
+/* =========================================================================
+   1. PERSIAN (RTL / lang="fa") TYPOGRAPHY & PERSIAN NUMERAL ENFORCEMENT
+   Forces 'Vazirmatn FD' and OpenType 'ss01' Persian numerals across all
+   components, inputs, tables, and Recharts SVG charts when in Persian mode.
+   ========================================================================= */
+html[lang="fa"],
+html[dir="rtl"],
+html[lang="fa"] *,
+html[lang="fa"] *::before,
+html[lang="fa"] *::after,
+html[dir="rtl"] *,
+html[dir="rtl"] *::before,
+html[dir="rtl"] *::after,
+html[lang="fa"] .font-sans,
+html[lang="fa"] .font-mono,
+html[lang="fa"] .tabular-nums,
+html[lang="fa"] [dir="ltr"],
+html[lang="fa"] svg,
+html[lang="fa"] svg text,
+html[lang="fa"] svg tspan,
+html[lang="fa"] .recharts-wrapper,
+html[lang="fa"] .recharts-wrapper *,
+html[lang="fa"] .recharts-surface,
+html[lang="fa"] .recharts-text,
+html[lang="fa"] .recharts-cartesian-axis-tick,
+html[lang="fa"] .recharts-cartesian-axis-tick-value,
+html[lang="fa"] .recharts-legend-wrapper,
+html[lang="fa"] .recharts-legend-item-text,
+html[lang="fa"] .recharts-default-tooltip,
+html[lang="fa"] .recharts-tooltip-label,
+html[lang="fa"] .recharts-tooltip-item-list,
+html[lang="fa"] .recharts-tooltip-item,
+html[lang="fa"] .recharts-tooltip-wrapper,
+html[lang="fa"] .recharts-tooltip-wrapper * {
+  font-family: 'Vazirmatn FD', 'Vazirmatn', sans-serif !important;
+  font-feature-settings: "ss01" 1, "tnum" 1, "kern" 1, "liga" 1, "calt" 1 !important;
+}
+
+/* =========================================================================
+   2. INTERNATIONAL ENGLISH (LTR / lang="en") TYPOGRAPHY & WESTERN NUMERALS
+   Uses 'Plus Jakarta Sans' for UI/charts and 'JetBrains Mono' for tabular
+   codes/financials with standard Western ASCII digits (0-9, ss01 off).
+   ========================================================================= */
+html[lang="en"],
+html[dir="ltr"],
+html[lang="en"] *,
+html[lang="en"] *::before,
+html[lang="en"] *::after,
+html[lang="en"] .font-sans,
+html[lang="en"] svg,
+html[lang="en"] svg text,
+html[lang="en"] svg tspan,
+html[lang="en"] .recharts-wrapper,
+html[lang="en"] .recharts-wrapper *,
+html[lang="en"] .recharts-surface,
+html[lang="en"] .recharts-text,
+html[lang="en"] .recharts-cartesian-axis-tick,
+html[lang="en"] .recharts-cartesian-axis-tick-value,
+html[lang="en"] .recharts-legend-wrapper,
+html[lang="en"] .recharts-legend-item-text,
+html[lang="en"] .recharts-default-tooltip,
+html[lang="en"] .recharts-tooltip-label,
+html[lang="en"] .recharts-tooltip-item-list,
+html[lang="en"] .recharts-tooltip-item,
+html[lang="en"] .recharts-tooltip-wrapper,
+html[lang="en"] .recharts-tooltip-wrapper * {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-feature-settings: "ss01" 0, "tnum" 1, "kern" 1, "liga" 1 !important;
+}
+
+html[lang="en"] .font-mono,
+html[lang="en"] code,
+html[lang="en"] pre,
+html[lang="en"] kbd,
+html[lang="en"] samp {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "ss01" 0, "tnum" 1, "zero" 1 !important;
 }
 
 @layer base {
-  /* =========================================================================
-     RTL (PERSIAN) TYPOGRAPHY SYSTEM — VAZIRMATN OPTIMIZATION
-     ========================================================================= */
-  html[dir="rtl"] {
-    font-family: 'Vazirmatn', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
-    font-weight: 400;
-    line-height: 1.75;
-    letter-spacing: 0 !important;
-    word-spacing: 0.02em;
-    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  html {
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  html[dir="rtl"] body {
-    font-family: 'Vazirmatn', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  /* --- Persian RTL Rhythm & Header Calibration --- */
+  html[lang="fa"],
+  html[lang="fa"] body {
     font-weight: 400;
     line-height: 1.75;
     letter-spacing: 0 !important;
+    word-spacing: 0.02em;
   }
 
-  /* Prevent cursive Persian glyph disconnection across all RTL elements & Tailwind tracking utilities */
-  html[dir="rtl"] *,
-  html[dir="rtl"] .tracking-tight,
-  html[dir="rtl"] .tracking-tighter,
-  html[dir="rtl"] .tracking-wide,
-  html[dir="rtl"] .tracking-wider,
-  html[dir="rtl"] .tracking-widest {
+  html[lang="fa"] *,
+  html[lang="fa"] .tracking-tight,
+  html[lang="fa"] .tracking-tighter,
+  html[lang="fa"] .tracking-wide,
+  html[lang="fa"] .tracking-wider,
+  html[lang="fa"] .tracking-widest {
     letter-spacing: 0 !important;
   }
 
-  /* Restore subtle letter-spacing only on explicitly marked LTR code/badge elements inside RTL */
-  html[dir="rtl"] [dir="ltr"] {
-    letter-spacing: normal;
-  }
-
-  /* Calibrated Header Tag Hierarchy (h1 - h6) for Persian Readability */
-  html[dir="rtl"] h1 {
-    font-family: 'Vazirmatn', sans-serif;
+  html[lang="fa"] h1 {
     font-weight: 800;
     line-height: 1.45;
     letter-spacing: 0.01em !important;
   }
 
-  html[dir="rtl"] h2 {
-    font-family: 'Vazirmatn', sans-serif;
+  html[lang="fa"] h2 {
     font-weight: 700;
     line-height: 1.5;
     letter-spacing: 0.01em !important;
   }
 
-  html[dir="rtl"] h3,
-  html[dir="rtl"] h4 {
-    font-family: 'Vazirmatn', sans-serif;
+  html[lang="fa"] h3,
+  html[lang="fa"] h4 {
     font-weight: 700;
     line-height: 1.55;
     letter-spacing: 0.01em !important;
   }
 
-  html[dir="rtl"] h5,
-  html[dir="rtl"] h6 {
-    font-family: 'Vazirmatn', sans-serif;
+  html[lang="fa"] h5,
+  html[lang="fa"] h6 {
     font-weight: 600;
     line-height: 1.6;
     letter-spacing: 0.01em !important;
   }
 
-  /* Standard Body Text, Paragraphs, Lists & Captions in RTL */
-  html[dir="rtl"] p,
-  html[dir="rtl"] li,
-  html[dir="rtl"] dd,
-  html[dir="rtl"] blockquote {
-    font-family: 'Vazirmatn', sans-serif;
+  html[lang="fa"] p,
+  html[lang="fa"] li,
+  html[lang="fa"] dd,
+  html[lang="fa"] blockquote {
     font-weight: 400;
     line-height: 1.75;
-    letter-spacing: 0 !important;
   }
 
-  /* Form Controls, Buttons & Data Table Cells in RTL */
-  html[dir="rtl"] label,
-  html[dir="rtl"] th {
-    font-family: 'Vazirmatn', sans-serif;
-    font-weight: 600;
-    line-height: 1.65;
-    letter-spacing: 0 !important;
-  }
-
-  html[dir="rtl"] td {
-    line-height: 1.7;
-    letter-spacing: 0 !important;
-  }
-
-  html[dir="rtl"] button,
-  html[dir="rtl"] input,
-  html[dir="rtl"] select,
-  html[dir="rtl"] textarea {
-    font-family: 'Vazirmatn', 'JetBrains Mono', 'Plus Jakarta Sans', sans-serif;
-    line-height: 1.6;
-    letter-spacing: 0 !important;
-  }
-
-  /* =========================================================================
-     LTR (ENGLISH) TYPOGRAPHY SYSTEM
-     ========================================================================= */
-  html[dir="ltr"] {
-    font-family: 'Plus Jakarta Sans', 'Inter', 'Vazirmatn', system-ui, -apple-system, sans-serif;
+  /* --- International English LTR Rhythm & Header Calibration --- */
+  html[lang="en"],
+  html[lang="en"] body {
     font-weight: 400;
     line-height: 1.6;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.005em;
   }
 
-  html[dir="ltr"] body {
-    font-family: 'Plus Jakarta Sans', 'Inter', 'Vazirmatn', system-ui, -apple-system, sans-serif;
-    line-height: 1.6;
+  html[lang="en"] h1 {
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
   }
 
-  html[dir="ltr"] h1,
-  html[dir="ltr"] h2,
-  html[dir="ltr"] h3,
-  html[dir="ltr"] h4,
-  html[dir="ltr"] h5,
-  html[dir="ltr"] h6 {
+  html[lang="en"] h2 {
+    font-weight: 700;
     line-height: 1.3;
+    letter-spacing: -0.02em;
+  }
+
+  html[lang="en"] h3,
+  html[lang="en"] h4 {
+    font-weight: 700;
+    line-height: 1.35;
     letter-spacing: -0.015em;
   }
 
-  html[dir="ltr"] p,
-  html[dir="ltr"] li {
-    line-height: 1.65;
+  html[lang="en"] h5,
+  html[lang="en"] h6 {
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: -0.01em;
   }
 
-  input,
-  select,
-  textarea,
-  button {
-    font-family: inherit;
+  html[lang="en"] p,
+  html[lang="en"] li,
+  html[lang="en"] dd,
+  html[lang="en"] blockquote {
+    font-weight: 400;
+    line-height: 1.6;
   }
+}
 
-  /* Ensure monospace numbers & codes stay crisp while Persian glyphs inside .font-mono use Vazirmatn */
-  .font-mono,
-  .tabular-nums {
-    font-family: 'JetBrains Mono', 'Vazirmatn', ui-monospace, SFMono-Regular, monospace;
-    font-variant-numeric: tabular-nums;
+/* =========================================================================
+   3. ENHANCED UI CONTROLS: DROPDOWNS, INPUTS, LABELS, BUTTONS & CARDS
+   ========================================================================= */
+
+/* Custom Styled Select Dropdowns with RTL & LTR Automatic Chevron Positioning */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 15px 15px;
+  cursor: pointer;
+  transition:
+    border-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 160ms ease,
+    transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+html[dir="rtl"] select {
+  background-position: left 0.75rem center;
+  padding-left: 2.25rem !important;
+}
+
+html[dir="ltr"] select {
+  background-position: right 0.75rem center;
+  padding-right: 2.25rem !important;
+}
+
+select:hover {
+  border-color: #3b82f6;
+}
+
+.dark select:hover {
+  border-color: #60a5fa;
+}
+
+/* Interactive Form Inputs & Focus Rings */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="time"],
+input[type="search"],
+textarea {
+  transition:
+    border-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 160ms ease;
+}
+
+input[type="text"]:hover,
+input[type="number"]:hover,
+input[type="email"]:hover,
+input[type="password"]:hover,
+input[type="time"]:hover {
+  border-color: #94a3b8;
+}
+
+.dark input[type="text"]:hover,
+.dark input[type="number"]:hover,
+.dark input[type="email"]:hover,
+.dark input[type="password"]:hover,
+.dark input[type="time"]:hover {
+  border-color: #475569;
+}
+
+select:focus,
+select:focus-visible,
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="time"]:focus,
+textarea:focus {
+  outline: none;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3.5px rgba(37, 99, 235, 0.18);
+}
+
+.dark select:focus,
+.dark select:focus-visible,
+.dark input[type="text"]:focus,
+.dark input[type="number"]:focus,
+.dark input[type="email"]:focus,
+.dark input[type="password"]:focus,
+.dark input[type="time"]:focus,
+.dark textarea:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3.5px rgba(59, 130, 246, 0.24);
+}
+
+/* Refined Form Labels */
+label {
+  transition: color 150ms ease;
+}
+
+/* Tactile Button Micro-Interactions with Spring Easing */
+button {
+  transition:
+    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Primary CTA Button Sheen & Elevation */
+.rp-btn-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 14px -3px rgba(37, 99, 235, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
+}
+
+.rp-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+  transform: translateY(-1.5px) scale(1.01);
+}
+
+.rp-btn-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.rp-btn-emerald {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 14px -3px rgba(5, 150, 105, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
+}
+
+.rp-btn-emerald:hover:not(:disabled) {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+  transform: translateY(-1.5px) scale(1.01);
+}
+
+/* Interactive Card Elevation, Subtle Hover Scaling & Spring Physics */
+.rp-card-hover {
+  will-change: transform, box-shadow;
+  transition:
+    transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.rp-card-hover:hover {
+  transform: translateY(-3px) scale(1.008);
+  box-shadow:
+    0 16px 32px -10px rgba(15, 23, 42, 0.12),
+    0 6px 14px -4px rgba(37, 99, 235, 0.1);
+  border-color: rgba(59, 130, 246, 0.55);
+}
+
+.dark .rp-card-hover:hover {
+  box-shadow:
+    0 18px 36px -12px rgba(2, 6, 23, 0.72),
+    0 0 0 1px rgba(59, 130, 246, 0.38),
+    0 6px 16px -6px rgba(37, 99, 235, 0.22);
+  border-color: rgba(59, 130, 246, 0.55);
+}
+
+/* =========================================================================
+   4. GPU-COMPOSITED KEYFRAME ANIMATIONS (transform & opacity only)
+   ========================================================================= */
+@keyframes rpFadeSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
   }
-
-  html[dir="rtl"] .font-mono,
-  html[dir="rtl"] .tabular-nums {
-    line-height: 1.65;
-    letter-spacing: 0 !important;
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
+}
 
-  svg text {
-    font-family: 'Vazirmatn', 'JetBrains Mono', 'Inter', sans-serif;
-    letter-spacing: 0;
+@keyframes rpScaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes rpBackdropFade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes rpToastSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.rp-animate-in {
+  animation: rpFadeSlideUp 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.rp-modal-backdrop {
+  animation: rpBackdropFade 180ms ease-out both;
+}
+
+.rp-modal-content {
+  animation: rpScaleIn 240ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.rp-toast-enter {
+  animation: rpToastSlideIn 240ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.rp-stagger-1 {
+  animation-delay: 30ms;
+}
+.rp-stagger-2 {
+  animation-delay: 60ms;
+}
+.rp-stagger-3 {
+  animation-delay: 90ms;
+}
+.rp-stagger-4 {
+  animation-delay: 120ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

@@ -14,6 +14,7 @@ import {
   hashPassword,
   issueSessionToken,
   isValidEmail,
+  localizeText,
   normalizeIdentifier,
   verifyPassword,
 } from '../services/authService';
@@ -116,13 +117,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           role: 'staff',
           userId: emp.id,
           username: emp.username,
-          displayName: `${emp.name} ${emp.lastname}`,
+          displayName: `${localizeText(emp.name, lang)} ${localizeText(emp.lastname, lang)}`,
           email: emp.email,
           sessionToken: issueSessionToken(emp.id, 'staff'),
         });
         notify(
-          `Signed in to Railway Operations Portal as ${emp.name}.`,
-          `ورود موفق به پنل مهندسی و عملیات خطوط ریلی (${emp.name}).`
+          `Signed in to Railway Operations Portal as ${localizeText(emp.name, 'en')}.`,
+          `ورود موفق به پنل مهندسی و عملیات خطوط ریلی (${localizeText(emp.name, 'fa')} ${localizeText(emp.lastname, 'fa')}).`
         );
       } else {
         notify(
@@ -145,11 +146,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         role: 'passenger',
         userId: pass.id,
         username: pass.username,
-        displayName: pass.name,
+        displayName: localizeText(pass.name, lang),
         email: pass.email,
         sessionToken: issueSessionToken(pass.id, 'passenger'),
       });
-      notify(`Welcome back, ${pass.name}!`, `خوش آمدید، ${pass.name}!`);
+      notify(
+        `Welcome back, ${localizeText(pass.name, 'en')}!`,
+        `خوش آمدید، ${localizeText(pass.name, 'fa')}!`
+      );
     } else {
       notify(
         'Invalid Passenger username or password.',
@@ -207,7 +211,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       username: trimUser,
       email: trimEmail.toLowerCase(),
       passwordHash: hashPassword(regPassword),
-      balance: 100,
+      balance: 10000000,
       createdAt: new Date().toISOString(),
     };
 
@@ -217,10 +221,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       userId: newPassenger.id,
       username: newPassenger.username,
       type: 'DEPOSIT',
-      amount: 100,
-      runningBalance: 100,
-      descriptionEn: 'New Passenger Welcome Wallet Credit',
-      descriptionFa: 'اعتبار هدیه خوش‌آمدگویی ثبت‌نام مسافر جدید',
+      amount: 10000000,
+      runningBalance: 10000000,
+      descriptionEn: 'New Passenger Welcome Wallet Credit (10,000,000 IRR)',
+      descriptionFa: 'اعتبار هدیه خوش‌آمدگویی ثبت‌نام مسافر جدید (۱۰,۰۰۰,۰۰۰ ریال)',
       timestamp: newPassenger.createdAt,
     });
 
@@ -240,12 +244,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   };
 
   return (
-    <div className="max-w-lg mx-auto py-6">
+    <div className="max-w-lg mx-auto py-6 rp-animate-in">
       <div className="mb-4 flex items-center justify-between">
         <button
           type="button"
           onClick={onBackToHome}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
         >
           {isFa ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
           <span>{isFa ? 'بازگشت به صفحه اصلی' : 'Back to Home'}</span>
@@ -264,7 +268,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               setSelectedRole('passenger');
             }
           }}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer"
         >
           <Building2 className="w-3.5 h-3.5" />
           <span>
@@ -279,9 +283,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-md">
         {portalCategory === 'PASSENGER' ? (
-          <>
+          <div className="rp-animate-in">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -299,20 +303,20 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     : 'Manage your train bookings, QR boarding passes, and digital wallet'}
                 </p>
               </div>
-              <div className="p-2.5 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400">
+              <div className="p-2.5 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400 shadow-xs">
                 <User className="w-5 h-5" />
               </div>
             </div>
 
             {/* Sign In / Register Switch */}
-            <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-950 rounded-xl mb-5">
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 dark:bg-slate-950 rounded-xl mb-5 border border-slate-200/70 dark:border-slate-800/70">
               <button
                 type="button"
                 onClick={() => setMode('LOGIN')}
-                className={`py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${
+                className={`py-2 text-xs font-semibold rounded-lg cursor-pointer transition-all duration-150 ${
                   mode === 'LOGIN'
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500'
+                    ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
                 }`}
               >
                 {isFa ? 'ورود به حساب' : 'Sign In'}
@@ -320,10 +324,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               <button
                 type="button"
                 onClick={() => setMode('REGISTER')}
-                className={`py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${
+                className={`py-2 text-xs font-semibold rounded-lg cursor-pointer transition-all duration-150 ${
                   mode === 'REGISTER'
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500'
+                    ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
                 }`}
               >
                 {isFa ? 'ثبت‌نام مسافر جدید' : 'Create Account'}
@@ -331,9 +335,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             </div>
 
             {mode === 'LOGIN' ? (
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <form onSubmit={handleLogin} className="space-y-4 rp-animate-in">
+                <div className="group">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                     {isFa ? 'نام کاربری' : 'Username'}
                   </label>
                   <input
@@ -346,8 +350,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <div className="group">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                     {isFa ? 'رمز عبور' : 'Password'}
                   </label>
                   <input
@@ -362,16 +366,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors cursor-pointer"
+                  className="rp-btn-primary w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-white text-sm font-semibold cursor-pointer"
                 >
                   <Lock className="w-4 h-4" />
                   <span>{isFa ? 'ورود به پنل مسافر' : 'Sign In'}</span>
                 </button>
               </form>
             ) : (
-              <form onSubmit={handleRegisterPassenger} className="space-y-3.5">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <form onSubmit={handleRegisterPassenger} className="space-y-3.5 rp-animate-in">
+                <div className="group">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                     {isFa ? 'نام و نام خانوادگی' : 'Full Name'}
                   </label>
                   <input
@@ -383,8 +387,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <div className="group">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                     {isFa ? 'نام کاربری یکتا' : 'Username'}
                   </label>
                   <input
@@ -397,8 +401,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <div className="group">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                     {isFa ? 'پست الکترونیک' : 'Email Address'}
                   </label>
                   <input
@@ -411,8 +415,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <div className="group">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                     {isFa ? 'رمز عبور' : 'Password'}
                   </label>
                   <input
@@ -427,17 +431,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors cursor-pointer"
+                  className="rp-btn-emerald w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-white text-sm font-semibold cursor-pointer"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>{isFa ? 'ایجاد حساب کاربری مسافر' : 'Create Passenger Account'}</span>
                 </button>
               </form>
             )}
-          </>
+          </div>
         ) : (
           /* Corporate Staff & System Admin Authentication */
-          <>
+          <div className="rp-animate-in">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -451,24 +455,24 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     : 'Strictly isolated backoffice access for authorized railway staff and administrators'}
                 </p>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-900 dark:bg-slate-800 text-white">
+              <div className="p-2.5 rounded-xl bg-slate-900 dark:bg-slate-800 text-white shadow-xs">
                 <Shield className="w-5 h-5" />
               </div>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
                   {isFa ? 'انتخاب سطح دسترسی سازمانی:' : 'Select Backoffice Department:'}
                 </label>
                 <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={() => setSelectedRole('staff')}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-colors ${
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-150 ${
                       selectedRole === 'staff'
-                        ? 'border-blue-600 bg-blue-600/10 text-blue-600 dark:text-blue-400'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                        ? 'border-blue-600 bg-blue-600/10 text-blue-600 dark:text-blue-400 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                     }`}
                   >
                     <Train className="w-4 h-4" />
@@ -478,10 +482,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   <button
                     type="button"
                     onClick={() => setSelectedRole('admin')}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-colors ${
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-150 ${
                       selectedRole === 'admin'
-                        ? 'border-blue-600 bg-blue-600/10 text-blue-600 dark:text-blue-400'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                        ? 'border-blue-600 bg-blue-600/10 text-blue-600 dark:text-blue-400 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                     }`}
                   >
                     <Shield className="w-4 h-4" />
@@ -490,8 +494,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <div className="group">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                   {isFa ? 'نام کاربری سازمانی' : 'Corporate Username'}
                 </label>
                 <input
@@ -504,8 +508,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <div className="group">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                   {isFa ? 'رمز عبور سازمانی' : 'Password'}
                 </label>
                 <input
@@ -520,7 +524,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 text-white text-sm font-semibold transition-colors cursor-pointer"
+                className="rp-btn-primary w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-white text-sm font-semibold cursor-pointer"
               >
                 <Lock className="w-4 h-4" />
                 <span>
@@ -534,7 +538,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 </span>
               </button>
             </form>
-          </>
+          </div>
         )}
       </div>
     </div>

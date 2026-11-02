@@ -1,6 +1,7 @@
 import React from 'react';
 import { Language, SafetyConflict, TrainLine, TrainSchedule } from '../types/domain';
 import { computeTrainStationTimings, formatMinutesToTime } from '../services/collisionEngine';
+import { formatTime, localizeText, toPersianDigits } from '../services/authService';
 
 interface MareyChartProps {
   line: TrainLine;
@@ -111,13 +112,13 @@ export const MareyChart: React.FC<MareyChartProps> = ({
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+    <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
         <div>
           <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
             {isFa
-              ? `نمودار زمان-مسافت ماری (Marey's Time-Distance Diagram) — ${line.name_line}`
-              : `Marey's Time-Distance Train Schedule Graph — ${line.name_line}`}
+              ? `نمودار زمان-مسافت ماری — ${localizeText(line.name_line, lang)}`
+              : `Marey's Time-Distance Train Schedule Graph — ${localizeText(line.name_line, lang)}`}
           </h4>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {isFa
@@ -134,7 +135,9 @@ export const MareyChart: React.FC<MareyChartProps> = ({
                 className="inline-block w-3 h-1 rounded-sm"
                 style={{ backgroundColor: s.color }}
               />
-              <span className="font-mono text-slate-700 dark:text-slate-300">{s.id}</span>
+              <span className="font-mono text-slate-700 dark:text-slate-300">
+                {toPersianDigits(s.id, lang)}
+              </span>
             </div>
           ))}
         </div>
@@ -174,7 +177,7 @@ export const MareyChart: React.FC<MareyChartProps> = ({
                   textAnchor="middle"
                   className="fill-slate-500 dark:fill-slate-400 text-[10px] font-mono"
                 >
-                  {formatMinutesToTime(t)}
+                  {formatTime(formatMinutesToTime(t), lang)}
                 </text>
               </g>
             );
@@ -200,14 +203,17 @@ export const MareyChart: React.FC<MareyChartProps> = ({
                   textAnchor="end"
                   className="fill-slate-700 dark:fill-slate-300 text-[11px] font-medium"
                 >
-                  {stName.length > 20 ? `${stName.slice(0, 19)}…` : stName}
+                  {(() => {
+                    const locSt = localizeText(stName, lang);
+                    return locSt.length > 22 ? `${locSt.slice(0, 21)}…` : locSt;
+                  })()}
                 </text>
                 <text
                   x={padLeft + 6}
                   y={y - 4}
                   className="fill-slate-400 dark:fill-slate-500 text-[9px] font-mono"
                 >
-                  {km} km
+                  {toPersianDigits(km, lang)} {isFa ? 'کیلومتر' : 'km'}
                 </text>
               </g>
             );
@@ -249,7 +255,11 @@ export const MareyChart: React.FC<MareyChartProps> = ({
                         className="stroke-white dark:stroke-slate-900"
                         strokeWidth={1.5}
                       >
-                        <title>{`${series.id} @ ${node.stationName}: Arr ${node.arrivalFormatted} / Dep ${node.departureFormatted}`}</title>
+                        <title>
+                          {isFa
+                            ? `${toPersianDigits(series.id, lang)} در ${localizeText(node.stationName, lang)}: ورود ${formatTime(node.arrivalFormatted, lang)} / حرکت ${formatTime(node.departureFormatted, lang)}`
+                            : `${series.id} @ ${localizeText(node.stationName, lang)}: Arr ${node.arrivalFormatted} / Dep ${node.departureFormatted}`}
+                        </title>
                       </circle>
                       {node.stopMinutes > 0 && (
                         <circle

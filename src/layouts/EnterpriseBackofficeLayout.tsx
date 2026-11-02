@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,6 +13,7 @@ import {
   Train,
 } from 'lucide-react';
 import { ActiveSession, Language, ThemeMode } from '../types/domain';
+import { formatDateTime, formatNumber, localizeText } from '../services/authService';
 
 export interface SidebarNavItem {
   id: string;
@@ -81,7 +83,7 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
               {!collapsed && (
                 <div className="truncate">
                   <div className="text-sm font-bold tracking-tight text-white truncate">
-                    RailPulse Backoffice
+                    {isFa ? 'سامانه جامع ریلی ریل‌پالس' : 'RailPulse Backoffice'}
                   </div>
                   <div className="text-[11px] text-slate-400 truncate">
                     {isFa ? portalTitleFa : portalTitleEn}
@@ -132,7 +134,7 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
                         isActive ? 'bg-blue-700 text-white' : 'bg-slate-800 text-slate-300'
                       }`}
                     >
-                      {item.badgeCount}
+                      {formatNumber(item.badgeCount, lang)}
                     </span>
                   )}
                 </button>
@@ -146,13 +148,13 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
           {!collapsed && (
             <div className="px-3 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80">
               <div className="text-xs font-semibold text-white truncate">
-                {session.displayName}
+                {localizeText(session.displayName, lang)}
               </div>
-              <div className="text-[11px] font-mono text-slate-400 truncate mt-0.5">
-                @{session.username} ·{' '}
+              <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                <span dir="ltr">@{session.username}</span> ·{' '}
                 {session.role === 'admin'
                   ? isFa
-                    ? 'مدیر کل سیستم'
+                    ? 'مدیر کل سازمان'
                     : 'System Admin'
                   : isFa
                   ? 'مهندس عملیات ریلی'
@@ -193,6 +195,10 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
 
           {/* Right Controls: Language, Theme, Operator Pill */}
           <div className="flex items-center gap-2.5 shrink-0">
+            <span className="hidden xl:inline text-xs font-mono text-slate-500 dark:text-slate-400">
+              {formatDateTime(new Date(), lang, 'full')}
+            </span>
+
             <span className="hidden lg:inline text-xs text-slate-500 dark:text-slate-400">
               {isFa ? portalSubtitleFa : portalSubtitleEn}
             </span>
@@ -217,9 +223,19 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
           </div>
         </header>
 
-        {/* Scrollable Workspace Canvas */}
+        {/* Scrollable Workspace Canvas with Framer Motion Section Transitions */}
         <main className="flex-1 p-6 overflow-y-auto max-w-[1440px] w-full mx-auto">
-          {children}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTabId}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>

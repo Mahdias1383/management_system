@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion, Variants } from 'framer-motion';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import {
   ActiveSession,
@@ -9,6 +10,7 @@ import {
   UserRole,
 } from './types/domain';
 import { loadDatabase, saveDatabase } from './services/storageAndMigration';
+import { localizeText } from './services/authService';
 import { RoleGuard } from './guards/RoleGuard';
 import { CustomerStorefrontLayout } from './layouts/CustomerStorefrontLayout';
 import { PublicHomePage } from './pages/PublicHomePage';
@@ -30,6 +32,29 @@ interface ToastNotification {
   msgFa: string;
   type: 'success' | 'error';
 }
+
+const pageTransitionVariants: Variants = {
+  initial: {
+    opacity: 0,
+    y: 16,
+  },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.28,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    transition: {
+      duration: 0.18,
+      ease: [0.4, 0, 1, 1],
+    },
+  },
+};
 
 export default function App() {
   const [db, setDb] = useState<PlatformDatabaseV2>(() => loadDatabase());
@@ -142,8 +167,8 @@ export default function App() {
       setRoute('PASSENGER_PORTAL');
     } else {
       notify(
-        `Please sign in to your passenger account to reserve seats on ${train.name_train}.`,
-        `برای انتخاب صندلی و خرید بلیط قطار «${train.name_train}»، لطفاً وارد حساب مسافری شوید.`
+        `Please sign in to your passenger account to reserve seats on ${localizeText(train.name_train, 'en')}.`,
+        `برای انتخاب صندلی و خرید بلیط «${localizeText(train.name_train, 'fa')}»، لطفاً وارد حساب مسافری شوید.`
       );
       handleNavigateAuth('passenger', 'LOGIN');
     }
@@ -156,144 +181,205 @@ export default function App() {
 
   return (
     <>
-      {/* Global Toast Notification */}
-      {toast && (
-        <div className="fixed bottom-5 end-5 z-50 max-w-md bg-slate-900 dark:bg-slate-800 text-white border border-slate-700 rounded-xl px-4 py-3 shadow-xl flex items-center gap-3 text-xs">
-          {toast.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          ) : (
-            <XCircle className="w-4 h-4 text-red-400 shrink-0" />
-          )}
-          <span className="leading-relaxed">
-            {isFa ? toast.msgFa : toast.msgEn}
-          </span>
-        </div>
-      )}
+      {/* Global Toast Notification with Framer Motion */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast.id}
+            initial={{ opacity: 0, y: 20, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.96 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed bottom-5 end-5 z-50 max-w-md bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white border border-slate-700/80 rounded-xl px-4 py-3.5 shadow-2xl flex items-center gap-3 text-xs"
+          >
+            {toast.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            ) : (
+              <XCircle className="w-4 h-4 text-red-400 shrink-0" />
+            )}
+            <span className="leading-relaxed">
+              {isFa ? toast.msgFa : toast.msgEn}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* =====================================================================
-          LAYOUT 2: ENTERPRISE BACKOFFICE WORKSPACE (STAFF & ADMIN PORTALS)
-          Protected strictly by RoleGuard
-          ===================================================================== */}
-      {route === 'STAFF_PORTAL' && (
-        <RoleGuard
-          session={session}
-          allowedRoles={['staff']}
-          lang={lang}
-          onRedirectToLogin={(role) => handleNavigateAuth(role || 'staff', 'LOGIN')}
-          onReturnHome={() => handleNavigateHome()}
-        >
-          {session && (
-            <StaffOperationsPortal
-              db={db}
-              onUpdateDb={handleUpdateDb}
-              session={session}
-              lang={lang}
-              theme={theme}
-              onToggleLang={() => setLang(lang === 'fa' ? 'en' : 'fa')}
-              onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              onLogout={handleLogout}
-            />
-          )}
-        </RoleGuard>
-      )}
-
-      {route === 'ADMIN_PORTAL' && (
-        <RoleGuard
-          session={session}
-          allowedRoles={['admin']}
-          lang={lang}
-          onRedirectToLogin={(role) => handleNavigateAuth(role || 'admin', 'LOGIN')}
-          onReturnHome={() => handleNavigateHome()}
-        >
-          {session && (
-            <AdminExecutivePortal
-              db={db}
-              onUpdateDb={handleUpdateDb}
-              session={session}
-              lang={lang}
-              theme={theme}
-              onToggleLang={() => setLang(lang === 'fa' ? 'en' : 'fa')}
-              onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              onLogout={handleLogout}
-            />
-          )}
-        </RoleGuard>
-      )}
-
-      {/* =====================================================================
-          LAYOUT 1: B2C CUSTOMER STOREFRONT & PASSENGER RESERVATION PORTAL
-          ===================================================================== */}
-      {(route === 'HOME' || route === 'AUTH' || route === 'PASSENGER_PORTAL') && (
-        <CustomerStorefrontLayout
-          lang={lang}
-          theme={theme}
-          session={session}
-          activePassenger={activePassengerObj}
-          activeRoute={route}
-          onNavigateHome={handleNavigateHome}
-          onNavigateAuth={handleNavigateAuth}
-          onNavigatePassengerPortal={handleNavigatePassengerPortal}
-          onLogout={handleLogout}
-          onToggleLang={() => setLang(lang === 'fa' ? 'en' : 'fa')}
-          onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        >
-          {route === 'HOME' && (
-            <PublicHomePage
-              db={db}
-              lang={lang}
-              onSelectTrainForBooking={handleSelectTrainFromStorefront}
-            />
-          )}
-
-          {route === 'AUTH' && (
-            <AuthPage
-              db={db}
-              onUpdateDb={handleUpdateDb}
-              onLoginSuccess={handleLoginSuccess}
-              onBackToHome={() => handleNavigateHome()}
-              initialRole={authInitialRole}
-              initialMode={authInitialMode}
-              lang={lang}
-              notify={notify}
-            />
-          )}
-
-          {route === 'PASSENGER_PORTAL' && (
+      <AnimatePresence mode="wait">
+        {/* =====================================================================
+            LAYOUT 2: ENTERPRISE BACKOFFICE WORKSPACE (STAFF & ADMIN PORTALS)
+            Protected strictly by RoleGuard
+            ===================================================================== */}
+        {route === 'STAFF_PORTAL' && (
+          <motion.div
+            key="route-staff-portal"
+            variants={pageTransitionVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
             <RoleGuard
               session={session}
-              allowedRoles={['passenger']}
+              allowedRoles={['staff']}
               lang={lang}
-              onRedirectToLogin={() => handleNavigateAuth('passenger', 'LOGIN')}
+              onRedirectToLogin={(role) => handleNavigateAuth(role || 'staff', 'LOGIN')}
               onReturnHome={() => handleNavigateHome()}
             >
-              {activePassengerObj && session && (
-                <PassengerDashboard
+              {session && (
+                <StaffOperationsPortal
                   db={db}
                   onUpdateDb={handleUpdateDb}
-                  currentUser={activePassengerObj}
-                  initialTab={passengerInitialTab}
-                  preselectedTrain={preselectedTrain}
-                  onClearPreselectedTrain={() => setPreselectedTrain(null)}
-                  onUpdateSessionUsername={(
-                    newUsername,
-                    newDisplayName,
-                    newEmail
-                  ) =>
-                    setSession({
-                      ...session,
-                      username: newUsername,
-                      displayName: newDisplayName,
-                      email: newEmail,
-                    })
-                  }
+                  session={session}
                   lang={lang}
-                  notify={notify}
+                  theme={theme}
+                  onToggleLang={() => setLang(lang === 'fa' ? 'en' : 'fa')}
+                  onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  onLogout={handleLogout}
                 />
               )}
             </RoleGuard>
-          )}
-        </CustomerStorefrontLayout>
-      )}
+          </motion.div>
+        )}
+
+        {route === 'ADMIN_PORTAL' && (
+          <motion.div
+            key="route-admin-portal"
+            variants={pageTransitionVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <RoleGuard
+              session={session}
+              allowedRoles={['admin']}
+              lang={lang}
+              onRedirectToLogin={(role) => handleNavigateAuth(role || 'admin', 'LOGIN')}
+              onReturnHome={() => handleNavigateHome()}
+            >
+              {session && (
+                <AdminExecutivePortal
+                  db={db}
+                  onUpdateDb={handleUpdateDb}
+                  session={session}
+                  lang={lang}
+                  theme={theme}
+                  onToggleLang={() => setLang(lang === 'fa' ? 'en' : 'fa')}
+                  onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  onLogout={handleLogout}
+                />
+              )}
+            </RoleGuard>
+          </motion.div>
+        )}
+
+        {/* =====================================================================
+            LAYOUT 1: B2C CUSTOMER STOREFRONT & PASSENGER RESERVATION PORTAL
+            ===================================================================== */}
+        {(route === 'HOME' || route === 'AUTH' || route === 'PASSENGER_PORTAL') && (
+          <motion.div
+            key="layout-customer-storefront"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <CustomerStorefrontLayout
+              lang={lang}
+              theme={theme}
+              session={session}
+              activePassenger={activePassengerObj}
+              activeRoute={route}
+              onNavigateHome={handleNavigateHome}
+              onNavigateAuth={handleNavigateAuth}
+              onNavigatePassengerPortal={handleNavigatePassengerPortal}
+              onLogout={handleLogout}
+              onToggleLang={() => setLang(lang === 'fa' ? 'en' : 'fa')}
+              onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            >
+              <AnimatePresence mode="wait">
+                {route === 'HOME' && (
+                  <motion.div
+                    key="route-home"
+                    variants={pageTransitionVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                  >
+                    <PublicHomePage
+                      db={db}
+                      lang={lang}
+                      onSelectTrainForBooking={handleSelectTrainFromStorefront}
+                    />
+                  </motion.div>
+                )}
+
+                {route === 'AUTH' && (
+                  <motion.div
+                    key={`route-auth-${authInitialRole}-${authInitialMode}`}
+                    variants={pageTransitionVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                  >
+                    <AuthPage
+                      db={db}
+                      onUpdateDb={handleUpdateDb}
+                      onLoginSuccess={handleLoginSuccess}
+                      onBackToHome={() => handleNavigateHome()}
+                      initialRole={authInitialRole}
+                      initialMode={authInitialMode}
+                      lang={lang}
+                      notify={notify}
+                    />
+                  </motion.div>
+                )}
+
+                {route === 'PASSENGER_PORTAL' && (
+                  <motion.div
+                    key="route-passenger-portal"
+                    variants={pageTransitionVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                  >
+                    <RoleGuard
+                      session={session}
+                      allowedRoles={['passenger']}
+                      lang={lang}
+                      onRedirectToLogin={() => handleNavigateAuth('passenger', 'LOGIN')}
+                      onReturnHome={() => handleNavigateHome()}
+                    >
+                      {activePassengerObj && session && (
+                        <PassengerDashboard
+                          db={db}
+                          onUpdateDb={handleUpdateDb}
+                          currentUser={activePassengerObj}
+                          initialTab={passengerInitialTab}
+                          preselectedTrain={preselectedTrain}
+                          onClearPreselectedTrain={() => setPreselectedTrain(null)}
+                          onUpdateSessionUsername={(
+                            newUsername,
+                            newDisplayName,
+                            newEmail
+                          ) =>
+                            setSession({
+                              ...session,
+                              username: newUsername,
+                              displayName: newDisplayName,
+                              email: newEmail,
+                            })
+                          }
+                          lang={lang}
+                          notify={notify}
+                        />
+                      )}
+                    </RoleGuard>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </CustomerStorefrontLayout>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

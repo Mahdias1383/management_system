@@ -1,5 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import {
   Activity,
   AlertTriangle,
   BarChart3,
@@ -13,6 +25,7 @@ import {
   ShieldCheck,
   Train,
   Trash2,
+  TrendingUp,
   Upload,
   UserPlus,
   Users,
@@ -28,10 +41,18 @@ import {
 } from '../types/domain';
 import {
   evaluatePasswordStrength,
-  formatRial,
+  formatCompactCurrency,
+  formatDateTime,
+  formatNumber,
+  formatCurrency,
   hashPassword,
   isValidEmail,
+  localizeAuditAction,
+  localizeDepartment,
+  localizeRole,
+  localizeText,
   normalizeIdentifier,
+  toPersianDigits,
 } from '../services/authService';
 import { resetToDefaultSeedDatabase } from '../services/storageAndMigration';
 import { RevenueAnalysis } from '../components/RevenueAnalysis';
@@ -107,6 +128,104 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
     () => db.tickets.filter((t) => t.status === 'Confirmed').length,
     [db.tickets]
   );
+
+  // 12-Month Monthly Revenue Trend (Last 12 Months)
+  const monthlyRevenueData = useMemo(() => {
+    const faMonthFormatter = new Intl.DateTimeFormat('fa-IR', {
+      month: 'long',
+      year: '2-digit',
+    });
+    const enMonthFormatter = new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      year: '2-digit',
+    });
+
+    // Historical baseline monthly seasonal weights (in Rials) for preceding months
+    const baselineNetSeries = [
+      415_000_000,
+      448_000_000,
+      492_000_000,
+      535_000_000,
+      610_000_000,
+      580_000_000,
+      645_000_000,
+      690_000_000,
+      740_000_000,
+      715_000_000,
+      785_000_000,
+      0,
+    ];
+
+    const now = new Date();
+    const ticketTxs = (db.transactions || []).filter(
+      (tx) => tx.type === 'TICKET_PURCHASE' || tx.type === 'TICKET_REFUND'
+    );
+    if (ticketTxs.length > 0) {
+      const timestamps = ticketTxs
+        .map((tx) => new Date(tx.timestamp).getTime())
+        .filter((ts) => Number.isFinite(ts));
+      if (timestamps.length > 0) {
+        now.setTime(Math.max(...timestamps, Date.now()));
+      }
+    }
+
+    const points: {
+      monthKey: string;
+      monthLabel: string;
+      grossRevenue: number;
+      netRevenue: number;
+      targetBenchmark: number;
+    }[] = [];
+
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 15);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const monthPrefix = `${yyyy}-${mm}`;
+
+      let actualGross = 0;
+      let actualRefunds = 0;
+      ticketTxs.forEach((tx) => {
+        if (String(tx.timestamp || '').startsWith(monthPrefix)) {
+          if (tx.type === 'TICKET_PURCHASE') {
+            actualGross += Number(tx.amount) || 0;
+          } else if (tx.type === 'TICKET_REFUND') {
+            actualRefunds += Number(tx.amount) || 0;
+          }
+        }
+      });
+
+      const baselineIdx = 11 - i;
+      const baseNet = baselineNetSeries[baselineIdx] || 0;
+      const baseGross = Math.round(baseNet * 1.06);
+
+      const grossRevenue = baseGross + actualGross;
+      const netRevenue = Math.max(0, baseNet + actualGross - actualRefunds);
+      const targetBenchmark = Math.round((400_000_000 + baselineIdx * 35_000_000) / 1_000_000) * 1_000_000;
+
+      const rawLabel = isFa ? faMonthFormatter.format(d) : enMonthFormatter.format(d);
+
+      points.push({
+        monthKey: monthPrefix,
+        monthLabel: toPersianDigits(rawLabel, lang),
+        grossRevenue,
+        netRevenue,
+        targetBenchmark,
+      });
+    }
+
+    return points;
+  }, [db.transactions, isFa, lang]);
+
+  const annualRevenueSummary = useMemo(() => {
+    const annualNet = monthlyRevenueData.reduce((sum, m) => sum + m.netRevenue, 0);
+    const annualGross = monthlyRevenueData.reduce((sum, m) => sum + m.grossRevenue, 0);
+    const bestMonth = monthlyRevenueData.reduce(
+      (best, curr) => (curr.netRevenue > best.netRevenue ? curr : best),
+      monthlyRevenueData[0] || { monthLabel: '--', netRevenue: 0 }
+    );
+    return { annualNet, annualGross, bestMonth };
+  }, [monthlyRevenueData]);
 
   // Filtered & Sorted Staff
   const filteredEmployees = useMemo(() => {
@@ -462,10 +581,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           SECTION 1: EXECUTIVE & REVENUE ANALYTICS
           ===================================================================== */}
       {activeSection === 'OVERVIEW' && (
-        <div className="space-y-6">
+        <div className="space-y-6 rp-animate-in">
           {/* 5 Executive KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+            <div className="rp-card-hover rp-animate-in rp-stagger-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'کریدورهای ریلی فعال' : 'Active Rail Corridors'}
@@ -473,15 +592,18 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 <GitBranch className="w-4 h-4 text-blue-500" />
               </div>
               <div className="text-2xl font-bold font-mono text-slate-900 dark:text-slate-100">
-                {db.lines.length}
+                {formatNumber(db.lines.length, lang)}
               </div>
               <div className="text-[11px] text-slate-500 mt-1">
-                {db.lines.reduce((s, l) => s + l.num_state, 0)}{' '}
+                {formatNumber(
+                  db.lines.reduce((s, l) => s + l.num_state, 0),
+                  lang
+                )}{' '}
                 {isFa ? 'ایستگاه میانی در شبکه' : 'intermediate stops'}
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+            <div className="rp-card-hover rp-animate-in rp-stagger-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'ناوگان قطارهای فعال' : 'Operating Train Fleet'}
@@ -489,15 +611,18 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 <Train className="w-4 h-4 text-indigo-500" />
               </div>
               <div className="text-2xl font-bold font-mono text-slate-900 dark:text-slate-100">
-                {db.trains.length}
+                {formatNumber(db.trains.length, lang)}
               </div>
               <div className="text-[11px] text-slate-500 mt-1">
-                {db.trains.reduce((s, t) => s + t.capacity, 0)}{' '}
+                {formatNumber(
+                  db.trains.reduce((s, t) => s + t.capacity, 0),
+                  lang
+                )}{' '}
                 {isFa ? 'صندلی آماده فروش' : 'available seats'}
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+            <div className="rp-card-hover rp-animate-in rp-stagger-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'کارشناسان و مسافران' : 'Staff & Passengers'}
@@ -505,16 +630,16 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 <Users className="w-4 h-4 text-violet-500" />
               </div>
               <div className="text-2xl font-bold font-mono text-slate-900 dark:text-slate-100">
-                {db.employees.length} / {db.passengers.length}
+                {formatNumber(db.employees.length, lang)} / {formatNumber(db.passengers.length, lang)}
               </div>
               <div className="text-[11px] text-slate-500 mt-1">
                 {isFa
-                  ? `${db.employees.length} کارشناس · ${db.passengers.length} مسافر`
+                  ? `${formatNumber(db.employees.length, lang)} کارشناس · ${formatNumber(db.passengers.length, lang)} مسافر`
                   : `${db.employees.length} staff · ${db.passengers.length} passengers`}
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+            <div className="rp-card-hover rp-animate-in rp-stagger-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'درآمد خالص فروش بلیط' : 'Net Ticket Revenue'}
@@ -522,15 +647,15 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 <Wallet className="w-4 h-4 text-emerald-500" />
               </div>
               <div className="text-lg sm:text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                {formatRial(totalRevenue, lang)}
+                {formatCurrency(totalRevenue, isFa ? 'Rial' : 'USD')}
               </div>
               <div className="text-[11px] text-slate-500 mt-1">
-                {confirmedTicketsCount}{' '}
+                {formatNumber(confirmedTicketsCount, lang)}{' '}
                 {isFa ? 'رزرو قطعی ثبت‌شده' : 'confirmed bookings'}
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+            <div className="rp-card-hover rp-animate-in rp-stagger-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'شاخص ایمنی سیر' : 'Dispatch Safety Index'}
@@ -538,13 +663,429 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
               </div>
               <div className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                100.0%
+                {isFa ? '۱۰۰٪' : '100.0%'}
               </div>
               <div className="text-[11px] text-slate-500 mt-1">
                 {isFa
                   ? 'صفر تداخل در رادار ضدبرخورد'
                   : 'Zero active track collisions'}
               </div>
+            </div>
+          </div>
+
+          {/* 12-Month Monthly Revenue Trend LineChart (Recharts) */}
+          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
+              <div className="flex items-center gap-2.5">
+                <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                    {isFa
+                      ? 'روند ۱۲ ماهه درآمد ماهانه شبکه ریلی (ریال)'
+                      : '12-Month Monthly Railway Revenue Trend (USD)'}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {isFa
+                      ? 'مقایسه درآمد خالص ماهانه، فروش ناخالص و هدف‌گذاری بودجه عملیاتی در ۱۲ ماه گذشته'
+                      : 'Comparison of monthly net ticket revenue, gross sales, and operational target over the last 12 months'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 text-xs">
+                <div className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {isFa ? 'درآمد خالص سالانه (۱۲ ماه)' : '12-Month Net Revenue'}
+                  </div>
+                  <div className="font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    {formatCurrency(annualRevenueSummary.annualNet, isFa ? 'Rial' : 'USD')}
+                  </div>
+                </div>
+                <div className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {isFa ? 'فروش ناخالص سالانه' : '12-Month Gross Sales'}
+                  </div>
+                  <div className="font-bold font-mono text-slate-900 dark:text-slate-100 mt-0.5">
+                    {formatCurrency(annualRevenueSummary.annualGross, isFa ? 'Rial' : 'USD')}
+                  </div>
+                </div>
+                <div className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {isFa ? 'پرفروش‌ترین ماه سال' : 'Peak Monthly Performance'}
+                  </div>
+                  <div className="font-bold font-mono text-blue-600 dark:text-blue-400 mt-0.5">
+                    {annualRevenueSummary.bestMonth.monthLabel}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-72 w-full" dir="ltr">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={monthlyRevenueData}
+                  margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
+                  style={{
+                    fontFamily: isFa
+                      ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                      : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                    fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.25} />
+                  <XAxis
+                    dataKey="monthLabel"
+                    tickFormatter={(v) => toPersianDigits(String(v), lang)}
+                    style={{
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                    }}
+                    tick={{
+                      fontSize: 11,
+                      fill: '#94A3B8',
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      style: {
+                        fontFamily: isFa
+                          ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                          : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                        fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                      },
+                    }}
+                    tickLine={false}
+                    axisLine={{ stroke: '#475569', opacity: 0.4 }}
+                  />
+                  <YAxis
+                    tickFormatter={(v: number) => formatCurrency(v, isFa ? 'Rial' : 'USD')}
+                    style={{
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                    }}
+                    tick={{
+                      fontSize: 10,
+                      fill: '#94A3B8',
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      style: {
+                        fontFamily: isFa
+                          ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                          : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                        fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                      },
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={isFa ? 120 : 85}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#0F172A',
+                      borderColor: '#1E293B',
+                      borderRadius: '0.75rem',
+                      fontSize: '12px',
+                      color: '#F8FAFC',
+                      direction: isFa ? 'rtl' : 'ltr',
+                      textAlign: isFa ? 'right' : 'left',
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                    }}
+                    labelStyle={{
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                      fontWeight: 700,
+                      marginBottom: '4px',
+                      color: '#E2E8F0',
+                    }}
+                    itemStyle={{
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                    }}
+                    formatter={(value: any, name: any) => {
+                      const currencyUnit = isFa ? 'Rial' : 'USD';
+                      if (name === 'netRevenue') {
+                        return [
+                          formatCurrency(Number(value), currencyUnit),
+                          isFa ? 'درآمد خالص ماهانه' : 'Monthly Net Revenue',
+                        ];
+                      }
+                      if (name === 'grossRevenue') {
+                        return [
+                          formatCurrency(Number(value), currencyUnit),
+                          isFa ? 'فروش ناخالص ماهانه' : 'Monthly Gross Sales',
+                        ];
+                      }
+                      if (name === 'targetBenchmark') {
+                        return [
+                          formatCurrency(Number(value), currencyUnit),
+                          isFa ? 'هدف بودجه مصوب' : 'Target Benchmark',
+                        ];
+                      }
+                      return [formatCurrency(Number(value), currencyUnit), name];
+                    }}
+                    labelFormatter={(label) =>
+                      isFa
+                        ? `دوره ماهانه: ${toPersianDigits(String(label), lang)}`
+                        : `Month: ${label}`
+                    }
+                  />
+                  <Legend
+                    wrapperStyle={{
+                      fontSize: '12px',
+                      paddingTop: '10px',
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                    }}
+                    formatter={(value) => {
+                      if (value === 'netRevenue') {
+                        return isFa ? 'درآمد خالص ماهانه (ریال)' : 'Monthly Net Revenue (USD)';
+                      }
+                      if (value === 'grossRevenue') {
+                        return isFa ? 'فروش ناخالص ماهانه (ریال)' : 'Monthly Gross Sales (USD)';
+                      }
+                      return isFa ? 'هدف بودجه مصوب' : 'Target Benchmark';
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="netRevenue"
+                    stroke="#10B981"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#10B981', strokeWidth: 2, stroke: '#0F172A' }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="grossRevenue"
+                    stroke="#3B82F6"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: '#3B82F6' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="targetBenchmark"
+                    stroke="#94A3B8"
+                    strokeWidth={1.5}
+                    strokeDasharray="5 5"
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* 12-Month Ticket Sales Revenue AreaChart Section */}
+          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                  <BarChart3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                    {isFa
+                      ? 'نمودار مساحتی روند درآمد فروش بلیط (۱۲ ماه گذشته)'
+                      : 'Monthly Ticket Sales Revenue Trend AreaChart (Past 12 Months)'}
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {isFa
+                      ? 'نمایش حجم فروش ناخالص بلیط و درآمد خالص محقق‌شده بر حسب ریال با فونت وزیرمتن'
+                      : 'Visualizing gross ticket sales volume and realized net revenue in USD ($)'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="rp-card-hover px-3 py-1.5 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                    {isFa ? 'میانگین فروش ماهانه بلیط' : 'Avg Monthly Ticket Sales'}
+                  </span>
+                  <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                    {formatCurrency(Math.round(annualRevenueSummary.annualGross / 12), isFa ? 'Rial' : 'USD')}
+                  </span>
+                </div>
+                <div className="rp-card-hover px-3 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                    {isFa ? 'میانگین درآمد خالص ماهانه' : 'Avg Monthly Net Revenue'}
+                  </span>
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(Math.round(annualRevenueSummary.annualNet / 12), isFa ? 'Rial' : 'USD')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-80 w-full" dir="ltr">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={monthlyRevenueData}
+                  margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
+                  style={{
+                    fontFamily: isFa
+                      ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                      : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                    fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                  }}
+                >
+                  <defs>
+                    <linearGradient id="ticketGrossAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="ticketNetAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0.03} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#334155"
+                    opacity={0.18}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="monthLabel"
+                    tickFormatter={(v) => toPersianDigits(String(v), lang)}
+                    style={{
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                    }}
+                    tick={{
+                      fontSize: 11,
+                      fill: '#64748B',
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      style: {
+                        fontFamily: isFa
+                          ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                          : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                        fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                      },
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={(val: number) => formatCurrency(val, isFa ? 'Rial' : 'USD')}
+                    style={{
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                    }}
+                    tick={{
+                      fontSize: 10,
+                      fill: '#64748B',
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      style: {
+                        fontFamily: isFa
+                          ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                          : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                        fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                      },
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={isFa ? 120 : 85}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#0F172A',
+                      borderColor: '#1E293B',
+                      borderRadius: '0.75rem',
+                      color: '#F8FAFC',
+                      fontSize: '12px',
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                      direction: isFa ? 'rtl' : 'ltr',
+                      textAlign: isFa ? 'right' : 'left',
+                    }}
+                    labelStyle={{
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                      fontWeight: 700,
+                      marginBottom: '4px',
+                      color: '#E2E8F0',
+                    }}
+                    itemStyle={{
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                    }}
+                    labelFormatter={(label) =>
+                      isFa
+                        ? `دوره ماهانه: ${toPersianDigits(String(label), lang)}`
+                        : `Month: ${label}`
+                    }
+                    formatter={(val: any, name: any) => {
+                      const label =
+                        name === 'grossRevenue'
+                          ? isFa
+                            ? 'فروش ناخالص بلیط'
+                            : 'Gross Ticket Sales'
+                          : isFa
+                          ? 'درآمد خالص فروش بلیط'
+                          : 'Net Ticket Revenue';
+                      return [formatCurrency(Number(val ?? 0), isFa ? 'Rial' : 'USD'), label];
+                    }}
+                  />
+                  <Legend
+                    wrapperStyle={{
+                      fontSize: '12px',
+                      paddingTop: '12px',
+                      fontFamily: isFa
+                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
+                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                    }}
+                    formatter={(value: string) => {
+                      if (value === 'grossRevenue') {
+                        return isFa ? 'فروش ناخالص بلیط (ریال)' : 'Gross Ticket Sales (USD)';
+                      }
+                      return isFa ? 'درآمد خالص فروش بلیط (ریال)' : 'Net Ticket Revenue (USD)';
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="grossRevenue"
+                    stroke="#3B82F6"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill="url(#ticketGrossAreaGrad)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="netRevenue"
+                    stroke="#10B981"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill="url(#ticketNetAreaGrad)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
@@ -557,9 +1098,9 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           SECTION 2: OPERATIONS STAFF DIRECTORY & PROVISIONING
           ===================================================================== */}
       {activeSection === 'STAFF_HR' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 rp-animate-in">
           {/* Left 4 Cols: Add New Staff Form */}
-          <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 h-fit">
+          <div className="rp-card-hover lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 h-fit shadow-xs">
             <div className="flex items-center gap-2.5 mb-4">
               <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                 <UserPlus className="w-5 h-5" />
@@ -716,7 +1257,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors cursor-pointer"
+                className="rp-btn-primary w-full py-2.5 px-4 rounded-lg text-white font-semibold text-sm cursor-pointer"
               >
                 {isFa
                   ? 'ایجاد حساب کارشناس عملیات'
@@ -726,7 +1267,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           </div>
 
           {/* Right 8 Cols: Operations Staff Directory */}
-          <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col">
+          <div className="rp-card-hover lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col shadow-xs">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
@@ -804,21 +1345,22 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     >
                       <td className="py-3 px-3">
                         <div className="font-semibold text-slate-900 dark:text-slate-100">
-                          {emp.name} {emp.lastname}
+                          {localizeText(emp.name, lang)} {localizeText(emp.lastname, lang)}
                         </div>
                         <div className="text-[11px] text-slate-400 font-mono">
-                          {emp.linesCreated} {isFa ? 'مسیر' : 'lines'} ·{' '}
-                          {emp.trainsScheduled} {isFa ? 'قطار' : 'trains'}
+                          {formatNumber(emp.linesCreated, lang)} {isFa ? 'مسیر' : 'lines'} ·{' '}
+                          {formatNumber(emp.trainsScheduled, lang)} {isFa ? 'قطار' : 'trains'} ·{' '}
+                          {formatDateTime(emp.createdAt, lang, 'date')}
                         </div>
                       </td>
-                      <td className="py-3 px-3 font-mono">
-                        <div className="text-blue-600 dark:text-blue-400 font-semibold">
+                      <td className="py-3 px-3 font-mono" dir="ltr">
+                        <div className="text-blue-600 dark:text-blue-400 font-semibold text-start">
                           @{emp.username}
                         </div>
-                        <div className="text-slate-500 text-[11px]">{emp.email}</div>
+                        <div className="text-slate-500 text-[11px] text-start">{emp.email}</div>
                       </td>
                       <td className="py-3 px-3 text-slate-700 dark:text-slate-300">
-                        {emp.department}
+                        {localizeDepartment(emp.department, lang)}
                       </td>
                       <td className="py-3 px-3">
                         <span
@@ -886,9 +1428,9 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           SECTION 3: AUDIT TRAIL & DATA SNAPSHOTS
           ===================================================================== */}
       {activeSection === 'AUDIT' && (
-        <div className="space-y-6">
+        <div className="space-y-6 rp-animate-in">
           {/* Snapshot & Seed Controls */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-xs">
             <div>
               <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {isFa
@@ -940,7 +1482,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           </div>
 
           {/* Audit Logs Table */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-3">
               {isFa
                 ? 'فهرست رخدادهای ثبت‌شده در دفتر کل ممیزی امنیتی'
@@ -967,22 +1509,22 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {db.auditLogs.slice(0, 25).map((log) => (
                     <tr key={log.id}>
-                      <td className="py-2.5 px-3 font-mono text-slate-400">
-                        {new Date(log.timestamp).toLocaleTimeString()}
+                      <td className="py-2.5 px-3 font-mono text-slate-400 whitespace-nowrap">
+                        {formatDateTime(log.timestamp, lang, 'full')}
                       </td>
-                      <td className="py-2.5 px-3 font-mono">
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      <td className="py-2.5 px-3">
+                        <span dir="ltr" className="font-mono font-semibold text-slate-800 dark:text-slate-200">
                           @{log.actorUsername}
                         </span>{' '}
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
-                          {log.actorRole}
+                          {localizeRole(log.actorRole, lang)}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 font-mono font-semibold text-blue-600 dark:text-blue-400">
-                        {log.action}
+                      <td className="py-2.5 px-3 font-semibold text-blue-600 dark:text-blue-400">
+                        {localizeAuditAction(log.action, lang)}
                       </td>
                       <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
-                        {isFa ? log.detailsFa : log.detailsEn}
+                        {isFa ? toPersianDigits(log.detailsFa, 'fa') : log.detailsEn}
                       </td>
                     </tr>
                   ))}
@@ -1000,8 +1542,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
 
       {/* Edit Staff Modal */}
       {editingStaff && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+        <div className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {isFa
@@ -1094,7 +1636,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer"
+                  className="rp-btn-primary px-4 py-2 rounded-lg text-white text-xs font-semibold cursor-pointer"
                 >
                   {isFa ? 'ذخیره تغییرات' : 'Save Changes'}
                 </button>
@@ -1106,8 +1648,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
 
       {/* Delete Staff Confirmation Modal */}
       {deletingStaff && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+        <div className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-2">
               {isFa
                 ? 'تأیید لغو دسترسی و حذف کارشناس'

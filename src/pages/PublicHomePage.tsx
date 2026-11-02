@@ -12,7 +12,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { Language, PlatformDatabaseV2, QualityTier, TicketRecord, TrainSchedule } from '../types/domain';
-import { normalizeIdentifier } from '../services/authService';
+import { formatRial, normalizeIdentifier } from '../services/authService';
 import { computeTrainStationTimings } from '../services/collisionEngine';
 import { DigitalBoardingPassModal } from '../components/DigitalBoardingPassModal';
 
@@ -291,8 +291,8 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                       </div>
 
                       <div className="text-end">
-                        <div className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                          ${train.cost_ticket.toFixed(2)}
+                        <div className="text-base sm:text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                          {formatRial(train.cost_ticket, lang)}
                         </div>
                         <div className="text-[11px] text-slate-400">
                           {isFa ? 'بهای هر صندلی' : 'per seat'}

@@ -39,18 +39,18 @@ export function runAllAutomatedTests(): TestCaseResult[] {
       const negStrRes = depositToWallet(db, userId, '-50');
       const nanRes = depositToWallet(db, userId, 'abc_nan');
       const zeroRes = depositToWallet(db, userId, 0);
-      const validRes = depositToWallet(db, userId, '125.50');
+      const validRes = depositToWallet(db, userId, '1250000');
 
       if (emptyRes.success || negStrRes.success || nanRes.success || zeroRes.success) {
         throw new Error('Validator failed to reject invalid/negative/empty deposit inputs.');
       }
-      if (!validRes.success || validRes.newBalance !== initialBalance + 125.5) {
-        throw new Error(`Expected new balance ${initialBalance + 125.5}, got ${validRes.newBalance}`);
+      if (!validRes.success || validRes.newBalance !== initialBalance + 1250000) {
+        throw new Error(`Expected new balance ${initialBalance + 1250000}, got ${validRes.newBalance}`);
       }
 
       logs.push('✓ Empty string "" rejected cleanly without Python TypeError.');
       logs.push('✓ Negative string "-50" and NaN "abc_nan" rejected prior to float addition.');
-      logs.push(`✓ Valid float string "125.50" parsed and added atomically ($${initialBalance} -> $${validRes.newBalance}).`);
+      logs.push(`✓ Valid Rial string "1250000" parsed and added atomically (${initialBalance.toLocaleString('en-US')} IRR -> ${validRes.newBalance.toLocaleString('en-US')} IRR).`);
     } catch (err: any) {
       passed = false;
       errorDetails = err?.message || String(err);
@@ -60,8 +60,8 @@ export function runAllAutomatedTests(): TestCaseResult[] {
     results.push({
       id: 'UT-01',
       suite: 'UNIT',
-      titleEn: 'Wallet Deposit Type & Bounds Validation',
-      titleFa: 'اعتبارسنجی نوع داده و محدوده شارژ کیف پول (رفع باگ TypeError)',
+      titleEn: 'Wallet Deposit Type & Bounds Validation (IRR)',
+      titleFa: 'اعتبارسنجی نوع داده و محدوده شارژ کیف پول ریالی (رفع باگ TypeError)',
       descriptionEn: 'Verifies depositToWallet rejects empty strings, negative numbers, and NaN without throwing TypeError.',
       descriptionFa: 'بررسی عدم پذیرش رشته خالی، اعداد منفی و مقادیر غیرعددی در شارژ کیف پول بدون بروز خطای زمان اجرا.',
       passed,
@@ -81,24 +81,24 @@ export function runAllAutomatedTests(): TestCaseResult[] {
 
     try {
       const db = migrateV1ToV2(getDefaultLegacyV1Snapshot());
-      const user = db.passengers[0]; // balance = 480
-      const overRes = withdrawFromWallet(db, user.id, 9999);
-      const negRes = withdrawFromWallet(db, user.id, -25);
-      const validRes = withdrawFromWallet(db, user.id, 80);
+      const user = db.passengers[0]; // balance = 48,000,000 IRR
+      const overRes = withdrawFromWallet(db, user.id, 999900000);
+      const negRes = withdrawFromWallet(db, user.id, -250000);
+      const validRes = withdrawFromWallet(db, user.id, 8000000);
 
       if (overRes.success || negRes.success) {
         throw new Error('Withdrawal allowed overdraft or negative withdrawal.');
       }
-      if (!validRes.success || validRes.newBalance !== 400) {
-        throw new Error(`Expected balance 400 after withdrawing 80 from 480, got ${validRes.newBalance}`);
+      if (!validRes.success || validRes.newBalance !== 40000000) {
+        throw new Error(`Expected balance 40,000,000 IRR after withdrawing 8,000,000 from 48,000,000, got ${validRes.newBalance}`);
       }
       if (validRes.transaction?.type !== 'WITHDRAWAL') {
         throw new Error('Transaction ledger did not record WITHDRAWAL type.');
       }
 
-      logs.push('✓ Overdraft attempt ($9999 > $480) blocked with balance unchanged.');
-      logs.push('✓ Negative withdrawal (-$25) blocked.');
-      logs.push('✓ Valid withdrawal (-$80) deducted cleanly ($480 -> $400) without triggering legacy add_money() bug.');
+      logs.push('✓ Overdraft attempt (999,900,000 IRR > 48,000,000 IRR) blocked with balance unchanged.');
+      logs.push('✓ Negative withdrawal (-250,000 IRR) blocked.');
+      logs.push('✓ Valid withdrawal (-8,000,000 IRR) deducted cleanly (48,000,000 -> 40,000,000 IRR) without triggering legacy add_money() bug.');
     } catch (err: any) {
       passed = false;
       errorDetails = err?.message || String(err);
@@ -438,7 +438,7 @@ export function runAllAutomatedTests(): TestCaseResult[] {
         speed: 180,
         list_stop_time: { 'Semnan (سمنان)': 10, 'Shahroud (شاهرود)': 10, 'Neyshabur (نیشابور)': 10 },
         quality: 'VIP 5-Star',
-        cost_ticket: 50,
+        cost_ticket: 5000000,
         totalCapacity: 100,
         capacity: 100,
         status: 'Scheduled',
@@ -454,7 +454,7 @@ export function runAllAutomatedTests(): TestCaseResult[] {
         speed: 180,
         list_stop_time: { 'Semnan (سمنان)': 10, 'Shahroud (شاهرود)': 10, 'Neyshabur (نیشابور)': 10 },
         quality: 'Business 4-Star',
-        cost_ticket: 40,
+        cost_ticket: 4000000,
         totalCapacity: 80,
         capacity: 80,
         status: 'Scheduled',
@@ -483,12 +483,12 @@ export function runAllAutomatedTests(): TestCaseResult[] {
         createdAt: new Date().toISOString(),
       });
 
-      // Top up $200
-      const depRes = depositToWallet(db, newPassengerId, 200);
+      // Top up 20,000,000 IRR
+      const depRes = depositToWallet(db, newPassengerId, 20000000);
       if (!depRes.success) throw new Error('Deposit failed.');
       db = depRes.db;
 
-      // Purchase 3 tickets on TR-801 ($50 each = $150)
+      // Purchase 3 tickets on TR-801 (5,000,000 IRR each = 15,000,000 IRR)
       const buyRes = purchaseTrainTicket(db, newPassengerId, 'TR-801', 3);
       if (!buyRes.success || !buyRes.ticket) throw new Error('Ticket purchase failed.');
       db = buyRes.db;
@@ -496,16 +496,16 @@ export function runAllAutomatedTests(): TestCaseResult[] {
       const updatedUser = db.passengers.find((u) => u.id === newPassengerId)!;
       const updatedTrain = db.trains.find((t) => t.id_train === 'TR-801')!;
 
-      if (updatedUser.balance !== 50) {
-        throw new Error(`Expected passenger balance 50, found ${updatedUser.balance}`);
+      if (updatedUser.balance !== 5000000) {
+        throw new Error(`Expected passenger balance 5,000,000 IRR, found ${updatedUser.balance}`);
       }
       if (updatedTrain.capacity !== 97) {
         throw new Error(`Expected train remaining capacity 97, found ${updatedTrain.capacity}`);
       }
 
       logs.push('✓ Scheduled TR-801 (05:00) & TR-802 (18:00) verified conflict-free.');
-      logs.push('✓ Registered passenger "armita_t" and funded wallet with $200.00.');
-      logs.push('✓ Purchased 3 tickets on TR-801 ($50 x 3 = $150) -> Capacity: 100 -> 97, Balance: $200 -> $50.');
+      logs.push('✓ Registered passenger "armita_t" and funded wallet with 20,000,000 IRR.');
+      logs.push('✓ Purchased 3 tickets on TR-801 (5,000,000 x 3 = 15,000,000 IRR) -> Capacity: 100 -> 97, Balance: 20,000,000 -> 5,000,000 IRR.');
     } catch (err: any) {
       passed = false;
       errorDetails = err?.message || String(err);
@@ -611,12 +611,12 @@ export function runAllAutomatedTests(): TestCaseResult[] {
       if (run1.passengers.length !== 2 || run2.passengers.length !== 2) {
         throw new Error(`Expected 2 deduplicated passengers, got ${run1.passengers.length}`);
       }
-      if (run1.passengers[0].balance !== run2.passengers[0].balance || run1.passengers[0].balance !== 480) {
+      if (run1.passengers[0].balance !== run2.passengers[0].balance || run1.passengers[0].balance !== 48000000) {
         throw new Error('Passenger wallet balance corrupted during repeated migration.');
       }
 
       logs.push('✓ Case-insensitive duplicate user "MAHDI_AS" filtered out during migration.');
-      logs.push('✓ Repeated migration runs produce identical record counts and wallet balances ($480.00).');
+      logs.push('✓ Repeated migration runs produce identical record counts and wallet balances (48,000,000 IRR).');
     } catch (err: any) {
       passed = false;
       errorDetails = err?.message || String(err);
@@ -651,11 +651,11 @@ export function runAllAutomatedTests(): TestCaseResult[] {
 
     try {
       let db = migrateV1ToV2(getDefaultLegacyV1Snapshot());
-      const passenger = db.passengers[0]; // mahdi_as, balance 480
+      const passenger = db.passengers[0]; // mahdi_as, balance 48,000,000 IRR
       const trainBefore = db.trains.find((t) => t.id_train === 'TR-201')!;
       const capBefore = trainBefore.capacity;
 
-      // Book 2 tickets on TR-201 ($42 each = $84)
+      // Book 2 tickets on TR-201 (4,200,000 IRR each = 8,400,000 IRR)
       const bookRes = purchaseTrainTicket(db, passenger.id, 'tr-201', 2);
       if (!bookRes.success || !bookRes.ticket) throw new Error('E2E booking failed.');
       db = bookRes.db;
@@ -673,8 +673,8 @@ export function runAllAutomatedTests(): TestCaseResult[] {
       const passengerAfter = db.passengers.find((u) => u.id === passenger.id)!;
       const trainAfter = db.trains.find((t) => t.id_train === 'TR-201')!;
 
-      if (passengerAfter.balance !== 480) {
-        throw new Error(`Expected refunded balance 480, got ${passengerAfter.balance}`);
+      if (passengerAfter.balance !== 48000000) {
+        throw new Error(`Expected refunded balance 48,000,000 IRR, got ${passengerAfter.balance}`);
       }
       if (trainAfter.capacity !== capBefore) {
         throw new Error(`Expected restored train capacity ${capBefore}, got ${trainAfter.capacity}`);
@@ -682,7 +682,7 @@ export function runAllAutomatedTests(): TestCaseResult[] {
 
       logs.push(`✓ Booked 2x tickets on TR-201 (case-insensitive query "tr-201") -> PNR ${issuedTicket.pnr} generated.`);
       logs.push(`✓ QR Boarding Pass payload verified: ${issuedTicket.qrPayload}`);
-      logs.push(`✓ Ticket refunded -> Wallet restored to $480.00 and TR-201 capacity restored to ${capBefore}.`);
+      logs.push(`✓ Ticket refunded -> Wallet restored to 48,000,000 IRR and TR-201 capacity restored to ${capBefore}.`);
     } catch (err: any) {
       passed = false;
       errorDetails = err?.message || String(err);
@@ -772,17 +772,17 @@ export function runAllAutomatedTests(): TestCaseResult[] {
 
     try {
       let db = migrateV1ToV2(getDefaultLegacyV1Snapshot());
-      const userA = db.passengers[0]; // mahdi_as ($480)
-      const userB = db.passengers[1]; // parisa_rad ($215)
+      const userA = db.passengers[0]; // mahdi_as (48,000,000 IRR)
+      const userB = db.passengers[1]; // parisa_rad (21,500,000 IRR)
 
-      // User A deposits $100
-      const resA = depositToWallet(db, userA.id, 100);
+      // User A deposits 10,000,000 IRR
+      const resA = depositToWallet(db, userA.id, 10000000);
       db = resA.db;
 
       const updatedA = db.passengers.find((u) => u.id === userA.id)!;
       const updatedB = db.passengers.find((u) => u.id === userB.id)!;
 
-      if (updatedA.balance !== 580 || updatedB.balance !== 215) {
+      if (updatedA.balance !== 58000000 || updatedB.balance !== 21500000) {
         throw new Error('Wallet balance leaked across user accounts (shared Shopping_Panel instance bug).');
       }
 
@@ -793,7 +793,7 @@ export function runAllAutomatedTests(): TestCaseResult[] {
         throw new Error('Security breach: User A was allowed to refund User B ticket!');
       }
 
-      logs.push('✓ User A ("mahdi_as") deposit (+$100 -> $580) strictly isolated from User B ("parisa_rad" remains $215).');
+      logs.push('✓ User A ("mahdi_as") deposit (+10,000,000 -> 58,000,000 IRR) strictly isolated from User B ("parisa_rad" remains 21,500,000 IRR).');
       logs.push('✓ Cross-account ticket refund attempt by User A on User B ticket rejected by userId guard.');
       logs.push('✓ Profile editing scoped strictly to authenticated session.userId (no arbitrary username prompt).');
     } catch (err: any) {

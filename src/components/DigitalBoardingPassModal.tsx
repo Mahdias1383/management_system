@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, Printer, QrCode, Train, X } from 'lucide-react';
 import { Language, TicketRecord } from '../types/domain';
+import { formatRial } from '../services/authService';
 
 interface DigitalBoardingPassModalProps {
   ticket: TicketRecord;
@@ -97,7 +98,7 @@ export const DigitalBoardingPassModal: React.FC<DigitalBoardingPassModalProps> =
                 {isFa ? 'مبلغ پرداخت شده' : 'Total Paid'}
               </div>
               <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                ${ticket.totalPrice.toFixed(2)}
+                {formatRial(ticket.totalPrice, lang)}
               </div>
             </div>
           </div>

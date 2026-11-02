@@ -1,5 +1,5 @@
 import { PlatformDatabaseV2, TicketRecord, WalletTransaction } from '../types/domain';
-import { normalizeIdentifier, parsePositiveInteger, parsePositiveNumber } from './authService';
+import { formatRial, normalizeIdentifier, parsePositiveInteger, parsePositiveNumber } from './authService';
 import { deepClone } from './storageAndMigration';
 
 export interface WalletOperationResult {
@@ -63,8 +63,8 @@ export function depositToWallet(
     type: 'DEPOSIT',
     amount: parsed.value,
     runningBalance: updatedBalance,
-    descriptionEn: customNoteEn || `Wallet Deposit (+$${parsed.value.toFixed(2)})`,
-    descriptionFa: customNoteFa || `افزایش موجودی کیف پول (+$${parsed.value.toFixed(2)})`,
+    descriptionEn: customNoteEn || `Wallet Deposit (+${formatRial(parsed.value, 'en')})`,
+    descriptionFa: customNoteFa || `افزایش موجودی کیف پول (+${formatRial(parsed.value, 'fa')})`,
     timestamp: new Date().toISOString(),
   };
 
@@ -75,8 +75,8 @@ export function depositToWallet(
     actorRole: 'passenger',
     actorUsername: user.username,
     action: 'WALLET_DEPOSIT',
-    detailsEn: `Deposited $${parsed.value.toFixed(2)}. New balance: $${updatedBalance.toFixed(2)}.`,
-    detailsFa: `مبلغ $${parsed.value.toFixed(2)} به کیف پول اضافه شد. موجودی جدید: $${updatedBalance.toFixed(2)}.`,
+    detailsEn: `Deposited ${formatRial(parsed.value, 'en')}. New balance: ${formatRial(updatedBalance, 'en')}.`,
+    detailsFa: `مبلغ ${formatRial(parsed.value, 'fa')} به کیف پول اضافه شد. موجودی جدید: ${formatRial(updatedBalance, 'fa')}.`,
   });
 
   return {
@@ -121,8 +121,8 @@ export function withdrawFromWallet(
     return {
       success: false,
       db,
-      errorEn: `Insufficient wallet balance ($${user.balance.toFixed(2)}) to withdraw $${parsed.value.toFixed(2)}.`,
-      errorFa: `موجودی کیف پول ($${user.balance.toFixed(2)}) برای برداشت مبلغ $${parsed.value.toFixed(2)} کافی نیست.`,
+      errorEn: `Insufficient wallet balance (${formatRial(user.balance, 'en')}) to withdraw ${formatRial(parsed.value, 'en')}.`,
+      errorFa: `موجودی کیف پول (${formatRial(user.balance, 'fa')}) برای برداشت مبلغ ${formatRial(parsed.value, 'fa')} کافی نیست.`,
     };
   }
 
@@ -136,8 +136,8 @@ export function withdrawFromWallet(
     type: 'WITHDRAWAL',
     amount: parsed.value,
     runningBalance: updatedBalance,
-    descriptionEn: `Wallet Withdrawal (-$${parsed.value.toFixed(2)})`,
-    descriptionFa: `برداشت وجه از کیف پول (-$${parsed.value.toFixed(2)})`,
+    descriptionEn: `Wallet Withdrawal (-${formatRial(parsed.value, 'en')})`,
+    descriptionFa: `برداشت وجه از کیف پول (-${formatRial(parsed.value, 'fa')})`,
     timestamp: new Date().toISOString(),
   };
 
@@ -148,8 +148,8 @@ export function withdrawFromWallet(
     actorRole: 'passenger',
     actorUsername: user.username,
     action: 'WALLET_WITHDRAWAL',
-    detailsEn: `Withdrew $${parsed.value.toFixed(2)}. Remaining balance: $${updatedBalance.toFixed(2)}.`,
-    detailsFa: `مبلغ $${parsed.value.toFixed(2)} از کیف پول برداشت شد. موجودی باقیمانده: $${updatedBalance.toFixed(2)}.`,
+    detailsEn: `Withdrew ${formatRial(parsed.value, 'en')}. Remaining balance: ${formatRial(updatedBalance, 'en')}.`,
+    detailsFa: `مبلغ ${formatRial(parsed.value, 'fa')} از کیف پول برداشت شد. موجودی باقیمانده: ${formatRial(updatedBalance, 'fa')}.`,
   });
 
   return {
@@ -225,8 +225,8 @@ export function purchaseTrainTicket(
       db,
       lowBalanceRedirect: true,
       requiredShortfall: shortfall,
-      errorEn: `Insufficient wallet balance. Total cost is $${totalCost.toFixed(2)}, but your balance is $${user.balance.toFixed(2)} (Shortfall: $${shortfall.toFixed(2)}).`,
-      errorFa: `موجودی کیف پول کافی نیست. هزینه کل بلیط‌ها $${totalCost.toFixed(2)} است اما موجودی شما $${user.balance.toFixed(2)} می‌باشد (کمبود اعتبار: $${shortfall.toFixed(2)}).`,
+      errorEn: `Insufficient wallet balance. Total cost is ${formatRial(totalCost, 'en')}, but your balance is ${formatRial(user.balance, 'en')} (Shortfall: ${formatRial(shortfall, 'en')}).`,
+      errorFa: `موجودی کیف پول کافی نیست. هزینه کل بلیط‌ها ${formatRial(totalCost, 'fa')} است اما موجودی شما ${formatRial(user.balance, 'fa')} می‌باشد (کمبود اعتبار: ${formatRial(shortfall, 'fa')}).`,
     };
   }
 
@@ -294,8 +294,8 @@ export function purchaseTrainTicket(
     actorRole: 'passenger',
     actorUsername: user.username,
     action: 'TICKET_BOOKED',
-    detailsEn: `Passenger ${user.username} booked ${ticketCount} seat(s) (${assignedSeats.join(', ')}) on ${train.id_train} for $${totalCost.toFixed(2)} (PNR: ${pnr}).`,
-    detailsFa: `مسافر ${user.username} تعداد ${ticketCount} صندلی (${assignedSeats.join('، ')}) در قطار ${train.id_train} به مبلغ $${totalCost.toFixed(2)} رزرو کرد (کد: ${pnr}).`,
+    detailsEn: `Passenger ${user.username} booked ${ticketCount} seat(s) (${assignedSeats.join(', ')}) on ${train.id_train} for ${formatRial(totalCost, 'en')} (PNR: ${pnr}).`,
+    detailsFa: `مسافر ${user.username} تعداد ${ticketCount} صندلی (${assignedSeats.join('، ')}) در قطار ${train.id_train} به مبلغ ${formatRial(totalCost, 'fa')} رزرو کرد (کد: ${pnr}).`,
   });
 
   return {
@@ -372,8 +372,8 @@ export function refundTrainTicket(
     actorRole: 'passenger',
     actorUsername: user.username,
     action: 'TICKET_REFUNDED',
-    detailsEn: `Refunded ticket ${ticket.pnr} ($${ticket.totalPrice.toFixed(2)}) and restored ${ticket.ticketCount} seat(s) to ${ticket.id_train}.`,
-    detailsFa: `استرداد بلیط ${ticket.pnr} به مبلغ $${ticket.totalPrice.toFixed(2)} و بازگشت ${ticket.ticketCount} صندلی به ظرفیت قطار ${ticket.id_train}.`,
+    detailsEn: `Refunded ticket ${ticket.pnr} (${formatRial(ticket.totalPrice, 'en')}) and restored ${ticket.ticketCount} seat(s) to ${ticket.id_train}.`,
+    detailsFa: `استرداد بلیط ${ticket.pnr} به مبلغ ${formatRial(ticket.totalPrice, 'fa')} و بازگشت ${ticket.ticketCount} صندلی به ظرفیت قطار ${ticket.id_train}.`,
   });
 
   return {

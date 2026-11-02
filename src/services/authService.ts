@@ -1,4 +1,32 @@
-import { ActiveSession, UserRole } from '../types/domain';
+import { ActiveSession, Language, UserRole } from '../types/domain';
+
+/**
+ * Formats a numerical amount into Iranian Rial (ریال in Persian / IRR in English)
+ * with clean thousands separators.
+ */
+export function formatRial(amount: number | undefined | null, lang: Language = 'fa'): string {
+  const numeric = Number(amount ?? 0);
+  const safeVal = Number.isFinite(numeric) ? Math.round(numeric) : 0;
+  const formatted = safeVal.toLocaleString('en-US');
+  return lang === 'fa' ? `${formatted} ریال` : `${formatted} IRR`;
+}
+
+/**
+ * Formats large Rial values compactly for chart axes (e.g., 15M ریال / 15M IRR).
+ */
+export function formatCompactRial(amount: number | undefined | null, lang: Language = 'fa'): string {
+  const numeric = Number(amount ?? 0);
+  const safeVal = Number.isFinite(numeric) ? numeric : 0;
+  if (Math.abs(safeVal) >= 1_000_000) {
+    const millions = Math.round((safeVal / 1_000_000) * 10) / 10;
+    return lang === 'fa' ? `${millions}M ریال` : `${millions}M IRR`;
+  }
+  if (Math.abs(safeVal) >= 1_000) {
+    const thousands = Math.round(safeVal / 1_000);
+    return lang === 'fa' ? `${thousands}K ریال` : `${thousands}K IRR`;
+  }
+  return lang === 'fa' ? `${safeVal} ریال` : `${safeVal} IRR`;
+}
 
 /**
  * Normalizes any unique identifier (username, email, line name, train code)

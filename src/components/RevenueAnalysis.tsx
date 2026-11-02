@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { BarChart3, TrendingUp } from 'lucide-react';
 import { Language, TicketRecord, TrainLine, WalletTransaction } from '../types/domain';
+import { formatCompactRial, formatRial } from '../services/authService';
 
 interface RevenueAnalysisProps {
   transactions: WalletTransaction[];
@@ -133,8 +134,8 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
           <div>
             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
               {isFa
-                ? 'تحلیل ۳۰ روزه درآمد فروش بلیط در شبکه ریلی'
-                : '30-Day Ticket Sales Revenue Analytics'}
+                ? 'تحلیل ۳۰ روزه درآمد فروش بلیط در شبکه ریلی (ریال)'
+                : '30-Day Ticket Sales Revenue Analytics (IRR)'}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {isFa
@@ -193,8 +194,8 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
           <div className="text-[11px] text-slate-500 dark:text-slate-400">
             {isFa ? 'درآمد خالص ۳۰ روزه' : '30-Day Net Ticket Revenue'}
           </div>
-          <div className="text-lg font-bold font-mono tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">
-            ${summary.totalNet30d.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">
+            {formatRial(summary.totalNet30d, lang)}
           </div>
         </div>
 
@@ -202,8 +203,8 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
           <div className="text-[11px] text-slate-500 dark:text-slate-400">
             {isFa ? 'میانگین درآمد روزانه' : 'Average Daily Revenue'}
           </div>
-          <div className="text-lg font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
-            ${summary.avgDaily.toFixed(2)}
+          <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
+            {formatRial(summary.avgDaily, lang)}
           </div>
         </div>
 
@@ -211,8 +212,8 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
           <div className="text-[11px] text-slate-500 dark:text-slate-400">
             {isFa ? 'بیشترین فروش روزانه' : 'Peak Revenue Day'}
           </div>
-          <div className="text-lg font-bold font-mono tabular-nums text-blue-600 dark:text-blue-400 mt-0.5">
-            ${summary.peakDay.netRevenue.toFixed(2)}{' '}
+          <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-blue-600 dark:text-blue-400 mt-0.5">
+            {formatRial(summary.peakDay.netRevenue, lang)}{' '}
             <span className="text-xs font-normal text-slate-400">({summary.peakDay.label})</span>
           </div>
         </div>
@@ -221,7 +222,7 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
           <div className="text-[11px] text-slate-500 dark:text-slate-400">
             {isFa ? 'تعداد تراکنش‌های خرید بلیط' : 'Completed Ticket Orders'}
           </div>
-          <div className="text-lg font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
+          <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
             {summary.totalTxCount30d}
           </div>
         </div>
@@ -231,7 +232,7 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
       <div className="h-72 w-full" dir="ltr">
         <ResponsiveContainer width="100%" height="100%">
           {chartMode === 'AREA' ? (
-            <AreaChart data={dailyData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+            <AreaChart data={dailyData} margin={{ top: 10, right: 16, left: 8, bottom: 0 }}>
               <defs>
                 <linearGradient id="revGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#2563EB" stopOpacity={0.35} />
@@ -241,17 +242,17 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.25} />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 11, fill: '#94A3B8', fontFamily: 'JetBrains Mono, monospace' }}
+                tick={{ fontSize: 11, fill: '#94A3B8', fontFamily: 'JetBrains Mono, Vazirmatn, monospace' }}
                 tickLine={false}
                 axisLine={{ stroke: '#475569', opacity: 0.4 }}
                 minTickGap={16}
               />
               <YAxis
-                tickFormatter={(v) => `$${v}`}
-                tick={{ fontSize: 11, fill: '#94A3B8', fontFamily: 'JetBrains Mono, monospace' }}
+                tickFormatter={(v) => formatCompactRial(v, lang)}
+                tick={{ fontSize: 11, fill: '#94A3B8', fontFamily: 'JetBrains Mono, Vazirmatn, monospace' }}
                 tickLine={false}
                 axisLine={false}
-                width={56}
+                width={80}
               />
               <Tooltip
                 contentStyle={{
@@ -260,14 +261,14 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
                   borderRadius: '0.75rem',
                   fontSize: '12px',
                   color: '#F8FAFC',
-                  fontFamily: 'JetBrains Mono, monospace',
+                  fontFamily: 'JetBrains Mono, Vazirmatn, monospace',
                 }}
                 formatter={(value: any, name: any) => {
                   if (name === 'netRevenue') {
-                    return [`$${Number(value).toFixed(2)}`, isFa ? 'درآمد خالص بلیط' : 'Net Ticket Revenue'];
+                    return [formatRial(Number(value), lang), isFa ? 'درآمد خالص بلیط' : 'Net Ticket Revenue'];
                   }
                   if (name === 'grossRevenue') {
-                    return [`$${Number(value).toFixed(2)}`, isFa ? 'فروش ناخالص' : 'Gross Sales'];
+                    return [formatRial(Number(value), lang), isFa ? 'فروش ناخالص' : 'Gross Sales'];
                   }
                   return [value, name];
                 }}
@@ -283,21 +284,21 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
               />
             </AreaChart>
           ) : (
-            <BarChart data={dailyData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+            <BarChart data={dailyData} margin={{ top: 10, right: 16, left: 8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.25} />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 11, fill: '#94A3B8', fontFamily: 'JetBrains Mono, monospace' }}
+                tick={{ fontSize: 11, fill: '#94A3B8', fontFamily: 'JetBrains Mono, Vazirmatn, monospace' }}
                 tickLine={false}
                 axisLine={{ stroke: '#475569', opacity: 0.4 }}
                 minTickGap={16}
               />
               <YAxis
-                tickFormatter={(v) => `$${v}`}
-                tick={{ fontSize: 11, fill: '#94A3B8', fontFamily: 'JetBrains Mono, monospace' }}
+                tickFormatter={(v) => formatCompactRial(v, lang)}
+                tick={{ fontSize: 11, fill: '#94A3B8', fontFamily: 'JetBrains Mono, Vazirmatn, monospace' }}
                 tickLine={false}
                 axisLine={false}
-                width={56}
+                width={80}
               />
               <Tooltip
                 contentStyle={{
@@ -306,11 +307,11 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
                   borderRadius: '0.75rem',
                   fontSize: '12px',
                   color: '#F8FAFC',
-                  fontFamily: 'JetBrains Mono, monospace',
+                  fontFamily: 'JetBrains Mono, Vazirmatn, monospace',
                 }}
                 formatter={(value: any, name: any) => {
                   if (name === 'netRevenue') {
-                    return [`$${Number(value).toFixed(2)}`, isFa ? 'درآمد خالص بلیط' : 'Net Ticket Revenue'];
+                    return [formatRial(Number(value), lang), isFa ? 'درآمد خالص بلیط' : 'Net Ticket Revenue'];
                   }
                   return [value, name];
                 }}

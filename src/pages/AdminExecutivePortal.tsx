@@ -28,6 +28,7 @@ import {
 } from '../types/domain';
 import {
   evaluatePasswordStrength,
+  formatRial,
   hashPassword,
   isValidEmail,
   normalizeIdentifier,
@@ -520,8 +521,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 </span>
                 <Wallet className="w-4 h-4 text-emerald-500" />
               </div>
-              <div className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                ${totalRevenue.toFixed(2)}
+              <div className="text-lg sm:text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                {formatRial(totalRevenue, lang)}
               </div>
               <div className="text-[11px] text-slate-500 mt-1">
                 {confirmedTicketsCount}{' '}

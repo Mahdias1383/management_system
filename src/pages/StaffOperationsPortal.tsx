@@ -26,6 +26,7 @@ import {
   TrainSchedule,
 } from '../types/domain';
 import {
+  formatRial,
   normalizeIdentifier,
   parsePositiveInteger,
   parsePositiveNumber,
@@ -103,7 +104,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
   const [departureTime, setDepartureTime] = useState('08:30');
   const [speed, setSpeed] = useState('160');
   const [quality, setQuality] = useState<QualityTier>('VIP 5-Star');
-  const [ticketCost, setTicketCost] = useState('45');
+  const [ticketCost, setTicketCost] = useState('4500000');
   const [capacity, setCapacity] = useState('120');
   const [stopTimesMap, setStopTimesMap] = useState<Record<string, string>>({});
   const [trainFeedback, setTrainFeedback] = useState<{
@@ -1094,12 +1095,12 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      {isFa ? 'بهای بلیط ($)' : 'Ticket Fare ($)'}
+                      {isFa ? 'بهای بلیط (ریال)' : 'Ticket Fare (IRR)'}
                     </label>
                     <input
                       type="number"
-                      step="0.5"
-                      min={1}
+                      step="10000"
+                      min={10000}
                       dir="ltr"
                       value={ticketCost}
                       onChange={(e) => setTicketCost(e.target.value)}
@@ -1275,7 +1276,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                           </td>
                           <td className="py-3 px-4 font-mono">
                             <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                              ${t.cost_ticket.toFixed(2)}
+                              {formatRial(t.cost_ticket, lang)}
                             </span>{' '}
                             ·{' '}
                             <span className="text-slate-500">

@@ -10,7 +10,7 @@ import {
 } from '../types/domain';
 import { hashPassword, normalizeIdentifier } from './authService';
 
-export const STORAGE_KEY_V2 = 'railpulse_enterprise_db_v2';
+export const STORAGE_KEY_V2 = 'railpulse_enterprise_db_v2_irr';
 
 /**
  * Deep clones any JSON-serializable state to eliminate shared mutable reference bugs
@@ -56,14 +56,14 @@ export function getDefaultLegacyV1Snapshot(): LegacyV1Snapshot {
         name: 'مهدی اسدی (Mahdi Asadi)',
         email: 'mahdi.asadi@example.com',
         password: 'user123',
-        balance: 480,
+        balance: 48000000,
       },
       parisa_rad: {
         username: 'parisa_rad',
         name: 'پریسا راد (Parisa Rad)',
         email: 'parisa.rad@example.com',
         password: 'user123',
-        balance: 215,
+        balance: 21500000,
       },
     },
     line_dic: {
@@ -108,7 +108,7 @@ export function getDefaultLegacyV1Snapshot(): LegacyV1Snapshot {
           'Neyshabur (نیشابور)': 10,
         },
         quality: 'VIP 5-Star',
-        cost_ticket: 65,
+        cost_ticket: 6500000,
         capacity: 140,
         departureTime: '07:00',
       },
@@ -123,7 +123,7 @@ export function getDefaultLegacyV1Snapshot(): LegacyV1Snapshot {
           'Neyshabur (نیشابور)': 15,
         },
         quality: 'Business 4-Star',
-        cost_ticket: 48,
+        cost_ticket: 4800000,
         capacity: 210,
         departureTime: '09:30',
       },
@@ -138,7 +138,7 @@ export function getDefaultLegacyV1Snapshot(): LegacyV1Snapshot {
           'Neyshabur (نیشابور)': 8,
         },
         quality: 'VIP 5-Star',
-        cost_ticket: 72,
+        cost_ticket: 7200000,
         capacity: 112,
         departureTime: '14:00',
       },
@@ -152,7 +152,7 @@ export function getDefaultLegacyV1Snapshot(): LegacyV1Snapshot {
           'Kashan Oasis (کاشان)': 10,
         },
         quality: 'VIP 5-Star',
-        cost_ticket: 42,
+        cost_ticket: 4200000,
         capacity: 165,
         departureTime: '08:15',
       },
@@ -167,7 +167,7 @@ export function getDefaultLegacyV1Snapshot(): LegacyV1Snapshot {
           'Qazvin (قزوین)': 10,
         },
         quality: 'Economy 3-Star',
-        cost_ticket: 34,
+        cost_ticket: 3400000,
         capacity: 280,
         departureTime: '06:30',
       },
@@ -181,7 +181,7 @@ export function getDefaultLegacyV1Snapshot(): LegacyV1Snapshot {
           'Abadeh (آباده)': 10,
         },
         quality: 'Business 4-Star',
-        cost_ticket: 56,
+        cost_ticket: 5600000,
         capacity: 180,
         departureTime: '16:30',
       },
@@ -347,10 +347,10 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
       userId: p1.id,
       username: p1.username,
       type: 'DEPOSIT',
-      amount: 610,
-      runningBalance: 610,
+      amount: 61000000,
+      runningBalance: 61000000,
       descriptionEn: 'Initial Wallet Top-Up via Online Banking Gateway',
-      descriptionFa: 'شارژ اولیه کیف پول از طریق درگاه بانکی',
+      descriptionFa: 'شارژ اولیه کیف پول از طریق درگاه بانکی شتاب',
       timestamp: '2026-10-20T14:20:00.000Z',
     });
     transactions.push({
@@ -358,7 +358,7 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
       userId: p1.id,
       username: p1.username,
       type: 'TICKET_PURCHASE',
-      amount: 130,
+      amount: 13000000,
       runningBalance: p1.balance,
       descriptionEn: 'Booked 2x VIP Seats (1A, 1B) on TR-101 (Tehran-Mashhad High-Speed)',
       descriptionFa: 'خرید ۲ صندلی (1A, 1B) قطار TR-101 (خط سریع‌السیر تهران-مشهد)',
@@ -381,8 +381,8 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
       ticketCount: 2,
       seatNumbers: ['1A', '1B'],
       coachNumber: 1,
-      unitPrice: 65,
-      totalPrice: 130,
+      unitPrice: 6500000,
+      totalPrice: 13000000,
       quality: 'VIP 5-Star',
       status: 'Confirmed',
       purchasedAt: '2026-10-21T09:12:00.000Z',
@@ -397,8 +397,8 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
       userId: p2.id,
       username: p2.username,
       type: 'DEPOSIT',
-      amount: 299,
-      runningBalance: 299,
+      amount: 29900000,
+      runningBalance: 29900000,
       descriptionEn: 'Wallet Funding via Corporate Travel Card',
       descriptionFa: 'افزایش اعتبار کیف پول با کارت سفر سازمانی',
       timestamp: '2026-10-22T16:00:00.000Z',
@@ -408,7 +408,7 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
       userId: p2.id,
       username: p2.username,
       type: 'TICKET_PURCHASE',
-      amount: 84,
+      amount: 8400000,
       runningBalance: p2.balance,
       descriptionEn: 'Booked 2x Seats (2C, 2D) on TR-201 (Tehran-Isfahan Express)',
       descriptionFa: 'خرید ۲ صندلی (2C, 2D) قطار TR-201 (اکسپرس تهران-اصفهان)',
@@ -431,8 +431,8 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
       ticketCount: 2,
       seatNumbers: ['2C', '2D'],
       coachNumber: 2,
-      unitPrice: 42,
-      totalPrice: 84,
+      unitPrice: 4200000,
+      totalPrice: 8400000,
       quality: 'VIP 5-Star',
       status: 'Confirmed',
       purchasedAt: '2026-10-23T11:45:00.000Z',
@@ -443,11 +443,11 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
   // 6. Seed 30-day historical ticket sales transaction ledger entries for enterprise financial analytics
   const baseAnchorMs = new Date('2026-11-01T12:00:00.000Z').getTime();
   const sampleCorridors = [
-    { trainId: 'TR-101', line: 'Tehran-Mashhad High-Speed', unit: 65 },
-    { trainId: 'TR-102', line: 'Tehran-Mashhad High-Speed', unit: 48 },
-    { trainId: 'TR-201', line: 'Tehran-Isfahan Express', unit: 42 },
-    { trainId: 'TR-301', line: 'Tabriz-Tehran Azerbaijan Corridor', unit: 34 },
-    { trainId: 'TR-401', line: 'Tehran-Shiraz Royal Line', unit: 56 },
+    { trainId: 'TR-101', line: 'Tehran-Mashhad High-Speed', unit: 6500000 },
+    { trainId: 'TR-102', line: 'Tehran-Mashhad High-Speed', unit: 4800000 },
+    { trainId: 'TR-201', line: 'Tehran-Isfahan Express', unit: 4200000 },
+    { trainId: 'TR-301', line: 'Tabriz-Tehran Azerbaijan Corridor', unit: 3400000 },
+    { trainId: 'TR-401', line: 'Tehran-Shiraz Royal Line', unit: 5600000 },
   ];
 
   for (let dayOffset = 29; dayOffset >= 0; dayOffset--) {
@@ -464,7 +464,7 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
       username: dayOffset % 2 === 0 ? 'mahdi_as' : 'parisa_rad',
       type: 'TICKET_PURCHASE',
       amount: saleAmount,
-      runningBalance: 500,
+      runningBalance: 50000000,
       descriptionEn: `Booked ${seatQty}x seat(s) on ${corridor.trainId} (${corridor.line}) • PNR ${pnrCode}`,
       descriptionFa: `خرید ${seatQty} صندلی در قطار ${corridor.trainId} (${corridor.line}) • کد رزرو ${pnrCode}`,
       referenceId: pnrCode,

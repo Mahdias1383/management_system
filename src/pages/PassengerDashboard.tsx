@@ -22,6 +22,7 @@ import {
   TrainSchedule,
 } from '../types/domain';
 import {
+  formatRial,
   hashPassword,
   isValidEmail,
   normalizeIdentifier,
@@ -88,8 +89,8 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
   }, [preselectedTrain]);
 
   // --- WALLET STATE ---
-  const [depositAmount, setDepositAmount] = useState('100');
-  const [withdrawAmount, setWithdrawAmount] = useState('50');
+  const [depositAmount, setDepositAmount] = useState('10000000');
+  const [withdrawAmount, setWithdrawAmount] = useState('5000000');
 
   // --- PROFILE STATE (Strictly scoped to currentUser.id) ---
   const [profName, setProfName] = useState(currentUser.name);
@@ -178,8 +179,8 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
     onUpdateDb(res.db);
     setLowBalanceShortfall(null);
     notify(
-      `Wallet credited! New balance: $${res.newBalance?.toFixed(2)}`,
-      `کیف پول شما شارژ شد! موجودی جدید: $${res.newBalance?.toFixed(2)}`
+      `Wallet credited! New balance: ${formatRial(res.newBalance || 0, 'en')}`,
+      `کیف پول شما شارژ شد! موجودی جدید: ${formatRial(res.newBalance || 0, 'fa')}`
     );
   };
 
@@ -192,8 +193,8 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
     }
     onUpdateDb(res.db);
     notify(
-      `Withdrawal complete! Remaining balance: $${res.newBalance?.toFixed(2)}`,
-      `برداشت وجه انجام شد! موجودی باقیمانده: $${res.newBalance?.toFixed(2)}`
+      `Withdrawal complete! Remaining balance: ${formatRial(res.newBalance || 0, 'en')}`,
+      `برداشت وجه انجام شد! موجودی باقیمانده: ${formatRial(res.newBalance || 0, 'fa')}`
     );
   };
 
@@ -205,8 +206,8 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
     }
     onUpdateDb(res.db);
     notify(
-      `Ticket ${res.ticket?.pnr} refunded to your wallet ($${res.ticket?.totalPrice.toFixed(2)}).`,
-      `بلیط ${res.ticket?.pnr} لغو و مبلغ $${res.ticket?.totalPrice.toFixed(2)} به کیف پول شما بازگردانده شد.`
+      `Ticket ${res.ticket?.pnr} refunded to your wallet (${formatRial(res.ticket?.totalPrice || 0, 'en')}).`,
+      `بلیط ${res.ticket?.pnr} لغو و مبلغ ${formatRial(res.ticket?.totalPrice || 0, 'fa')} به کیف پول شما بازگردانده شد.`
     );
   };
 
@@ -365,8 +366,8 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
           <div className="text-xs text-slate-500 dark:text-slate-400">
             {isFa ? 'موجودی کیف پول شما:' : 'Available Balance:'}
           </div>
-          <div className="font-mono text-base font-bold text-emerald-600 dark:text-emerald-400">
-            ${currentUser.balance.toFixed(2)}
+          <div className="font-mono text-sm sm:text-base font-bold text-emerald-600 dark:text-emerald-400">
+            {formatRial(currentUser.balance, lang)}
           </div>
           <button
             type="button"
@@ -470,8 +471,8 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                       </div>
 
                       <div className="text-end">
-                        <div className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                          ${train.cost_ticket.toFixed(2)}
+                        <div className="text-base sm:text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                          {formatRial(train.cost_ticket, lang)}
                         </div>
                         <div className="text-[11px] text-slate-400">
                           {isFa ? 'بهای هر صندلی' : 'per passenger'}
@@ -633,7 +634,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                       <div className="flex justify-between">
                         <span className="text-slate-500">{isFa ? 'مبلغ کل:' : 'Total Paid:'}</span>
                         <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          ${tkt.totalPrice.toFixed(2)}
+                          {formatRial(tkt.totalPrice, lang)}
                         </span>
                       </div>
                     </div>
@@ -699,8 +700,8 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
               <div className="text-xs text-slate-400">
                 {isFa ? 'موجودی قابل خرید بلیط و برداشت آنی' : 'Available Balance'}
               </div>
-              <div className="text-3xl font-bold font-mono tabular-nums mt-1">
-                ${currentUser.balance.toFixed(2)}
+              <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums mt-1">
+                {formatRial(currentUser.balance, lang)}
               </div>
               <div className="flex items-center justify-between text-xs text-slate-400 mt-6 pt-4 border-t border-slate-800 font-mono">
                 <span>{currentUser.name}</span>
@@ -713,19 +714,19 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
               <div className="flex items-center gap-2 mb-3">
                 <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
                 <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  {isFa ? 'افزایش اعتبار کیف پول' : 'Top Up Wallet Balance'}
+                  {isFa ? 'افزایش اعتبار کیف پول (ریال)' : 'Top Up Wallet Balance (IRR)'}
                 </h4>
               </div>
 
               <div className="flex items-center gap-2 mb-3">
-                {[50, 100, 250].map((preset) => (
+                {[5000000, 10000000, 25000000].map((preset) => (
                   <button
                     key={preset}
                     type="button"
                     onClick={() => handleDeposit(preset)}
-                    className="flex-1 py-1.5 px-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-xs font-mono font-semibold cursor-pointer"
+                    className="flex-1 py-1.5 px-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-[11px] font-mono font-semibold cursor-pointer"
                   >
-                    +${preset}
+                    +{formatRial(preset, lang)}
                   </button>
                 ))}
               </div>
@@ -734,8 +735,8 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                 <input
                   type="number"
                   dir="ltr"
-                  min={1}
-                  step="0.01"
+                  min={10000}
+                  step="10000"
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
                   className="flex-1 px-3 py-2 text-sm font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
@@ -755,15 +756,15 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
               <div className="flex items-center gap-2 mb-3">
                 <ArrowUpRight className="w-4 h-4 text-amber-500" />
                 <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  {isFa ? 'برداشت وجه و انتقال به حساب بانکی' : 'Withdraw Funds'}
+                  {isFa ? 'برداشت وجه و انتقال به حساب بانکی (ریال)' : 'Withdraw Funds (IRR)'}
                 </h4>
               </div>
               <form onSubmit={handleWithdraw} className="flex gap-2">
                 <input
                   type="number"
                   dir="ltr"
-                  min={1}
-                  step="0.01"
+                  min={10000}
+                  step="10000"
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
                   className="flex-1 px-3 py-2 text-sm font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
@@ -816,10 +817,10 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                               : 'text-red-600 dark:text-red-400'
                           }`}
                         >
-                          {isCredit ? '+' : '-'}${tx.amount.toFixed(2)}
+                          {isCredit ? '+' : '-'}{formatRial(tx.amount, lang)}
                         </td>
                         <td className="py-3 px-3 text-end font-mono text-slate-700 dark:text-slate-300">
-                          ${tx.runningBalance.toFixed(2)}
+                          {formatRial(tx.runningBalance, lang)}
                         </td>
                       </tr>
                     );

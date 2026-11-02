@@ -66,8 +66,8 @@ For security and production cleanliness, plaintext passwords are **never** displ
 | **System Administrator** | `Admin_train` | `admin_train` | Full executive access, staff HR management, 30-day revenue charts, and 5-Phase QA test runner. |
 | **Operations Staff (Engineer 1)** | `sara_ahmadi` | `staff123` | High-Speed Dispatch & Signalling department; manages corridors, train schedules, and Marey collision radar. |
 | **Operations Staff (Engineer 2)** | `reza_karimi` | `staff123` | Corridor Topology & Safety department. |
-| **Regular Passenger A** | `mahdi_as` | `user123` | Pre-funded wallet (`$480.00`), confirmed VIP boarding pass (`RP-89412`) on Tehran–Mashhad HSR. |
-| **Regular Passenger B** | `parisa_rad` | `user123` | Pre-funded wallet (`$215.00`), confirmed boarding pass (`RP-90234`) on Tehran–Isfahan Express. |
+| **Regular Passenger A** | `mahdi_as` | `user123` | Pre-funded wallet (`48,000,000 IRR` / `48,000,000 ریال`), confirmed VIP boarding pass (`RP-89412`) on Tehran–Mashhad HSR. |
+| **Regular Passenger B** | `parisa_rad` | `user123` | Pre-funded wallet (`21,500,000 IRR` / `21,500,000 ریال`), confirmed boarding pass (`RP-90234`) on Tehran–Isfahan Express. |
 
 ---
 

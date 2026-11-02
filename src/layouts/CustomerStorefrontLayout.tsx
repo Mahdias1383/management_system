@@ -18,6 +18,7 @@ import {
   ThemeMode,
   UserRole,
 } from '../types/domain';
+import { formatRial } from '../services/authService';
 
 interface CustomerStorefrontLayoutProps {
   lang: Language;
@@ -150,7 +151,7 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
                   <Wallet className="w-3.5 h-3.5 text-emerald-500" />
                   <span>{isFa ? 'کیف پول:' : 'Wallet:'}</span>
                   <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    ${activePassenger.balance.toFixed(2)}
+                    {formatRial(activePassenger.balance, lang)}
                   </span>
                 </button>
 
@@ -292,13 +293,13 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
                 </span>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-200/70 dark:border-slate-800">
-                <span className="text-slate-500">3. Passenger A ($480):</span>
+                <span className="text-slate-500">3. Passenger A (48,000,000 IRR):</span>
                 <span className="text-slate-900 dark:text-slate-100 font-semibold">
                   mahdi_as / user123
                 </span>
               </div>
               <div className="flex items-center justify-between py-1">
-                <span className="text-slate-500">4. Passenger B ($215):</span>
+                <span className="text-slate-500">4. Passenger B (21,500,000 IRR):</span>
                 <span className="text-slate-900 dark:text-slate-100 font-semibold">
                   parisa_rad / user123
                 </span>

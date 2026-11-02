@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Check, Train, X } from 'lucide-react';
 import { Language, StationNodeTiming, TrainSchedule } from '../types/domain';
+import { formatRial } from '../services/authService';
 
 interface SeatMapSelectorProps {
   train: TrainSchedule;
@@ -106,7 +107,7 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
                     key={cn}
                     type="button"
                     onClick={() => setCoachNumber(cn)}
-                    className={`px-2.5 py-1 text-xs font-mono rounded-md cursor-pointer ${
+                    className={`px-2.5 py-1 text-xs rounded-md cursor-pointer ${
                       coachNumber === cn
                         ? 'bg-blue-600 text-white font-semibold'
                         : 'bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400'
@@ -232,7 +233,7 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
                 <span className="text-slate-500">
                   {isFa ? 'بهای هر صندلی:' : 'Unit Ticket Fare:'}
                 </span>
-                <span className="font-mono">${train.cost_ticket.toFixed(2)}</span>
+                <span className="font-mono">{formatRial(train.cost_ticket, lang)}</span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -240,14 +241,14 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
                   {isFa ? 'موجودی فعلی کیف پول شما:' : 'Your Wallet Balance:'}
                 </span>
                 <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                  ${passengerBalance.toFixed(2)}
+                  {formatRial(passengerBalance, lang)}
                 </span>
               </div>
 
               <div className="flex items-center justify-between text-sm font-bold pt-2.5 border-t border-slate-200 dark:border-slate-800">
                 <span>{isFa ? 'مبلغ کل قابل پرداخت:' : 'Total Amount Due:'}</span>
                 <span className="font-mono text-blue-600 dark:text-blue-400">
-                  ${totalCost.toFixed(2)}
+                  {formatRial(totalCost, lang)}
                 </span>
               </div>
             </div>
@@ -256,8 +257,8 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-2 text-xs text-amber-700 dark:text-amber-300">
                 <span>
                   {isFa
-                    ? `کمبود موجودی کیف پول: $${lowBalanceShortfall.toFixed(2)}`
-                    : `Insufficient balance (Shortfall: $${lowBalanceShortfall.toFixed(2)})`}
+                    ? `کمبود موجودی کیف پول: ${formatRial(lowBalanceShortfall, lang)}`
+                    : `Insufficient balance (Shortfall: ${formatRial(lowBalanceShortfall, lang)})`}
                 </span>
                 <button
                   type="button"
@@ -265,8 +266,8 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
                   className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold cursor-pointer whitespace-nowrap"
                 >
                   {isFa
-                    ? `شارژ فوری +$${Math.ceil(lowBalanceShortfall)}`
-                    : `Instant Top-Up +$${Math.ceil(lowBalanceShortfall)}`}
+                    ? `شارژ فوری +${formatRial(Math.ceil(lowBalanceShortfall), lang)}`
+                    : `Instant Top-Up +${formatRial(Math.ceil(lowBalanceShortfall), lang)}`}
                 </button>
               </div>
             )}

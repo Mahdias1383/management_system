@@ -7,46 +7,138 @@
 }
 
 @layer base {
+  /* =========================================================================
+     RTL (PERSIAN) TYPOGRAPHY SYSTEM — VAZIRMATN OPTIMIZATION
+     ========================================================================= */
   html[dir="rtl"] {
-    font-family: 'Vazirmatn', 'Inter', system-ui, -apple-system, sans-serif;
-    line-height: 1.7;
+    font-family: 'Vazirmatn', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 400;
+    line-height: 1.75;
     letter-spacing: 0 !important;
-    font-feature-settings: "kern" 1, "liga" 1;
+    word-spacing: 0.02em;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  html[dir="rtl"] body,
-  html[dir="rtl"] h1,
-  html[dir="rtl"] h2,
+  html[dir="rtl"] body {
+    font-family: 'Vazirmatn', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 400;
+    line-height: 1.75;
+    letter-spacing: 0 !important;
+  }
+
+  /* Prevent cursive Persian glyph disconnection across all RTL elements & Tailwind tracking utilities */
+  html[dir="rtl"] *,
+  html[dir="rtl"] .tracking-tight,
+  html[dir="rtl"] .tracking-tighter,
+  html[dir="rtl"] .tracking-wide,
+  html[dir="rtl"] .tracking-wider,
+  html[dir="rtl"] .tracking-widest {
+    letter-spacing: 0 !important;
+  }
+
+  /* Restore subtle letter-spacing only on explicitly marked LTR code/badge elements inside RTL */
+  html[dir="rtl"] [dir="ltr"] {
+    letter-spacing: normal;
+  }
+
+  /* Calibrated Header Tag Hierarchy (h1 - h6) for Persian Readability */
+  html[dir="rtl"] h1 {
+    font-family: 'Vazirmatn', sans-serif;
+    font-weight: 800;
+    line-height: 1.45;
+    letter-spacing: 0.01em !important;
+  }
+
+  html[dir="rtl"] h2 {
+    font-family: 'Vazirmatn', sans-serif;
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0.01em !important;
+  }
+
   html[dir="rtl"] h3,
-  html[dir="rtl"] h4,
+  html[dir="rtl"] h4 {
+    font-family: 'Vazirmatn', sans-serif;
+    font-weight: 700;
+    line-height: 1.55;
+    letter-spacing: 0.01em !important;
+  }
+
   html[dir="rtl"] h5,
-  html[dir="rtl"] h6,
+  html[dir="rtl"] h6 {
+    font-family: 'Vazirmatn', sans-serif;
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: 0.01em !important;
+  }
+
+  /* Standard Body Text, Paragraphs, Lists & Captions in RTL */
   html[dir="rtl"] p,
-  html[dir="rtl"] span,
+  html[dir="rtl"] li,
+  html[dir="rtl"] dd,
+  html[dir="rtl"] blockquote {
+    font-family: 'Vazirmatn', sans-serif;
+    font-weight: 400;
+    line-height: 1.75;
+    letter-spacing: 0 !important;
+  }
+
+  /* Form Controls, Buttons & Data Table Cells in RTL */
+  html[dir="rtl"] label,
+  html[dir="rtl"] th {
+    font-family: 'Vazirmatn', sans-serif;
+    font-weight: 600;
+    line-height: 1.65;
+    letter-spacing: 0 !important;
+  }
+
+  html[dir="rtl"] td {
+    line-height: 1.7;
+    letter-spacing: 0 !important;
+  }
+
   html[dir="rtl"] button,
   html[dir="rtl"] input,
   html[dir="rtl"] select,
-  html[dir="rtl"] textarea,
-  html[dir="rtl"] th,
-  html[dir="rtl"] td {
-    letter-spacing: 0;
+  html[dir="rtl"] textarea {
+    font-family: 'Vazirmatn', 'JetBrains Mono', 'Plus Jakarta Sans', sans-serif;
+    line-height: 1.6;
+    letter-spacing: 0 !important;
   }
 
-  html[dir="rtl"] body {
-    font-family: 'Vazirmatn', 'Inter', system-ui, -apple-system, sans-serif;
-  }
-
+  /* =========================================================================
+     LTR (ENGLISH) TYPOGRAPHY SYSTEM
+     ========================================================================= */
   html[dir="ltr"] {
     font-family: 'Plus Jakarta Sans', 'Inter', 'Vazirmatn', system-ui, -apple-system, sans-serif;
-    line-height: 1.55;
+    font-weight: 400;
+    line-height: 1.6;
+    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   html[dir="ltr"] body {
     font-family: 'Plus Jakarta Sans', 'Inter', 'Vazirmatn', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+  }
+
+  html[dir="ltr"] h1,
+  html[dir="ltr"] h2,
+  html[dir="ltr"] h3,
+  html[dir="ltr"] h4,
+  html[dir="ltr"] h5,
+  html[dir="ltr"] h6 {
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+  }
+
+  html[dir="ltr"] p,
+  html[dir="ltr"] li {
+    line-height: 1.65;
   }
 
   input,
@@ -59,12 +151,19 @@
   /* Ensure monospace numbers & codes stay crisp while Persian glyphs inside .font-mono use Vazirmatn */
   .font-mono,
   .tabular-nums {
-    font-family: 'JetBrains Mono', 'Vazirmatn', monospace;
+    font-family: 'JetBrains Mono', 'Vazirmatn', ui-monospace, SFMono-Regular, monospace;
     font-variant-numeric: tabular-nums;
+  }
+
+  html[dir="rtl"] .font-mono,
+  html[dir="rtl"] .tabular-nums {
+    line-height: 1.65;
+    letter-spacing: 0 !important;
   }
 
   svg text {
     font-family: 'Vazirmatn', 'JetBrains Mono', 'Inter', sans-serif;
+    letter-spacing: 0;
   }
 }
 

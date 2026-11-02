@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeftRight,
   CheckCircle2,
@@ -121,7 +122,13 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
           </div>
 
           {/* Interactive Search Engine Widget */}
-          <div className="relative z-10 mt-8 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md text-slate-900 dark:text-slate-100 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.05 }}
+            whileHover={{ y: -2 }}
+            className="relative z-10 mt-8 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md text-slate-900 dark:text-slate-100 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg"
+          >
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-end">
               {/* Origin */}
               <div className="md:col-span-3 group">
@@ -216,7 +223,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                 </a>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -271,103 +278,109 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredTrains.map((train, idx) => {
-              const line = db.lines.find(
-                (l) => normalizeIdentifier(l.name_line) === normalizeIdentifier(train.name_line)
-              );
-              const timings = line ? computeTrainStationTimings(train, line) : [];
-              const arrivalFormatted =
-                timings.length > 0 ? timings[timings.length - 1].arrivalFormatted : '--:--';
-              const staggerClass =
-                idx % 4 === 0
-                  ? 'rp-stagger-1'
-                  : idx % 4 === 1
-                  ? 'rp-stagger-2'
-                  : idx % 4 === 2
-                  ? 'rp-stagger-3'
-                  : 'rp-stagger-4';
+            <AnimatePresence mode="popLayout">
+              {filteredTrains.map((train, idx) => {
+                const line = db.lines.find(
+                  (l) => normalizeIdentifier(l.name_line) === normalizeIdentifier(train.name_line)
+                );
+                const timings = line ? computeTrainStationTimings(train, line) : [];
+                const arrivalFormatted =
+                  timings.length > 0 ? timings[timings.length - 1].arrivalFormatted : '--:--';
 
-              return (
-                <div
-                  key={train.id}
-                  className={`group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col justify-between rp-card-hover rp-animate-in ${staggerClass}`}
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="text-xs font-mono text-blue-600 dark:text-blue-400 font-semibold">
-                          {toPersianDigits(train.id_train, lang)} · {localizeQuality(train.quality, lang)}
+                return (
+                  <motion.div
+                    key={train.id}
+                    layout
+                    initial={{ opacity: 0, y: 18, scale: 0.985 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16 } }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 310,
+                      damping: 25,
+                      delay: (idx % 6) * 0.045,
+                    }}
+                    whileHover={{ y: -5, scale: 1.012 }}
+                    whileTap={{ scale: 0.994 }}
+                    className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col justify-between rp-card-hover"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-xs font-mono text-blue-600 dark:text-blue-400 font-semibold">
+                            {toPersianDigits(train.id_train, lang)} · {localizeQuality(train.quality, lang)}
+                          </div>
+                          <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            {localizeText(train.name_train, lang)}
+                          </h3>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            {localizeText(train.name_line, lang)}
+                          </div>
                         </div>
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          {localizeText(train.name_train, lang)}
-                        </h3>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {localizeText(train.name_line, lang)}
+
+                        <div className="text-end">
+                          <div className="text-base sm:text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(train.cost_ticket, isFa ? 'Rial' : 'USD')}
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            {isFa ? 'بهای هر صندلی' : 'per seat'}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="text-end">
-                        <div className="text-base sm:text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                          {formatCurrency(train.cost_ticket, isFa ? 'Rial' : 'USD')}
+                      {line && (
+                        <div className="my-4 p-3.5 rounded-xl bg-slate-50/90 dark:bg-slate-950/90 border border-slate-200/80 dark:border-slate-800 text-xs">
+                          <div className="flex items-center justify-between font-semibold text-slate-900 dark:text-white">
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                              {localizeText(line.origin, lang)}
+                            </span>
+                            <span className="text-blue-500 font-mono">{isFa ? '◄───' : '───►'}</span>
+                            <span>{localizeText(line.destination, lang)}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between font-mono text-[11px] text-slate-500 mt-2">
+                            <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold">
+                              <Clock className="w-3 h-3" />
+                              {formatTime(train.departureTime, lang)}
+                            </span>
+                            <span>
+                              {formatNumber(train.speed, lang)} {isFa ? 'کیلومتر/ساعت' : 'km/h'}
+                            </span>
+                            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                              {isFa ? 'ورود:' : 'Arr:'} {formatTime(arrivalFormatted, lang)}
+                            </span>
+                          </div>
+
+                          {line.list_state.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-500 truncate">
+                              {isFa ? 'ایستگاه‌های عبوری:' : 'Stops:'}{' '}
+                              {line.list_state.map((st) => localizeText(st, lang)).join(' · ')}
+                            </div>
+                          )}
                         </div>
-                        <div className="text-[11px] text-slate-400">
-                          {isFa ? 'بهای هر صندلی' : 'per seat'}
-                        </div>
-                      </div>
+                      )}
                     </div>
 
-                    {line && (
-                      <div className="my-4 p-3.5 rounded-xl bg-slate-50/90 dark:bg-slate-950/90 border border-slate-200/80 dark:border-slate-800 text-xs">
-                        <div className="flex items-center justify-between font-semibold text-slate-900 dark:text-white">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                            {localizeText(line.origin, lang)}
-                          </span>
-                          <span className="text-blue-500 font-mono">{isFa ? '◄───' : '───►'}</span>
-                          <span>{localizeText(line.destination, lang)}</span>
-                        </div>
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                      <span className="text-xs font-mono font-medium text-slate-600 dark:text-slate-400">
+                        {isFa
+                          ? `${formatNumber(train.capacity, lang)} صندلی خالی`
+                          : `${train.capacity} seats left`}
+                      </span>
 
-                        <div className="flex items-center justify-between font-mono text-[11px] text-slate-500 mt-2">
-                          <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold">
-                            <Clock className="w-3 h-3" />
-                            {formatTime(train.departureTime, lang)}
-                          </span>
-                          <span>
-                            {formatNumber(train.speed, lang)} {isFa ? 'کیلومتر/ساعت' : 'km/h'}
-                          </span>
-                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                            {isFa ? 'ورود:' : 'Arr:'} {formatTime(arrivalFormatted, lang)}
-                          </span>
-                        </div>
-
-                        {line.list_state.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-500 truncate">
-                            {isFa ? 'ایستگاه‌های عبوری:' : 'Stops:'}{' '}
-                            {line.list_state.map((st) => localizeText(st, lang)).join(' · ')}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800/80">
-                    <span className="text-xs font-mono font-medium text-slate-600 dark:text-slate-400">
-                      {isFa
-                        ? `${formatNumber(train.capacity, lang)} صندلی خالی`
-                        : `${train.capacity} seats left`}
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={() => onSelectTrainForBooking(train)}
-                      className="px-4 py-2 rounded-xl rp-btn-primary text-white text-xs font-semibold cursor-pointer"
-                    >
-                      {isFa ? 'انتخاب صندلی و خرید' : 'Select Seats & Book'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                      <button
+                        type="button"
+                        onClick={() => onSelectTrainForBooking(train)}
+                        className="px-4 py-2 rounded-xl rp-btn-primary text-white text-xs font-semibold cursor-pointer"
+                      >
+                        {isFa ? 'انتخاب صندلی و خرید' : 'Select Seats & Book'}
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         )}
       </section>

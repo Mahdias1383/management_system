@@ -8,9 +8,10 @@ import {
   TrainSchedule,
   WalletTransaction,
 } from '../types/domain';
+import { APP_ENV } from '../config/env';
 import { hashPassword, normalizeIdentifier } from './authService';
 
-export const STORAGE_KEY_V2 = 'railpulse_enterprise_db_v2_irr';
+export const STORAGE_KEY_V2 = APP_ENV.storageKey || 'railpulse_enterprise_db_v2_irr';
 
 /**
  * Deep clones any JSON-serializable state to eliminate shared mutable reference bugs

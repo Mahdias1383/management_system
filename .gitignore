@@ -8,12 +8,19 @@ dist/
 build/
 server.js
 
-# Environment files
+# Environment files (keep .env-sample and .env.example tracked)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+!.env.example
+!.env-sample
+
+# Browser automation & test artifacts
+.playwright-cli/
+test-results/
+playwright-report/
 
 # Logs & OS artifacts
 npm-debug.log*

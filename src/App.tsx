@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion, Variants } from 'framer-motion';
-import { CheckCircle2, XCircle } from 'lucide-react';
 import {
   ActiveSession,
   Language,
@@ -8,16 +7,16 @@ import {
   ThemeMode,
   TrainSchedule,
   UserRole,
-} from './types/domain';
-import { loadDatabase, saveDatabase } from './services/storageAndMigration';
-import { localizeText } from './services/authService';
-import { RoleGuard } from './guards/RoleGuard';
-import { CustomerStorefrontLayout } from './layouts/CustomerStorefrontLayout';
-import { PublicHomePage } from './pages/PublicHomePage';
-import { AuthPage } from './pages/AuthPage';
-import { PassengerDashboard } from './pages/PassengerDashboard';
-import { StaffOperationsPortal } from './pages/StaffOperationsPortal';
-import { AdminExecutivePortal } from './pages/AdminExecutivePortal';
+} from './types';
+import { APP_ENV } from './config';
+import { loadDatabase, saveDatabase, localizeText } from './services';
+import { RoleGuard } from './guards';
+import { CustomerStorefrontLayout } from './layouts';
+import { ToastNotificationBanner, ToastNotificationItem } from './components/ui';
+import { PublicHomePage, AuthPage } from './pages/public';
+import { PassengerDashboard } from './pages/passenger';
+import { StaffOperationsPortal } from './pages/staff';
+import { AdminExecutivePortal } from './pages/admin';
 
 type AppRoute =
   | 'HOME'
@@ -25,13 +24,6 @@ type AppRoute =
   | 'PASSENGER_PORTAL'
   | 'STAFF_PORTAL'
   | 'ADMIN_PORTAL';
-
-interface ToastNotification {
-  id: number;
-  msgEn: string;
-  msgFa: string;
-  type: 'success' | 'error';
-}
 
 const pageTransitionVariants: Variants = {
   initial: {
@@ -58,8 +50,8 @@ const pageTransitionVariants: Variants = {
 
 export default function App() {
   const [db, setDb] = useState<PlatformDatabaseV2>(() => loadDatabase());
-  const [lang, setLang] = useState<Language>('fa');
-  const [theme, setTheme] = useState<ThemeMode>('dark');
+  const [lang, setLang] = useState<Language>(APP_ENV.defaultLocale);
+  const [theme, setTheme] = useState<ThemeMode>(APP_ENV.defaultTheme);
 
   const [route, setRoute] = useState<AppRoute>('HOME');
   const [session, setSession] = useState<ActiveSession | null>(null);
@@ -70,7 +62,7 @@ export default function App() {
     'BOOKING' | 'TICKETS' | 'WALLET' | 'PROFILE'
   >('BOOKING');
   const [preselectedTrain, setPreselectedTrain] = useState<TrainSchedule | null>(null);
-  const [toast, setToast] = useState<ToastNotification | null>(null);
+  const [toast, setToast] = useState<ToastNotificationItem | null>(null);
 
   const isFa = lang === 'fa';
 
@@ -182,27 +174,7 @@ export default function App() {
   return (
     <>
       {/* Global Toast Notification with Framer Motion */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            key={toast.id}
-            initial={{ opacity: 0, y: 20, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.96 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed bottom-5 end-5 z-50 max-w-md bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white border border-slate-700/80 rounded-xl px-4 py-3.5 shadow-2xl flex items-center gap-3 text-xs"
-          >
-            {toast.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            ) : (
-              <XCircle className="w-4 h-4 text-red-400 shrink-0" />
-            )}
-            <span className="leading-relaxed">
-              {isFa ? toast.msgFa : toast.msgEn}
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotificationBanner toast={toast} lang={lang} />
 
       <AnimatePresence mode="wait">
         {/* =====================================================================

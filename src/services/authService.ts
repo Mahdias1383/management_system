@@ -1,4 +1,5 @@
 import { ActiveSession, Language, QualityTier, UserRole } from '../types/domain';
+import { APP_ENV } from '../config/env';
 
 const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
 
@@ -68,9 +69,9 @@ const FA_DECIMAL_FORMATTER = new Intl.NumberFormat('fa-IR', {
 
 /**
  * Nominal conversion factor between internal Rial ledger values and USD display in English (LTR) mode:
- * 100,000 IRR = $1.00 USD (e.g. 6,500,000 Rial VIP ticket = $65, 48,000,000 Rial wallet = $480).
+ * Configured via VITE_USD_EXCHANGE_RATE (default: 100,000 IRR = $1.00 USD).
  */
-export const IRR_PER_USD = 100_000;
+export const IRR_PER_USD = APP_ENV.usdExchangeRate;
 
 export function toUsdValue(irrAmount: number): number {
   if (!Number.isFinite(irrAmount) || irrAmount === 0) return 0;

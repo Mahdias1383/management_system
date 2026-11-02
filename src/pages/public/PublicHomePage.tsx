@@ -1,0 +1,1 @@
+export { PublicHomePage } from '../PublicHomePage';

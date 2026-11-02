@@ -1,6 +1,7 @@
 import { CollisionCheckResult, SafetyConflict, StationNodeTiming, TrainLine, TrainSchedule } from '../types/domain';
+import { APP_ENV } from '../config/env';
 
-const MANDATORY_HEADWAY_BUFFER_MINUTES = 5;
+const MANDATORY_HEADWAY_BUFFER_MINUTES = APP_ENV.collisionSafetyBufferMinutes;
 
 /**
  * Parses "HH:mm" into minutes from midnight (0..1439+).

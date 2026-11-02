@@ -1,4 +1,5 @@
 import { PlatformDatabaseV2, TicketRecord, WalletTransaction } from '../types/domain';
+import { APP_ENV } from '../config/env';
 import { formatCurrency, normalizeIdentifier, parsePositiveInteger, parsePositiveNumber } from './authService';
 import { deepClone } from './storageAndMigration';
 
@@ -247,7 +248,7 @@ export function purchaseTrainTicket(
   user.balance = Math.round((user.balance - totalCost) * 100) / 100;
   train.capacity -= ticketCount;
 
-  const pnr = `RP-${Math.floor(10000 + Math.random() * 90000)}`;
+  const pnr = `${APP_ENV.pnrPrefix}-${Math.floor(10000 + Math.random() * 90000)}`;
   const nowIso = new Date().toISOString();
 
   const ticket: TicketRecord = {

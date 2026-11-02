@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   Area,
   AreaChart,
@@ -584,7 +585,14 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
         <div className="space-y-6 rp-animate-in">
           {/* 5 Executive KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="rp-card-hover rp-animate-in rp-stagger-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.02 }}
+              whileHover={{ y: -4, scale: 1.015 }}
+              whileTap={{ scale: 0.99 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs"
+            >
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'کریدورهای ریلی فعال' : 'Active Rail Corridors'}
@@ -601,9 +609,16 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 )}{' '}
                 {isFa ? 'ایستگاه میانی در شبکه' : 'intermediate stops'}
               </div>
-            </div>
+            </motion.div>
 
-            <div className="rp-card-hover rp-animate-in rp-stagger-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.07 }}
+              whileHover={{ y: -4, scale: 1.015 }}
+              whileTap={{ scale: 0.99 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs"
+            >
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'ناوگان قطارهای فعال' : 'Operating Train Fleet'}
@@ -620,9 +635,16 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 )}{' '}
                 {isFa ? 'صندلی آماده فروش' : 'available seats'}
               </div>
-            </div>
+            </motion.div>
 
-            <div className="rp-card-hover rp-animate-in rp-stagger-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.12 }}
+              whileHover={{ y: -4, scale: 1.015 }}
+              whileTap={{ scale: 0.99 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs"
+            >
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'کارشناسان و مسافران' : 'Staff & Passengers'}
@@ -637,9 +659,16 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   ? `${formatNumber(db.employees.length, lang)} کارشناس · ${formatNumber(db.passengers.length, lang)} مسافر`
                   : `${db.employees.length} staff · ${db.passengers.length} passengers`}
               </div>
-            </div>
+            </motion.div>
 
-            <div className="rp-card-hover rp-animate-in rp-stagger-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.17 }}
+              whileHover={{ y: -4, scale: 1.015 }}
+              whileTap={{ scale: 0.99 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs"
+            >
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'درآمد خالص فروش بلیط' : 'Net Ticket Revenue'}
@@ -653,9 +682,16 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 {formatNumber(confirmedTicketsCount, lang)}{' '}
                 {isFa ? 'رزرو قطعی ثبت‌شده' : 'confirmed bookings'}
               </div>
-            </div>
+            </motion.div>
 
-            <div className="rp-card-hover rp-animate-in rp-stagger-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.22 }}
+              whileHover={{ y: -4, scale: 1.015 }}
+              whileTap={{ scale: 0.99 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs"
+            >
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'شاخص ایمنی سیر' : 'Dispatch Safety Index'}
@@ -670,7 +706,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   ? 'صفر تداخل در رادار ضدبرخورد'
                   : 'Zero active track collisions'}
               </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* 12-Month Monthly Revenue Trend LineChart (Recharts) */}
@@ -693,30 +729,48 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
               </div>
 
               <div className="grid grid-cols-3 gap-3 text-xs">
-                <div className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.1 }}
+                  whileHover={{ y: -3, scale: 1.015 }}
+                  className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800"
+                >
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     {isFa ? 'درآمد خالص سالانه (۱۲ ماه)' : '12-Month Net Revenue'}
                   </div>
                   <div className="font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
                     {formatCurrency(annualRevenueSummary.annualNet, isFa ? 'Rial' : 'USD')}
                   </div>
-                </div>
-                <div className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.15 }}
+                  whileHover={{ y: -3, scale: 1.015 }}
+                  className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800"
+                >
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     {isFa ? 'فروش ناخالص سالانه' : '12-Month Gross Sales'}
                   </div>
                   <div className="font-bold font-mono text-slate-900 dark:text-slate-100 mt-0.5">
                     {formatCurrency(annualRevenueSummary.annualGross, isFa ? 'Rial' : 'USD')}
                   </div>
-                </div>
-                <div className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.2 }}
+                  whileHover={{ y: -3, scale: 1.015 }}
+                  className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800"
+                >
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     {isFa ? 'پرفروش‌ترین ماه سال' : 'Peak Monthly Performance'}
                   </div>
                   <div className="font-bold font-mono text-blue-600 dark:text-blue-400 mt-0.5">
                     {annualRevenueSummary.bestMonth.monthLabel}
                   </div>
-                </div>
+                </motion.div>
               </div>
             </div>
 

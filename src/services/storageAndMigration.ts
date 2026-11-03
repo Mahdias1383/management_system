@@ -493,11 +493,68 @@ export function migrateV1ToV2(v1Input: LegacyV1Snapshot): PlatformDatabaseV2 {
     transactions,
     auditLogs: [
       {
-        id: 'audit_init_1',
+        id: 'aud_seed_6',
+        timestamp: '2026-10-24T08:20:00.000Z',
+        actorRole: 'staff',
+        actorUsername: 'sara_ahmadi',
+        action: 'UPDATE_TRAIN_SCHEDULE',
+        entityType: 'SCHEDULE',
+        entityId: 'TR-102',
+        detailsEn: 'Updated schedule for train TR-102 (Alborz Green Express) on Tehran-Mashhad High-Speed: Departure 09:00 -> 09:30, Speed 155 -> 160 km/h (Verified conflict-free by Collision Radar).',
+        detailsFa: 'ویرایش جدول زمانبندی قطار TR-102 (اکسپرس البرز) در محور سریع‌السیر تهران-مشهد: تغییر ساعت حرکت از ۰۹:۰۰ به ۰۹:۳۰ و سرعت از ۱۵۵ به ۱۶۰ کیلومتر/ساعت (تأییدشده توسط رادار ضدبرخورد).',
+      },
+      {
+        id: 'aud_seed_5',
+        timestamp: '2026-10-23T11:45:00.000Z',
+        actorRole: 'passenger',
+        actorUsername: 'parisa_rad',
+        action: 'TICKET_BOOKED',
+        entityType: 'TICKET',
+        entityId: 'RP-90234',
+        detailsEn: 'Passenger parisa_rad reserved 2 seat(s) (2C, 2D) on TR-201 (Tehran-Isfahan Express) for 8,400,000 Rial ($84.00) • PNR RP-90234.',
+        detailsFa: 'مسافر پریسا راد تعداد ۲ صندلی (2C، 2D) در قطار TR-201 (اکسپرس تهران-اصفهان) به بهای ۸٬۴۰۰٬۰۰۰ ریال رزرو کرد • کد رهگیری RP-90234.',
+      },
+      {
+        id: 'aud_seed_4',
+        timestamp: '2026-10-22T14:30:00.000Z',
+        actorRole: 'staff',
+        actorUsername: 'farhad.alavi',
+        action: 'DISPATCH_TRAIN_SCHEDULE',
+        entityType: 'SCHEDULE',
+        entityId: 'TR-101',
+        detailsEn: 'Scheduled high-speed train TR-101 (Fadak Royal HSR) on Tehran-Mashhad High-Speed corridor departing 07:00 (180 km/h).',
+        detailsFa: 'زمانبندی و اعزام قطار تندرو TR-101 (فدک رویال) در محور سریع‌السیر تهران-مشهد ساعت ۰۷:۰۰ با سرعت ۱۸۰ کیلومتر/ساعت.',
+      },
+      {
+        id: 'aud_seed_3',
+        timestamp: '2026-10-21T09:12:00.000Z',
+        actorRole: 'passenger',
+        actorUsername: 'mahdi_as',
+        action: 'TICKET_BOOKED',
+        entityType: 'TICKET',
+        entityId: 'RP-89412',
+        detailsEn: 'Passenger mahdi_as reserved 2 seat(s) (1A, 1B) on TR-101 (Tehran-Mashhad High-Speed) for 13,000,000 Rial ($130.00) • PNR RP-89412.',
+        detailsFa: 'مسافر مهدی اسدی تعداد ۲ صندلی (1A، 1B) در قطار TR-101 (فدک رویال تهران-مشهد) به بهای ۱۳٬۰۰۰٬۰۰۰ ریال رزرو کرد • کد رهگیری RP-89412.',
+      },
+      {
+        id: 'aud_seed_2',
+        timestamp: '2026-10-20T10:15:00.000Z',
+        actorRole: 'admin',
+        actorUsername: 'Admin_train',
+        action: 'PROVISION_OPERATIONS_STAFF',
+        entityType: 'STAFF',
+        entityId: 'farhad.alavi',
+        detailsEn: 'Provisioned new operations engineer @farhad.alavi for High-Speed Dispatch & Signalling department.',
+        detailsFa: 'ایجاد حساب کاربری مهندس عملیات @farhad.alavi در واحد مرکز کنترل ترافیک و علائم سریع‌السیر.',
+      },
+      {
+        id: 'aud_seed_1',
         timestamp: nowIso,
         actorRole: 'system',
         actorUsername: 'MigrationEngine',
         action: 'DATA_INITIALIZED',
+        entityType: 'SYSTEM',
+        entityId: 'SCHEMA-V2',
         detailsEn: 'Normalized railway corridors, fleet timetables, and passenger accounts initialized with deep-cloned arrays.',
         detailsFa: 'راه‌اندازی اولیه کریدورهای ریلی، جدول زمانبندی ناوگان و حساب‌های کاربری با ساختار نرمال‌شده.',
       },
@@ -517,6 +574,11 @@ export function loadDatabase(): PlatformDatabaseV2 {
             ...(parsed.transactions || []),
             ...freshSeeded.transactions.filter((tx) => tx.id.startsWith('tx_hist_')),
           ];
+          saveDatabase(parsed as PlatformDatabaseV2);
+        }
+        if (!Array.isArray(parsed.auditLogs) || parsed.auditLogs.length < 3) {
+          const freshSeeded = migrateV1ToV2(getDefaultLegacyV1Snapshot());
+          parsed.auditLogs = freshSeeded.auditLogs;
           saveDatabase(parsed as PlatformDatabaseV2);
         }
         // Ensure all tickets have seatNumbers array for backward compatibility

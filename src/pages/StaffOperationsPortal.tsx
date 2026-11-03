@@ -111,6 +111,18 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
   // Corridor Delete Confirmation Modal State
   const [deletingLine, setDeletingLine] = useState<TrainLine | null>(null);
 
+  // Train Edit Modal State (Schedule Modification & Collision Validation)
+  const [editingTrain, setEditingTrain] = useState<TrainSchedule | null>(null);
+  const [editTrainDeparture, setEditTrainDeparture] = useState('08:30');
+  const [editTrainSpeed, setEditTrainSpeed] = useState('160');
+  const [editTrainQuality, setEditTrainQuality] = useState<QualityTier>('VIP 5-Star');
+  const [editTrainCost, setEditTrainCost] = useState('4500000');
+  const [editTrainCapacity, setEditTrainCapacity] = useState('120');
+  const [editTrainFeedback, setEditTrainFeedback] = useState<{
+    type: 'success' | 'error';
+    msg: string;
+  } | null>(null);
+
   // Train Dispatch State
   const [selectedLineName, setSelectedLineName] = useState<string>(
     db.lines[0]?.name_line || ''
@@ -321,6 +333,8 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
           actorRole: 'staff',
           actorUsername: session.username,
           action: 'CREATE_RAIL_CORRIDOR',
+          entityType: 'CORRIDOR',
+          entityId: newLine.name_line,
           detailsEn: `Created corridor ${newLine.name_line} (${newLine.origin} -> ${newLine.destination}) with ${newLine.num_state} intermediate stations.`,
           detailsFa: `ثبت مسیر ریلی ${newLine.name_line} (${newLine.origin} به ${newLine.destination}) با ${newLine.num_state} ایستگاه میانی.`,
         },
@@ -391,6 +405,8 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
           actorRole: 'staff',
           actorUsername: session.username,
           action: 'UPDATE_RAIL_CORRIDOR',
+          entityType: 'CORRIDOR',
+          entityId: trimmedName,
           detailsEn: `Updated corridor ${oldName} -> ${trimmedName} (${isolatedStations.length} intermediate stations)`,
           detailsFa: `ویرایش مسیر ریلی ${oldName} به ${trimmedName} (${isolatedStations.length} ایستگاه میانی)`,
         },
@@ -419,6 +435,8 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
           actorRole: 'staff',
           actorUsername: session.username,
           action: 'DELETE_RAIL_CORRIDOR',
+          entityType: 'CORRIDOR',
+          entityId: deletingLine.name_line,
           detailsEn: `Deleted corridor ${deletingLine.name_line} and cascaded associated train schedules.`,
           detailsFa: `حذف مسیر ریلی ${deletingLine.name_line} و سرویس‌های قطار وابسته به آن.`,
         },
@@ -538,6 +556,8 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
           actorRole: 'staff',
           actorUsername: session.username,
           action: 'DISPATCH_TRAIN_SCHEDULE',
+          entityType: 'SCHEDULE',
+          entityId: newTrain.id_train,
           detailsEn: `Scheduled train ${newTrain.id_train} (${newTrain.name_train}) on ${newTrain.name_line} departing ${newTrain.departureTime}.`,
           detailsFa: `زمانبندی قطار ${newTrain.id_train} (${newTrain.name_train}) در خط ${newTrain.name_line} ساعت ${newTrain.departureTime}.`,
         },
@@ -566,11 +586,131 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
           actorRole: 'staff',
           actorUsername: session.username,
           action: 'REMOVE_TRAIN_SCHEDULE',
+          entityType: 'SCHEDULE',
+          entityId: train.id_train,
           detailsEn: `Removed train service ${train.id_train} (${train.name_train}) from ${train.name_line}.`,
           detailsFa: `حذف سرویس قطار ${train.id_train} (${train.name_train}) از خط ${train.name_line}.`,
         },
         ...db.auditLogs,
       ],
+    });
+  };
+
+  // Start Editing an Existing Train Schedule
+  const handleStartEditTrain = (train: TrainSchedule) => {
+    setEditingTrain(train);
+    setEditTrainDeparture(train.departureTime);
+    setEditTrainSpeed(String(train.speed));
+    setEditTrainQuality(train.quality);
+    setEditTrainCost(toDisplayCurrencyInput(train.cost_ticket, lang));
+    setEditTrainCapacity(String(train.totalCapacity));
+    setEditTrainFeedback(null);
+  };
+
+  // Save Train Schedule Modification with Automated Collision Radar Check & Audit Logging
+  const handleSaveEditTrain = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTrain) return;
+
+    const parsedSpeedObj = parsePositiveNumber(editTrainSpeed);
+    const parsedCostObj = parsePositiveNumber(editTrainCost);
+    const parsedCapacityObj = parsePositiveInteger(editTrainCapacity);
+
+    if (!parsedSpeedObj.valid || parsedSpeedObj.value < 40 || parsedSpeedObj.value > 360) {
+      setEditTrainFeedback({
+        type: 'error',
+        msg: isFa
+          ? 'سرعت سیر باید عددی مثبت بین ۴۰ تا ۳۶۰ کیلومتر بر ساعت باشد.'
+          : 'Cruising velocity must be between 40 and 360 km/h.',
+      });
+      return;
+    }
+
+    if (!parsedCostObj.valid || !parsedCapacityObj.valid) {
+      setEditTrainFeedback({
+        type: 'error',
+        msg: isFa
+          ? 'بهای بلیط و ظرفیت صندلی باید اعداد مثبت معتبر باشند.'
+          : 'Ticket fare and seat capacity must be positive numbers.',
+      });
+      return;
+    }
+
+    const corridor = db.lines.find(
+      (l) => normalizeIdentifier(l.name_line) === normalizeIdentifier(editingTrain.name_line)
+    );
+
+    if (corridor) {
+      const otherTrains = db.trains.filter((t) => t.id !== editingTrain.id);
+      const conflictCheck = checkAccident(
+        {
+          id_train: editingTrain.id_train,
+          name_train: editingTrain.name_train,
+          name_line: editingTrain.name_line,
+          departureTime: editTrainDeparture,
+          speed: parsedSpeedObj.value,
+          list_stop_time: editingTrain.list_stop_time,
+        },
+        otherTrains,
+        corridor
+      );
+
+      if (conflictCheck.hasConflict) {
+        conflictCheck.conflicts.forEach((conflict) => {
+          pushSafetyRadarConflictAlert(conflict);
+        });
+        setEditTrainFeedback({
+          type: 'error',
+          msg: isFa
+            ? `تغییر زمانبندی به دلیل خطر تداخل یا برخورد توسط رادار ایمنی مسدود شد! (${conflictCheck.conflicts.length} تداخل). ساعت ایمن پیشنهادی: ${formatTime(conflictCheck.suggestedSafeDeparture, lang)}`
+            : `Schedule modification blocked by collision radar! (${conflictCheck.conflicts.length} conflict(s)). Suggested safe departure: ${conflictCheck.suggestedSafeDeparture}`,
+        });
+        return;
+      }
+    }
+
+    const newCostIrr = normalizeCurrencyInputToIrr(parsedCostObj.value, lang);
+    const oldDeparture = editingTrain.departureTime;
+    const oldSpeed = editingTrain.speed;
+    const oldFare = editingTrain.cost_ticket;
+    const capacityDiff = parsedCapacityObj.value - editingTrain.totalCapacity;
+    const newRemainingCapacity = Math.max(0, editingTrain.capacity + capacityDiff);
+
+    const updatedTrain: TrainSchedule = {
+      ...editingTrain,
+      departureTime: editTrainDeparture,
+      speed: parsedSpeedObj.value,
+      quality: editTrainQuality,
+      cost_ticket: newCostIrr,
+      totalCapacity: parsedCapacityObj.value,
+      capacity: newRemainingCapacity,
+    };
+
+    onUpdateDb({
+      ...db,
+      trains: db.trains.map((t) => (t.id === editingTrain.id ? updatedTrain : t)),
+      auditLogs: [
+        {
+          id: `log_${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          actorRole: 'staff',
+          actorUsername: session.username,
+          action: 'UPDATE_TRAIN_SCHEDULE',
+          entityType: 'SCHEDULE',
+          entityId: editingTrain.id_train,
+          detailsEn: `Updated schedule for train ${editingTrain.id_train} (${editingTrain.name_train}) on ${editingTrain.name_line}: Departure ${oldDeparture} -> ${editTrainDeparture}, Speed ${oldSpeed} -> ${parsedSpeedObj.value} km/h, Fare ${formatCurrency(oldFare, 'USD')} -> ${formatCurrency(newCostIrr, 'USD')}.`,
+          detailsFa: `ویرایش زمانبندی قطار ${editingTrain.id_train} (${editingTrain.name_train}) در خط ${editingTrain.name_line}: حرکت ${oldDeparture} به ${editTrainDeparture}، سرعت ${oldSpeed} به ${parsedSpeedObj.value} کیلومتر/ساعت، بهای بلیط ${formatCurrency(oldFare, 'Rial')} به ${formatCurrency(newCostIrr, 'Rial')}.`,
+        },
+        ...db.auditLogs,
+      ],
+    });
+
+    setEditingTrain(null);
+    setTrainFeedback({
+      type: 'success',
+      msg: isFa
+        ? `برنامه حرکت قطار «${updatedTrain.id_train} - ${updatedTrain.name_train}» پس از راستی‌آزمایی ایمنی بروزرسانی شد.`
+        : `Train schedule for "${updatedTrain.id_train} - ${updatedTrain.name_train}" verified conflict-free and updated.`,
     });
   };
 
@@ -1364,15 +1504,26 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                             </span>
                           </td>
                           <td className="py-3 px-4 text-end">
-                            <motion.button
-                              type="button"
-                              onClick={() => handleRemoveTrain(t)}
-                              {...BUTTON_HOVER_PROPS}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer"
-                              title={isFa ? 'حذف سرویس قطار' : 'Remove Train Service'}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </motion.button>
+                            <div className="flex items-center justify-end gap-1">
+                              <motion.button
+                                type="button"
+                                onClick={() => handleStartEditTrain(t)}
+                                {...BUTTON_HOVER_PROPS}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer"
+                                title={isFa ? 'ویرایش جدول زمانبندی قطار' : 'Edit Train Timetable'}
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </motion.button>
+                              <motion.button
+                                type="button"
+                                onClick={() => handleRemoveTrain(t)}
+                                {...BUTTON_HOVER_PROPS}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer"
+                                title={isFa ? 'حذف سرویس قطار' : 'Remove Train Service'}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </motion.button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1705,6 +1856,133 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                 {isFa ? 'حذف قطعی مسیر' : 'Delete Corridor'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Edit Train Schedule Modal (with Automated Collision Radar Check) */}
+      {editingTrain && (
+        <div className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {isFa ? 'ویرایش جدول زمانبندی قطار' : 'Edit Train Timetable & Service'}
+                </h3>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                  {editingTrain.id_train} · {editingTrain.name_line}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingTrain(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {editTrainFeedback && (
+              <div
+                className={`p-3 rounded-lg text-xs font-medium mb-3 ${
+                  editTrainFeedback.type === 'error'
+                    ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
+                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                }`}
+              >
+                {editTrainFeedback.msg}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEditTrain} className="space-y-3.5">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {isFa ? 'ساعت حرکت مبدأ' : 'Departure Time'}
+                  </label>
+                  <input
+                    type="time"
+                    value={editTrainDeparture}
+                    onChange={(e) => setEditTrainDeparture(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {isFa ? 'سرعت سیر (کیلومتر/ساعت)' : 'Velocity (km/h)'}
+                  </label>
+                  <input
+                    type="number"
+                    min="40"
+                    max="360"
+                    value={editTrainSpeed}
+                    onChange={(e) => setEditTrainSpeed(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {isFa ? 'رده کیفی سالن' : 'Comfort Tier'}
+                  </label>
+                  <select
+                    value={editTrainQuality}
+                    onChange={(e) => setEditTrainQuality(e.target.value as QualityTier)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
+                  >
+                    <option value="VIP 5-Star">{localizeQuality('VIP 5-Star', lang)}</option>
+                    <option value="Business 4-Star">{localizeQuality('Business 4-Star', lang)}</option>
+                    <option value="Economy 3-Star">{localizeQuality('Economy 3-Star', lang)}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {isFa ? 'ظرفیت صندلی (نفر)' : 'Total Seat Capacity'}
+                  </label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="800"
+                    value={editTrainCapacity}
+                    onChange={(e) => setEditTrainCapacity(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {isFa ? 'بهای پایه هر صندلی (ریال)' : 'Ticket Fare (USD)'}
+                </label>
+                <input
+                  type="text"
+                  value={editTrainCost}
+                  onChange={(e) => setEditTrainCost(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingTrain(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium cursor-pointer"
+                >
+                  {isFa ? 'انصراف' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer"
+                >
+                  {isFa ? 'تأیید ایمنی و ذخیره' : 'Verify Safety & Save'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

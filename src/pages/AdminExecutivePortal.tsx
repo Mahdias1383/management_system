@@ -20,9 +20,12 @@ import {
   BellRing,
   CheckCheck,
   CheckCircle2,
+  Copy,
   Download,
   Edit3,
   FileCode2,
+  FileText,
+  Filter,
   GitBranch,
   Radar,
   Radio,
@@ -30,6 +33,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Ticket,
   Train,
   Trash2,
   TrendingUp,
@@ -42,6 +46,7 @@ import {
 } from 'lucide-react';
 import {
   ActiveSession,
+  AuditLogEntry,
   Employee,
   ExecutiveAlert,
   ExecutiveAlertCategory,
@@ -528,6 +533,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           actorRole: 'admin',
           actorUsername: session.username,
           action: 'PROVISION_OPERATIONS_STAFF',
+          entityType: 'STAFF',
+          entityId: newEmployee.username,
           detailsEn: `Provisioned railway operations specialist ${newEmployee.name} ${newEmployee.lastname} (@${newEmployee.username})`,
           detailsFa: `ایجاد حساب کارشناس عملیات ریلی ${newEmployee.name} ${newEmployee.lastname} (@${newEmployee.username})`,
         },
@@ -599,6 +606,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           actorRole: 'admin',
           actorUsername: session.username,
           action: 'UPDATE_OPERATIONS_STAFF',
+          entityType: 'STAFF',
+          entityId: editingStaff.username,
           detailsEn: `Updated profile for @${editingStaff.username}`,
           detailsFa: `بروزرسانی پرونده کارشناس @${editingStaff.username}`,
         },
@@ -630,6 +639,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           actorRole: 'admin',
           actorUsername: session.username,
           action: 'REVOKE_OPERATIONS_STAFF',
+          entityType: 'STAFF',
+          entityId: target.username,
           detailsEn: `Removed employee @${target.username} (${target.name} ${target.lastname})`,
           detailsFa: `لغو دسترسی و حذف کارشناس @${target.username} (${target.name} ${target.lastname})`,
         },
@@ -670,7 +681,24 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
         const content = String(reader.result || '');
         const parsed = JSON.parse(content);
         if (parsed && parsed.schemaVersion === 2 && Array.isArray(parsed.lines)) {
-          onUpdateDb(parsed as PlatformDatabaseV2);
+          const importedDb = parsed as PlatformDatabaseV2;
+          onUpdateDb({
+            ...importedDb,
+            auditLogs: [
+              {
+                id: `log_${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                actorRole: 'admin',
+                actorUsername: session.username,
+                action: 'DATABASE_SNAPSHOT_RESTORED',
+                entityType: 'SYSTEM',
+                entityId: file.name,
+                detailsEn: `Restored complete database snapshot from file "${file.name}" (${importedDb.trains.length} trains, ${importedDb.tickets.length} tickets).`,
+                detailsFa: `بازگردانی کامل نسخه پشتیبان پایگاه‌داده از فایل «${file.name}» (${importedDb.trains.length} قطار، ${importedDb.tickets.length} بلیط).`,
+              },
+              ...(importedDb.auditLogs || []),
+            ],
+          });
           setFormFeedback({
             type: 'success',
             msg: isFa
@@ -690,6 +718,182 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
       }
     };
     reader.readAsText(file);
+  };
+
+  // =========================================================================
+  // ACTIVITY MONITOR STATE, FILTERING & LIVE SIMULATION ENGINE
+  // =========================================================================
+  const [activitySearchQuery, setActivitySearchQuery] = useState('');
+  const [activityCategoryFilter, setActivityCategoryFilter] = useState<
+    'ALL' | 'RESERVATIONS' | 'SCHEDULES' | 'STAFF' | 'FINANCIAL' | 'SYSTEM'
+  >('ALL');
+  const [activityRoleFilter, setActivityRoleFilter] = useState<
+    'ALL' | 'admin' | 'staff' | 'passenger' | 'system'
+  >('ALL');
+  const [inspectingLog, setInspectingLog] = useState<AuditLogEntry | null>(null);
+  const [copiedLogId, setCopiedLogId] = useState<string | null>(null);
+
+  const classifyAuditCategory = (
+    action: string
+  ): 'RESERVATIONS' | 'SCHEDULES' | 'STAFF' | 'FINANCIAL' | 'SYSTEM' => {
+    if (action === 'TICKET_BOOKED' || action === 'TICKET_REFUNDED') {
+      return 'RESERVATIONS';
+    }
+    if (
+      action === 'DISPATCH_TRAIN_SCHEDULE' ||
+      action === 'UPDATE_TRAIN_SCHEDULE' ||
+      action === 'REMOVE_TRAIN_SCHEDULE' ||
+      action === 'CREATE_RAIL_CORRIDOR' ||
+      action === 'UPDATE_RAIL_CORRIDOR' ||
+      action === 'DELETE_RAIL_CORRIDOR'
+    ) {
+      return 'SCHEDULES';
+    }
+    if (
+      action === 'PROVISION_OPERATIONS_STAFF' ||
+      action === 'UPDATE_OPERATIONS_STAFF' ||
+      action === 'REVOKE_OPERATIONS_STAFF' ||
+      action === 'PROFILE_UPDATED'
+    ) {
+      return 'STAFF';
+    }
+    if (action === 'WALLET_DEPOSIT' || action === 'WALLET_WITHDRAWAL') {
+      return 'FINANCIAL';
+    }
+    return 'SYSTEM';
+  };
+
+  const activityStats = useMemo(() => {
+    let reservations = 0;
+    let schedules = 0;
+    let staff = 0;
+    let financial = 0;
+    db.auditLogs.forEach((log) => {
+      const cat = classifyAuditCategory(log.action);
+      if (cat === 'RESERVATIONS') reservations++;
+      else if (cat === 'SCHEDULES') schedules++;
+      else if (cat === 'STAFF') staff++;
+      else if (cat === 'FINANCIAL') financial++;
+    });
+    return {
+      total: db.auditLogs.length,
+      reservations,
+      schedules,
+      staff,
+      financial,
+    };
+  }, [db.auditLogs]);
+
+  const filteredAuditLogs = useMemo(() => {
+    const q = activitySearchQuery.trim().toLowerCase();
+    return db.auditLogs.filter((log) => {
+      if (activityCategoryFilter !== 'ALL') {
+        if (classifyAuditCategory(log.action) !== activityCategoryFilter) {
+          return false;
+        }
+      }
+      if (activityRoleFilter !== 'ALL' && log.actorRole !== activityRoleFilter) {
+        return false;
+      }
+      if (!q) return true;
+      return (
+        log.actorUsername.toLowerCase().includes(q) ||
+        log.action.toLowerCase().includes(q) ||
+        localizeAuditAction(log.action, 'fa').toLowerCase().includes(q) ||
+        log.detailsEn.toLowerCase().includes(q) ||
+        log.detailsFa.toLowerCase().includes(q) ||
+        (log.entityId && log.entityId.toLowerCase().includes(q))
+      );
+    });
+  }, [db.auditLogs, activitySearchQuery, activityCategoryFilter, activityRoleFilter]);
+
+  const handleSimulateReservationActivity = () => {
+    const sampleTrain = db.trains[0] || {
+      id_train: 'TR-101',
+      name_train: 'Fadak Royal HSR 101',
+      name_line: 'Tehran-Mashhad High-Speed',
+      cost_ticket: 6500000,
+    };
+    const samplePassenger = db.passengers[0] || {
+      username: 'mahdi_as',
+      name: 'Mahdi Asadi',
+    };
+    const pnr = `RP-${Math.floor(10000 + Math.random() * 90000)}`;
+    const seatCount = 2;
+    const totalIrr = sampleTrain.cost_ticket * seatCount;
+    const nowIso = new Date().toISOString();
+
+    const newLog: AuditLogEntry = {
+      id: `aud_sim_res_${Date.now()}`,
+      timestamp: nowIso,
+      actorRole: 'passenger',
+      actorUsername: samplePassenger.username,
+      action: 'TICKET_BOOKED',
+      entityType: 'TICKET',
+      entityId: pnr,
+      detailsEn: `Passenger ${samplePassenger.username} booked ${seatCount} seat(s) (3A, 3B) on ${sampleTrain.id_train} (${sampleTrain.name_line}) for ${formatCurrency(totalIrr, 'USD')} (PNR: ${pnr}).`,
+      detailsFa: `مسافر ${samplePassenger.username} تعداد ${seatCount} صندلی (3A، 3B) در قطار ${sampleTrain.id_train} (${sampleTrain.name_line}) به مبلغ ${formatCurrency(totalIrr, 'Rial')} رزرو کرد (کد: ${pnr}).`,
+    };
+
+    onUpdateDb({
+      ...db,
+      auditLogs: [newLog, ...db.auditLogs],
+    });
+  };
+
+  const handleSimulateScheduleModificationActivity = () => {
+    const sampleTrain = db.trains[0] || {
+      id_train: 'TR-101',
+      name_train: 'Fadak Royal HSR 101',
+      name_line: 'Tehran-Mashhad High-Speed',
+      departureTime: '07:00',
+      speed: 180,
+      cost_ticket: 6500000,
+    };
+    const sampleStaff = db.employees[0] || {
+      username: 'sara_ahmadi',
+    };
+    const nowIso = new Date().toISOString();
+
+    const newLog: AuditLogEntry = {
+      id: `aud_sim_sch_${Date.now()}`,
+      timestamp: nowIso,
+      actorRole: 'staff',
+      actorUsername: sampleStaff.username,
+      action: 'UPDATE_TRAIN_SCHEDULE',
+      entityType: 'SCHEDULE',
+      entityId: sampleTrain.id_train,
+      detailsEn: `Updated schedule for train ${sampleTrain.id_train} (${sampleTrain.name_train}) on ${sampleTrain.name_line}: Departure ${sampleTrain.departureTime} -> 07:15, Speed ${sampleTrain.speed} -> 195 km/h (Verified conflict-free by Collision Radar).`,
+      detailsFa: `ویرایش زمانبندی قطار ${sampleTrain.id_train} (${sampleTrain.name_train}) در خط ${sampleTrain.name_line}: تغییر ساعت حرکت از ${sampleTrain.departureTime} به 07:15 و سرعت از ${sampleTrain.speed} به 195 کیلومتر/ساعت (تأییدشده توسط رادار ضدبرخورد).`,
+    };
+
+    onUpdateDb({
+      ...db,
+      auditLogs: [newLog, ...db.auditLogs],
+    });
+  };
+
+  const handleExportAuditCsv = () => {
+    const headers = ['ID', 'Timestamp', 'ActorRole', 'ActorUsername', 'Action', 'EntityType', 'EntityId', 'DetailsEN', 'DetailsFA'];
+    const rows = filteredAuditLogs.map((l) => [
+      l.id,
+      l.timestamp,
+      l.actorRole,
+      l.actorUsername,
+      l.action,
+      l.entityType || classifyAuditCategory(l.action),
+      l.entityId || '',
+      `"${(l.detailsEn || '').replace(/"/g, '""')}"`,
+      `"${(l.detailsFa || '').replace(/"/g, '""')}"`,
+    ]);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `railpulse-activity-monitor-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const navItems: SidebarNavItem[] = [
@@ -716,8 +920,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
     },
     {
       id: 'AUDIT',
-      labelFa: 'ممیزی رخدادها و پشتیبان‌گیری',
-      labelEn: 'Audit Trail & Data Snapshots',
+      labelFa: 'پایشگر فعالیت‌ها (Activity Monitor)',
+      labelEn: 'Activity Monitor',
       badgeCount: db.auditLogs.length,
       icon: <Activity className="w-4 h-4" />,
     },
@@ -750,10 +954,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
       subtitleEn: 'Provision new railway dispatchers, manage credentials, and review operational assignments',
     },
     AUDIT: {
-      titleFa: 'گزارش ممیزی امنیتی و مدیریت نسخه‌های پشتیبان',
-      titleEn: 'System Security Audit Trail & Database Snapshots',
-      subtitleFa: 'ثبت تغییرناپذیر کلیه رخدادهای مدیریتی، عملیاتی و خروجی/ورودی فایل پشتیبان JSON',
-      subtitleEn: 'Immutable ledger of administrative actions and full state snapshot import/export',
+      titleFa: 'پایشگر هوشمند فعالیت‌ها و دفتر کل ممیزی سامانه',
+      titleEn: 'Enterprise Activity Monitor & Automated Audit Trail',
+      subtitleFa: 'ردیابی خودکار و بلادرنگ اقدامات حیاتی کاربران شامل رزرو بلیط، ویرایش جدول زمانبندی قطارها و عملیات مدیریتی',
+      subtitleEn: 'Automated real-time tracking of critical user actions including ticket reservations, schedule modifications, and administrative changes',
     },
     QA_SUITE: {
       titleFa: 'پنل مهندسی تست و تضمین کیفیت خودکار ۵ مرحله‌ای',
@@ -2114,11 +2318,135 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
       )}
 
       {/* =====================================================================
-          SECTION 3: AUDIT TRAIL & DATA SNAPSHOTS
+          SECTION 3: ACTIVITY MONITOR & AUTOMATED AUDIT TRAIL
           ===================================================================== */}
       {activeSection === 'AUDIT' && (
-        <div className="space-y-6">
-          {/* Snapshot & Seed Controls */}
+        <div className="space-y-6 rp-animate-in">
+          {/* 4 Activity Monitor KPI Summary Cards */}
+          <motion.div
+            variants={kpiGridVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          >
+            <motion.div
+              variants={kpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              onClick={() => setActivityCategoryFilter('ALL')}
+              className={`rp-card-hover bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-xs cursor-pointer transition-colors ${
+                activityCategoryFilter === 'ALL'
+                  ? 'border-blue-500/60 dark:border-blue-500/60 ring-1 ring-blue-500/20'
+                  : 'border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-medium">
+                  {isFa ? 'کل رخدادهای ثبت‌شده در پایشگر' : 'Total Monitored Events'}
+                </span>
+                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                  <Activity className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
+                {formatNumber(activityStats.total, lang)}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">
+                {isFa
+                  ? 'ثبت خودکار و تغییرناپذیر کلیه تراکنش‌ها و عملیات'
+                  : 'Immutable real-time log of all critical actions'}
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={kpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              onClick={() => setActivityCategoryFilter('RESERVATIONS')}
+              className={`rp-card-hover bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-xs cursor-pointer transition-colors ${
+                activityCategoryFilter === 'RESERVATIONS'
+                  ? 'border-emerald-500/60 dark:border-emerald-500/60 ring-1 ring-emerald-500/20'
+                  : 'border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-medium">
+                  {isFa ? 'رزرو و استرداد بلیط مسافران' : 'Ticket Reservations & Refunds'}
+                </span>
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <Ticket className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                {formatNumber(activityStats.reservations, lang)}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">
+                {isFa
+                  ? 'صدور بلیط، تخصیص صندلی و استرداد وجه'
+                  : 'Passenger seat bookings & PNR cancellations'}
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={kpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              onClick={() => setActivityCategoryFilter('SCHEDULES')}
+              className={`rp-card-hover bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-xs cursor-pointer transition-colors ${
+                activityCategoryFilter === 'SCHEDULES'
+                  ? 'border-amber-500/60 dark:border-amber-500/60 ring-1 ring-amber-500/20'
+                  : 'border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-medium">
+                  {isFa ? 'تغییرات زمانبندی و ناوگان' : 'Schedule & Fleet Modifications'}
+                </span>
+                <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <Train className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">
+                {formatNumber(activityStats.schedules, lang)}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">
+                {isFa
+                  ? 'اعزام قطار، ویرایش ساعت حرکت و خطوط ریلی'
+                  : 'Timetable edits, dispatches & corridor updates'}
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={kpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              onClick={() => setActivityCategoryFilter('STAFF')}
+              className={`rp-card-hover bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-xs cursor-pointer transition-colors ${
+                activityCategoryFilter === 'STAFF'
+                  ? 'border-purple-500/60 dark:border-purple-500/60 ring-1 ring-purple-500/20'
+                  : 'border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-medium">
+                  {isFa ? 'مدیریت کارشناسان و حساب‌ها' : 'Staff & Account Governance'}
+                </span>
+                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold font-mono text-purple-600 dark:text-purple-400">
+                {formatNumber(activityStats.staff + activityStats.financial, lang)}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">
+                {isFa
+                  ? 'ایجاد/ویرایش کارشناسان و تراکنش‌های کیف پول'
+                  : 'Staff provisioning, role updates & wallet ledger'}
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Live Action Simulator & Snapshot Controls Toolbar */}
           <motion.div
             variants={fadeSlideUpVariants}
             initial="hidden"
@@ -2126,32 +2454,69 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
             className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-xs"
           >
             <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                {isFa
-                  ? 'مدیریت نسخه‌های پشتیبان و بازنشانی داده‌های پایه'
-                  : 'Database State Snapshots & Seed Reset'}
-              </h2>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  {isFa
+                    ? 'شبیه‌ساز زنده رخدادهای حیاتی و مدیریت نسخه‌های پشتیبان'
+                    : 'Live Critical Event Simulator & State Snapshots'}
+                </h2>
+              </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 {isFa
-                  ? 'دریافت خروجی کامل JSON از وضعیت فعلی سامانه، بارگذاری نسخه پشتیبان یا بازگشت به داده‌های پیش‌فرض'
-                  : 'Export complete database state to JSON, import a snapshot, or reset to clean seed data'}
+                  ? 'ثبت آزمایشی رزرو بلیط یا تغییر جدول زمانبندی قطار و دریافت خروجی CSV/JSON از پایشگر فعالیت‌ها'
+                  : 'Trigger test reservation or schedule modification audit events, or export the audit ledger to CSV/JSON'}
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
               <motion.button
                 type="button"
+                onClick={handleSimulateReservationActivity}
+                {...BUTTON_HOVER_PROPS}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs cursor-pointer"
+              >
+                <Ticket className="w-3.5 h-3.5" />
+                <span>
+                  {isFa ? 'ثبت آزمایشی رزرو بلیط' : 'Simulate Ticket Reservation'}
+                </span>
+              </motion.button>
+
+              <motion.button
+                type="button"
+                onClick={handleSimulateScheduleModificationActivity}
+                {...BUTTON_HOVER_PROPS}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs cursor-pointer"
+              >
+                <Train className="w-3.5 h-3.5" />
+                <span>
+                  {isFa ? 'ثبت آزمایشی تغییر زمانبندی' : 'Simulate Schedule Modification'}
+                </span>
+              </motion.button>
+
+              <motion.button
+                type="button"
+                onClick={handleExportAuditCsv}
+                {...BUTTON_HOVER_PROPS}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>{isFa ? 'خروجی CSV ممیزی' : 'Export Audit CSV'}</span>
+              </motion.button>
+
+              <motion.button
+                type="button"
                 onClick={handleExportSnapshot}
                 {...BUTTON_HOVER_PROPS}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>{isFa ? 'دانلود پشتیبان JSON' : 'Export JSON Snapshot'}</span>
               </motion.button>
 
-              <label className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+              <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                 <Upload className="w-3.5 h-3.5" />
-                <span>{isFa ? 'بارگذاری پشتیبان JSON' : 'Import JSON Snapshot'}</span>
+                <span>{isFa ? 'بارگذاری JSON' : 'Import JSON'}</span>
                 <input
                   type="file"
                   accept="application/json"
@@ -2167,28 +2532,151 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   onUpdateDb(fresh);
                 }}
                 {...BUTTON_HOVER_PROPS}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-medium text-amber-700 dark:text-amber-300 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-medium text-amber-700 dark:text-amber-300 cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>
-                  {isFa ? 'بازنشانی به داده‌های پیش‌فرض' : 'Reset Default Seed Data'}
-                </span>
+                <span>{isFa ? 'بازنشانی پایه' : 'Reset Seed'}</span>
               </motion.button>
             </div>
           </motion.div>
 
-          {/* Audit Logs Table */}
+          {/* Activity Monitor Filter Bar & Real-Time Event Feed */}
           <motion.div
             variants={fadeSlideUpVariants}
             initial="hidden"
             animate="visible"
-            className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs"
+            className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4"
           >
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-3">
-              {isFa
-                ? 'فهرست رخدادهای ثبت‌شده در دفتر کل ممیزی امنیتی'
-                : 'Immutable Security & Operations Audit Log'}
-            </h3>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>
+                    {isFa
+                      ? `جریان زنده پایشگر فعالیت‌ها (${formatNumber(filteredAuditLogs.length, lang)} رخداد)`
+                      : `Real-Time Activity Monitor Stream (${filteredAuditLogs.length} Events)`}
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {isFa
+                    ? 'فیلتر بر اساس دسته‌بندی عملیات (رزرو بلیط، تغییر برنامه حرکت، پرسنل، مالی) یا جستجو در جزئیات'
+                    : 'Filter by action category (Reservations, Schedule Modifications, Staff, Financial) or search by actor/PNR/train code'}
+                </p>
+              </div>
+
+              {/* Search & Actor Role Filter */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute top-1/2 -translate-y-1/2 start-3" />
+                  <input
+                    type="text"
+                    value={activitySearchQuery}
+                    onChange={(e) => setActivitySearchQuery(e.target.value)}
+                    placeholder={
+                      isFa
+                        ? 'جستجوی کاربر، کد قطار، PNR...'
+                        : 'Search user, train, PNR...'
+                    }
+                    className="ps-8 pe-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 w-56 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <Filter className="w-3.5 h-3.5 text-slate-400" />
+                  <select
+                    value={activityRoleFilter}
+                    onChange={(e) =>
+                      setActivityRoleFilter(
+                        e.target.value as 'ALL' | 'admin' | 'staff' | 'passenger' | 'system'
+                      )
+                    }
+                    aria-label={isFa ? 'فیلتر نقش کاربر' : 'Filter by actor role'}
+                    className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300"
+                  >
+                    <option value="ALL">
+                      {isFa ? 'همه نقش‌ها' : 'All Actor Roles'}
+                    </option>
+                    <option value="passenger">
+                      {isFa ? 'مسافران (Passenger)' : 'Passengers'}
+                    </option>
+                    <option value="staff">
+                      {isFa ? 'کارشناسان عملیات (Staff)' : 'Operations Staff'}
+                    </option>
+                    <option value="admin">
+                      {isFa ? 'مدیر کل (Admin)' : 'System Admin'}
+                    </option>
+                    <option value="system">
+                      {isFa ? 'هسته سامانه (System)' : 'System Core'}
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(
+                [
+                  {
+                    id: 'ALL',
+                    labelFa: 'همه فعالیت‌ها',
+                    labelEn: 'All Activities',
+                    count: activityStats.total,
+                  },
+                  {
+                    id: 'RESERVATIONS',
+                    labelFa: 'رزرو و استرداد بلیط',
+                    labelEn: 'Ticket Reservations',
+                    count: activityStats.reservations,
+                  },
+                  {
+                    id: 'SCHEDULES',
+                    labelFa: 'تغییرات زمانبندی و خطوط',
+                    labelEn: 'Schedule Modifications',
+                    count: activityStats.schedules,
+                  },
+                  {
+                    id: 'STAFF',
+                    labelFa: 'مدیریت کارشناسان',
+                    labelEn: 'Staff Governance',
+                    count: activityStats.staff,
+                  },
+                  {
+                    id: 'FINANCIAL',
+                    labelFa: 'تراکنش‌های کیف پول',
+                    labelEn: 'Wallet & Financial',
+                    count: activityStats.financial,
+                  },
+                ] as const
+              ).map((tab) => {
+                const active = activityCategoryFilter === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActivityCategoryFilter(tab.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      active
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <span>{isFa ? tab.labelFa : tab.labelEn}</span>
+                    <span
+                      className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${
+                        active
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      {formatNumber(tab.count, lang)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Audit Logs Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-slate-50 dark:bg-slate-950/60 text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -2200,39 +2688,213 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       {isFa ? 'کاربر عامل' : 'Actor'}
                     </th>
                     <th className="py-2.5 px-3 text-start">
-                      {isFa ? 'نوع عملیات' : 'Operation Type'}
+                      {isFa ? 'دسته‌بندی و نوع عملیات' : 'Category & Action'}
                     </th>
                     <th className="py-2.5 px-3 text-start">
-                      {isFa ? 'شرح رخداد' : 'Audit Details'}
+                      {isFa ? 'شرح کامل فعالیت' : 'Activity Description'}
+                    </th>
+                    <th className="py-2.5 px-3 text-end">
+                      {isFa ? 'جزئیات' : 'Inspect'}
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {db.auditLogs.slice(0, 25).map((log) => (
-                    <tr key={log.id}>
-                      <td className="py-2.5 px-3 font-mono text-slate-400 whitespace-nowrap">
-                        {formatDateTime(log.timestamp, lang, 'full')}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span dir="ltr" className="font-mono font-semibold text-slate-800 dark:text-slate-200">
-                          @{log.actorUsername}
-                        </span>{' '}
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
-                          {localizeRole(log.actorRole, lang)}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 font-semibold text-blue-600 dark:text-blue-400">
-                        {localizeAuditAction(log.action, lang)}
-                      </td>
-                      <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
-                        {isFa ? toPersianDigits(log.detailsFa, 'fa') : log.detailsEn}
+                  {filteredAuditLogs.slice(0, 50).map((log) => {
+                    const cat = classifyAuditCategory(log.action);
+                    const badgeStyle =
+                      cat === 'RESERVATIONS'
+                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
+                        : cat === 'SCHEDULES'
+                        ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20'
+                        : cat === 'STAFF'
+                        ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20'
+                        : cat === 'FINANCIAL'
+                        ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/20'
+                        : 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20';
+
+                    return (
+                      <tr
+                        key={log.id}
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                      >
+                        <td className="py-3 px-3 font-mono text-slate-400 whitespace-nowrap">
+                          {formatDateTime(log.timestamp, lang, 'full')}
+                        </td>
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <span
+                            dir="ltr"
+                            className="font-mono font-semibold text-slate-800 dark:text-slate-200"
+                          >
+                            @{log.actorUsername}
+                          </span>{' '}
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                            {localizeRole(log.actorRole, lang)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11px] font-semibold ${badgeStyle}`}
+                          >
+                            {cat === 'RESERVATIONS' && <Ticket className="w-3 h-3" />}
+                            {cat === 'SCHEDULES' && <Train className="w-3 h-3" />}
+                            {cat === 'STAFF' && <Users className="w-3 h-3" />}
+                            {cat === 'FINANCIAL' && <Wallet className="w-3 h-3" />}
+                            {cat === 'SYSTEM' && <ShieldCheck className="w-3 h-3" />}
+                            <span>{localizeAuditAction(log.action, lang)}</span>
+                          </span>
+                          {log.entityId && (
+                            <span
+                              dir="ltr"
+                              className="ms-1.5 font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                            >
+                              {log.entityId}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-slate-600 dark:text-slate-300 leading-relaxed">
+                          {isFa ? toPersianDigits(log.detailsFa, 'fa') : log.detailsEn}
+                        </td>
+                        <td className="py-3 px-3 text-end whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => setInspectingLog(log)}
+                            className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+                          >
+                            {isFa ? 'مشاهده' : 'Inspect'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {filteredAuditLogs.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="py-8 text-center text-slate-400 text-xs"
+                      >
+                        {isFa
+                          ? 'هیچ رخدادی مطابق با فیلترهای انتخاب‌شده یافت نشد.'
+                          : 'No activity log entries match the selected filters.'}
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
           </motion.div>
+
+          {/* Audit Event Inspector Modal */}
+          {inspectingLog && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={isFa ? 'جزئیات رخداد ممیزی' : 'Audit Event Inspector'}
+              className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
+            >
+              <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                      {isFa ? 'بازرسی شناسنامه رخداد ممیزی' : 'Activity Event Inspector'}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setInspectingLog(null)}
+                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                    <div className="text-slate-400 mb-1">
+                      {isFa ? 'شناسه یکتای رخداد' : 'Event ID'}
+                    </div>
+                    <div dir="ltr" className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                      {inspectingLog.id}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                    <div className="text-slate-400 mb-1">
+                      {isFa ? 'زمان دقیق ثبت' : 'Timestamp'}
+                    </div>
+                    <div className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                      {formatDateTime(inspectingLog.timestamp, lang, 'full')}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                    <div className="text-slate-400 mb-1">
+                      {isFa ? 'کاربر عامل و سطح دسترسی' : 'Actor & Role'}
+                    </div>
+                    <div className="font-semibold text-slate-800 dark:text-slate-200">
+                      <span dir="ltr" className="font-mono">
+                        @{inspectingLog.actorUsername}
+                      </span>{' '}
+                      ({localizeRole(inspectingLog.actorRole, lang)})
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                    <div className="text-slate-400 mb-1">
+                      {isFa ? 'نوع عملیات' : 'Operation Code'}
+                    </div>
+                    <div className="font-semibold text-blue-600 dark:text-blue-400">
+                      {localizeAuditAction(inspectingLog.action, lang)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                  <div className="font-semibold text-slate-700 dark:text-slate-300">
+                    {isFa ? 'شرح کامل رخداد (فارسی / انگلیسی):' : 'Bilingual Audit Record:'}
+                  </div>
+                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                    {toPersianDigits(inspectingLog.detailsFa, 'fa')}
+                  </p>
+                  <p
+                    dir="ltr"
+                    className="text-slate-500 dark:text-slate-400 font-mono text-[11px] pt-1 border-t border-slate-200 dark:border-slate-800"
+                  >
+                    {inspectingLog.detailsEn}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(JSON.stringify(inspectingLog, null, 2));
+                      setCopiedLogId(inspectingLog.id);
+                      setTimeout(() => setCopiedLogId(null), 2000);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>
+                      {copiedLogId === inspectingLog.id
+                        ? isFa
+                          ? 'کپی شد!'
+                          : 'Copied JSON!'
+                        : isFa
+                        ? 'کپی ساختار JSON'
+                        : 'Copy Raw JSON'}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setInspectingLog(null)}
+                    className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer"
+                  >
+                    {isFa ? 'بستن' : 'Close'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

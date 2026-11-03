@@ -466,10 +466,17 @@ export function localizeAuditAction(action: string | undefined, lang: Language =
     UPDATE_RAIL_CORRIDOR: 'ویرایش مسیر ریلی',
     DELETE_RAIL_CORRIDOR: 'حذف مسیر ریلی',
     DISPATCH_TRAIN_SCHEDULE: 'زمانبندی و اعزام قطار',
+    UPDATE_TRAIN_SCHEDULE: 'ویرایش زمانبندی قطار',
     REMOVE_TRAIN_SCHEDULE: 'حذف سرویس قطار',
-    TICKET_BOOKED: 'صدور قطعی بلیط قطار',
+    TICKET_BOOKED: 'صدور و رزرو بلیط مسافر',
     TICKET_REFUNDED: 'استرداد بلیط و بازگشت وجه',
+    WALLET_DEPOSIT: 'افزایش موجودی کیف پول',
+    WALLET_WITHDRAWAL: 'برداشت وجه از کیف پول',
     PROFILE_UPDATED: 'بروزرسانی پروفایل کاربری',
+    DATABASE_SNAPSHOT_EXPORTED: 'دریافت خروجی پشتیبان پایگاه‌داده',
+    DATABASE_SNAPSHOT_RESTORED: 'بازگردانی نسخه پشتیبان پایگاه‌داده',
+    DATABASE_SEED_RESET: 'بازنشانی پایگاه‌داده به داده‌های پیش‌فرض',
+    SIMULATION_TRIGGERED: 'شبیه‌سازی رخداد ممیزی سامانه',
   };
   return map[act] || act;
 }

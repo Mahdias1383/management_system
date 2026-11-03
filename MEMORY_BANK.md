@@ -117,5 +117,20 @@
 - [x] Built core service unit test suites:
   - `src/services/__tests__/authService.test.ts`: 23 automated tests verifying Persian/English digit conversions, identifier normalization, deterministic SHA-256 password hashing/verification, RFC-compliant email validation, password complexity scoring, strict RBAC authorization, and positive number/integer validation.
   - `src/services/__tests__/collisionEngine.test.ts`: 7 automated tests verifying time conversion math, station timetable calculation, headway safety buffer violations, and safe alternate departure recommendations.
-- [x] Updated GitHub Actions CI workflow (`.github/workflows/ci.yml`) to execute `bun run test` on every push/PR.
-- [x] 100% Passing: All 30 unit tests pass in under 400ms.
+- [x] Updated GitHub Actions CI workflow (`.github/workflows/ci.yml` and `.github/workflows/test.yml`) to execute `bun run test` on every push/PR.
+- [x] 100% Passing: All 32 unit tests pass in under 400ms.
+
+### Phase 10: Automated Audit Log & Dedicated Admin 'Activity Monitor'
+- [x] Domain & Localization (`src/types/domain.ts`, `src/services/authService.ts`):
+  - Extended `AuditLogEntry` with `entityType` (`TICKET`, `SCHEDULE`, `CORRIDOR`, `STAFF`, `WALLET`, `SECURITY`, `SYSTEM`) and `entityId`.
+  - Added full Persian/English localization in `localizeAuditAction` for `UPDATE_TRAIN_SCHEDULE`, `TICKET_BOOKED`, `TICKET_REFUNDED`, `DISPATCH_TRAIN_SCHEDULE`, `REMOVE_TRAIN_SCHEDULE`, `WALLET_DEPOSIT`, `WALLET_WITHDRAWAL`, `DATABASE_SNAPSHOT_RESTORED`, and staff governance actions.
+- [x] Automated Action Tracking (`src/services/bookingEngine.ts`, `src/pages/StaffOperationsPortal.tsx`, `src/pages/AdminExecutivePortal.tsx`):
+  - Automatically logs passenger ticket reservations (`TICKET_BOOKED`) and refunds (`TICKET_REFUNDED`) with PNR reference IDs.
+  - Added interactive Train Schedule Modification modal (`handleStartEditTrain` / `handleSaveEditTrain`) in `StaffOperationsPortal.tsx` with real-time `checkAccident` collision validation and automated `UPDATE_TRAIN_SCHEDULE` audit logging.
+  - Automatically logs corridor creations/updates/deletions, staff provisioning/edits/revocations, and database snapshot imports.
+- [x] Dedicated 'Activity Monitor' Tab (`src/pages/AdminExecutivePortal.tsx`):
+  - Dedicated sidebar navigation tab (`Activity Monitor` / `پایشگر فعالیت‌ها (Activity Monitor)`).
+  - 4 interactive KPI summary cards (Total Monitored Events, Ticket Reservations & Refunds, Schedule & Fleet Modifications, Staff & Account Governance).
+  - Multi-category filter pills (`ALL`, `RESERVATIONS`, `SCHEDULES`, `STAFF`, `FINANCIAL`), actor role filter (`ALL`, `passenger`, `staff`, `admin`, `system`), and live keyword search.
+  - Live simulation triggers (`Simulate Ticket Reservation` and `Simulate Schedule Modification`), CSV export, JSON snapshot import/export, and an expandable Activity Event Inspector modal with raw JSON copy.
+

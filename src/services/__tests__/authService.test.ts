@@ -12,8 +12,11 @@ import {
   parsePositiveInteger,
   formatTime,
   localizeRole,
+  localizeAuditAction,
   issueSessionToken,
 } from '../authService';
+import { purchaseTrainTicket, refundTrainTicket } from '../bookingEngine';
+import { getDefaultLegacyV1Snapshot, migrateV1ToV2 } from '../storageAndMigration';
 import { ActiveSession } from '../../types/domain';
 
 describe('authService Core Utilities', () => {
@@ -197,6 +200,35 @@ describe('authService Core Utilities', () => {
       const token = issueSessionToken('usr_test', 'passenger');
       expect(token.startsWith('rptok_')).toBe(true);
       expect(token.length).toBeGreaterThan(10);
+    });
+  });
+
+  describe('Automated Activity Monitor & Audit Log Tracking', () => {
+    it('localizes critical audit action codes into Persian and English', () => {
+      expect(localizeAuditAction('TICKET_BOOKED', 'fa')).toBe('صدور و رزرو بلیط مسافر');
+      expect(localizeAuditAction('UPDATE_TRAIN_SCHEDULE', 'fa')).toBe('ویرایش زمانبندی قطار');
+      expect(localizeAuditAction('TICKET_BOOKED', 'en')).toBe('TICKET_BOOKED');
+    });
+
+    it('automatically records TICKET_BOOKED and TICKET_REFUNDED audit log entries with entity metadata', () => {
+      const db = migrateV1ToV2(getDefaultLegacyV1Snapshot());
+      const passenger = db.passengers[0];
+      const train = db.trains[0];
+      const initialLogCount = db.auditLogs.length;
+
+      const bookRes = purchaseTrainTicket(db, passenger.id, train.id_train, 1, ['4A'], 1);
+      expect(bookRes.success).toBe(true);
+      expect(bookRes.db.auditLogs.length).toBe(initialLogCount + 1);
+      expect(bookRes.db.auditLogs[0].action).toBe('TICKET_BOOKED');
+      expect(bookRes.db.auditLogs[0].entityType).toBe('TICKET');
+      expect(bookRes.db.auditLogs[0].entityId).toBe(bookRes.ticket?.pnr);
+
+      const refundRes = refundTrainTicket(bookRes.db, passenger.id, bookRes.ticket!.id);
+      expect(refundRes.success).toBe(true);
+      expect(refundRes.db.auditLogs.length).toBe(initialLogCount + 2);
+      expect(refundRes.db.auditLogs[0].action).toBe('TICKET_REFUNDED');
+      expect(refundRes.db.auditLogs[0].entityType).toBe('TICKET');
+      expect(refundRes.db.auditLogs[0].entityId).toBe(bookRes.ticket?.pnr);
     });
   });
 });

@@ -147,6 +147,8 @@ export interface AuditLogEntry {
   action: string;
   detailsEn: string;
   detailsFa: string;
+  entityType?: 'TICKET' | 'SCHEDULE' | 'CORRIDOR' | 'STAFF' | 'WALLET' | 'SECURITY' | 'SYSTEM';
+  entityId?: string;
 }
 
 export interface LegacyV1Snapshot {

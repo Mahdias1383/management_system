@@ -77,6 +77,8 @@ export function depositToWallet(
     actorRole: 'passenger',
     actorUsername: user.username,
     action: 'WALLET_DEPOSIT',
+    entityType: 'WALLET',
+    entityId: user.username,
     detailsEn: `Deposited ${formatCurrency(parsed.value, 'USD')}. New balance: ${formatCurrency(updatedBalance, 'USD')}.`,
     detailsFa: `مبلغ ${formatCurrency(parsed.value, 'Rial')} به کیف پول اضافه شد. موجودی جدید: ${formatCurrency(updatedBalance, 'Rial')}.`,
   });
@@ -150,6 +152,8 @@ export function withdrawFromWallet(
     actorRole: 'passenger',
     actorUsername: user.username,
     action: 'WALLET_WITHDRAWAL',
+    entityType: 'WALLET',
+    entityId: user.username,
     detailsEn: `Withdrew ${formatCurrency(parsed.value, 'USD')}. Remaining balance: ${formatCurrency(updatedBalance, 'USD')}.`,
     detailsFa: `مبلغ ${formatCurrency(parsed.value, 'Rial')} از کیف پول برداشت شد. موجودی باقیمانده: ${formatCurrency(updatedBalance, 'Rial')}.`,
   });
@@ -296,6 +300,8 @@ export function purchaseTrainTicket(
     actorRole: 'passenger',
     actorUsername: user.username,
     action: 'TICKET_BOOKED',
+    entityType: 'TICKET',
+    entityId: pnr,
     detailsEn: `Passenger ${user.username} booked ${ticketCount} seat(s) (${assignedSeats.join(', ')}) on ${train.id_train} for ${formatCurrency(totalCost, 'USD')} (PNR: ${pnr}).`,
     detailsFa: `مسافر ${user.username} تعداد ${ticketCount} صندلی (${assignedSeats.join('، ')}) در قطار ${train.id_train} به مبلغ ${formatCurrency(totalCost, 'Rial')} رزرو کرد (کد: ${pnr}).`,
   });
@@ -378,6 +384,8 @@ export function refundTrainTicket(
     actorRole: 'passenger',
     actorUsername: user.username,
     action: 'TICKET_REFUNDED',
+    entityType: 'TICKET',
+    entityId: ticket.pnr,
     detailsEn: `Refunded ticket ${ticket.pnr} (${formatCurrency(ticket.totalPrice, 'USD')}) and restored ${ticket.ticketCount} seat(s) to ${ticket.id_train}.`,
     detailsFa: `استرداد بلیط ${ticket.pnr} به مبلغ ${formatCurrency(ticket.totalPrice, 'Rial')} و بازگشت ${ticket.ticketCount} صندلی به ظرفیت قطار ${ticket.id_train}.`,
   });

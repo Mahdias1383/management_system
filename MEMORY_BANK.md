@@ -17,7 +17,7 @@
   - [x] `MEMORY_BANK.md` initialized and maintained.
   - [x] `README.md` (Bilingual documentation, 6 live high-res screenshots in `docs/screenshots/`, Mermaid architecture diagram, modular directory tree, setup guide, Default Seed Accounts table).
   - [x] `ARCHITECTURE.md` (Layered architecture, RBAC model, `v1` -> `v2` migration, `checkAccident` mathematical formulas).
-  - [x] `CONTRIBUTING.md`, `SECURITY.md`, `LICENSE` (MIT), `.gitignore`, `.env`, `.env-sample`, `.env.example`.
+  - [x] `CONTRIBUTING.md`, `SECURITY.md`, `LICENSE` (MIT), `.gitignore`, `.env`, `.env.example`.
   - [x] Standardized modular directory tree: `src/config/env.ts`, `src/types`, `src/services`, `src/guards`, `src/layouts`, `src/components/ui`, `src/pages/{public,passenger,staff,admin}`, `docs/screenshots`.
 
 - [x] **PHASE 1: CORE DOMAIN, STORAGE MIGRATION, COLLISION MATH & STRICT RBAC GUARDS** — COMPLETED & VERIFIED
@@ -97,3 +97,14 @@
   - Provides guided step-by-step modal for iOS Safari users.
 - [x] Offline Service Worker (`public/sw.js` & `src/main.tsx`):
   - Registered service worker precaching shell, icons, and manifest.
+
+### Phase 8: CI Workflow Alignment & Environment Template Standardization
+- [x] Root Cause Resolution for CI Lockfile Failure:
+  - Identified that the repository's committed dependency lockfile is `bun.lock` (not `package-lock.json` or `yarn.lock`).
+  - `.github/workflows/ci.yml` previously used `actions/setup-node@v4` with `cache: 'npm'`, causing GitHub Actions to fail looking for `package-lock.json`.
+  - Replaced with `oven-sh/setup-bun@v2` with `bun install --frozen-lockfile`, `bun run lint`, and `bun run build`.
+  - Preserved 100% of existing quality gates without introducing fabricated or unrelated lock files.
+- [x] Environment Template Consolidation:
+  - Removed duplicate redundant `.env-sample`.
+  - Standardized on industry-standard `.env.example`.
+  - Updated `.gitignore` to track only `.env.example`.

@@ -8,14 +8,13 @@ dist/
 build/
 server.js
 
-# Environment files (keep .env-sample and .env.example tracked)
+# Environment files (keep .env.example tracked)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 !.env.example
-!.env-sample
 
 # AI Studio & Browser automation artifacts
 .aistudio/

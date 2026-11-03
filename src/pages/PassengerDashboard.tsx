@@ -432,23 +432,23 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
             variants={fadeSlideUpVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-4 shadow-xs"
+            className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-4 shadow-xs items-center"
           >
             <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute top-2.5 start-3 pointer-events-none" />
+              <Search className="w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 start-3 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={isFa ? 'جستجوی شهر، قطار یا شماره سرویس...' : 'Search station or train...'}
-                className="w-full ps-9 pe-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
+                className="w-full h-10 ps-9 pe-3 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
               />
             </div>
 
             <select
               value={selectedLineFilter}
               onChange={(e) => setSelectedLineFilter(e.target.value)}
-              className="px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
+              className="w-full h-10 px-3 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
             >
               <option value="ALL">{isFa ? 'همه خطوط ریلی' : 'All Railway Corridors'}</option>
               {db.lines.map((l) => (
@@ -461,16 +461,16 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
             <select
               value={selectedQualityFilter}
               onChange={(e) => setSelectedQualityFilter(e.target.value)}
-              className="px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
+              className="w-full h-10 px-3 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
             >
               <option value="ALL">{isFa ? 'همه کلاس‌های سالن' : 'All Travel Classes'}</option>
-              <option value="VIP 5-Star">{isFa ? '۵ ستاره ویژه (VIP)' : 'VIP 5-Star'}</option>
+              <option value="VIP 5-Star">{isFa ? '۵ ستاره ویژه' : 'VIP 5-Star'}</option>
               <option value="Business 4-Star">{isFa ? '۴ ستاره تجاری' : 'Business 4-Star'}</option>
               <option value="Economy 3-Star">{isFa ? '۳ ستاره اقتصادی' : 'Economy 3-Star'}</option>
             </select>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 whitespace-nowrap">
+              <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
                 {isFa ? 'حداقل صندلی خالی:' : 'Min Seats:'}
               </span>
               <input
@@ -479,7 +479,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                 max={50}
                 value={minSeatsFilter}
                 onChange={(e) => setMinSeatsFilter(Math.max(1, Number(e.target.value)))}
-                className="w-full px-3 py-2 text-xs font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
+                className="w-full h-10 px-3 text-xs font-mono text-center rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
               />
             </div>
           </motion.div>
@@ -654,7 +654,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-3">
                       <div>
                         <span className="text-[11px] text-slate-400 font-mono">
-                          {isFa ? 'کد رهگیری (PNR)' : 'PNR REFERENCE'}
+                          {isFa ? 'کد رهگیری رزرو' : 'PNR REFERENCE'}
                         </span>
                         <div className="text-lg font-bold font-mono text-blue-600 dark:text-blue-400">
                           {toPersianDigits(tkt.pnr, lang)}
@@ -908,33 +908,43 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800/70 text-xs">
-                  {userTransactions.map((tx) => {
-                    const isCredit = tx.type === 'DEPOSIT' || tx.type === 'TICKET_REFUND';
-                    return (
-                      <tr key={tx.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="py-3 px-3">
-                          <div className="font-medium text-slate-900 dark:text-slate-100">
-                            {isFa ? toPersianDigits(tx.descriptionFa, 'fa') : tx.descriptionEn}
-                          </div>
-                          <div className="text-[10px] font-mono text-slate-400">
-                            {formatDateTime(tx.timestamp, lang, 'full')}
-                          </div>
-                        </td>
-                        <td
-                          className={`py-3 px-3 text-end font-mono font-semibold ${
-                            isCredit
-                              ? 'text-emerald-600 dark:text-emerald-400'
-                              : 'text-red-600 dark:text-red-400'
-                          }`}
-                        >
-                          {isCredit ? '+' : '-'}{formatCurrency(tx.amount, isFa ? 'Rial' : 'USD')}
-                        </td>
-                        <td className="py-3 px-3 text-end font-mono text-slate-700 dark:text-slate-300">
-                          {formatCurrency(tx.runningBalance, isFa ? 'Rial' : 'USD')}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {userTransactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-slate-400">
+                        {isFa
+                          ? 'هیچ تراکنشی در کیف پول شما ثبت نشده است.'
+                          : 'No wallet transactions recorded yet.'}
+                      </td>
+                    </tr>
+                  ) : (
+                    userTransactions.map((tx) => {
+                      const isCredit = tx.type === 'DEPOSIT' || tx.type === 'TICKET_REFUND';
+                      return (
+                        <tr key={tx.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="py-3 px-3">
+                            <div className="font-medium text-slate-900 dark:text-slate-100">
+                              {isFa ? toPersianDigits(tx.descriptionFa, 'fa') : tx.descriptionEn}
+                            </div>
+                            <div className="text-[10px] font-mono text-slate-400">
+                              {formatDateTime(tx.timestamp, lang, 'full')}
+                            </div>
+                          </td>
+                          <td
+                            className={`py-3 px-3 text-end font-mono font-semibold ${
+                              isCredit
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-red-600 dark:text-red-400'
+                            }`}
+                          >
+                            {isCredit ? '+' : '-'}{formatCurrency(tx.amount, isFa ? 'Rial' : 'USD')}
+                          </td>
+                          <td className="py-3 px-3 text-end font-mono text-slate-700 dark:text-slate-300">
+                            {formatCurrency(tx.runningBalance, isFa ? 'Rial' : 'USD')}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>

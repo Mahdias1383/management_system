@@ -66,6 +66,7 @@ import {
   formatDateTime,
   formatNumber,
   formatCurrency,
+  formatTime,
   generateComplianceAuditCsv,
   hashPassword,
   isValidEmail,
@@ -1000,7 +1001,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
     },
     {
       id: 'AUDIT',
-      labelFa: 'پایشگر فعالیت‌ها (Activity Monitor)',
+      labelFa: 'پایشگر هوشمند فعالیت‌ها',
       labelEn: 'Activity Monitor',
       badgeCount: db.auditLogs.length,
       icon: <Activity className="w-4 h-4" />,
@@ -1130,7 +1131,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
       </div>
 
       {/* Live Push Feed Stream inside Sidebar */}
-      <div className="space-y-1.5 max-h-[260px] overflow-y-auto pr-0.5">
+      <div className="space-y-1.5 max-h-[260px] overflow-y-auto pe-0.5">
         <AnimatePresence initial={false}>
           {filteredSidebarAlerts.map((alert) => {
             const isRadar = alert.category === 'SAFETY_RADAR_CONFLICT';
@@ -1195,7 +1196,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     </span>
                   ) : (
                     <span className="font-mono font-semibold text-rose-300 truncate">
-                      {alert.trainId} · {alert.overlapWindow || localizeText(alert.locationLabel || '', lang)}
+                      {toPersianDigits(alert.trainId || '', lang)} ·{' '}
+                      {alert.overlapWindow
+                        ? formatTime(alert.overlapWindow, lang)
+                        : localizeText(alert.locationLabel || '', lang)}
                     </span>
                   )}
                   <span className="text-slate-500 font-mono shrink-0">
@@ -2167,7 +2171,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 >
                   <option value="Dispatch & Traffic Control">
                     {isFa
-                      ? 'مرکز کنترل ترافیک و اعزام (CTC)'
+                      ? 'مرکز کنترل ترافیک و اعزام'
                       : 'Dispatch & Traffic Control'}
                   </option>
                   <option value="Corridor Topology Engineering">
@@ -2545,7 +2549,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 {isFa
-                  ? 'ثبت آزمایشی رزرو بلیط یا تغییر جدول زمانبندی قطار و دریافت خروجی CSV/JSON از پایشگر فعالیت‌ها'
+                  ? 'ثبت آزمایشی رزرو بلیط یا تغییر جدول زمانبندی قطار و دریافت خروجی گزارش ممیزی و پشتیبان سامانه'
                   : 'Trigger test reservation or schedule modification audit events, or export the audit ledger to CSV/JSON'}
               </p>
             </div>
@@ -2584,7 +2588,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 <FileText className="w-3.5 h-3.5" />
                 <span>
                   {isFa
-                    ? 'صدور گزارش ممیزی انطباق (CSV)'
+                    ? 'صدور گزارش ممیزی انطباق'
                     : 'Export Compliance CSV'}
                 </span>
               </motion.button>
@@ -2596,12 +2600,12 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>{isFa ? 'دانلود پشتیبان JSON' : 'Export JSON Snapshot'}</span>
+                <span>{isFa ? 'دانلود پشتیبان سامانه' : 'Export JSON Snapshot'}</span>
               </motion.button>
 
               <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                 <Upload className="w-3.5 h-3.5" />
-                <span>{isFa ? 'بارگذاری JSON' : 'Import JSON'}</span>
+                <span>{isFa ? 'بارگذاری پشتیبان' : 'Import JSON'}</span>
                 <input
                   type="file"
                   accept="application/json"
@@ -2649,20 +2653,20 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
             animate="visible"
             className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4"
           >
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
-              <div>
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <span>
+                  <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span className="truncate">
                     {isFa
                       ? `جریان زنده پایشگر فعالیت‌ها (${formatNumber(filteredAuditLogs.length, lang)} از ${formatNumber(activityStats.total, lang)} رخداد)`
                       : `Real-Time Activity Monitor Stream (${filteredAuditLogs.length} of ${activityStats.total} Events)`}
                   </span>
                 </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <p className="text-[11px] text-slate-500 mt-0.5 truncate">
                   {isFa
-                    ? 'جستجوی کلیدواژه، فیلتر بازه زمانی (از تاریخ / تا تاریخ)، نقش کاربری و دسته‌بندی عملیات ممیزی'
-                    : 'Filter audit log entries by keyword, custom date range or time window presets, actor role, and compliance category'}
+                    ? 'جستجوی کلیدواژه، فیلتر بازه زمانی، نقش کاربری و دسته‌بندی عملیات ممیزی'
+                    : 'Filter audit log entries by keyword, custom date range, actor role, and compliance category'}
                 </p>
               </div>
 
@@ -2671,7 +2675,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 variants={filterToolbarVariants}
                 initial="hidden"
                 animate="visible"
-                className="flex flex-wrap items-center gap-2"
+                className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0"
               >
                 <motion.div
                   variants={filterControlEntranceVariants}
@@ -2693,10 +2697,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     onChange={(e) => setActivitySearchQuery(e.target.value)}
                     placeholder={
                       isFa
-                        ? 'جستجوی کلیدواژه، کاربر، کد قطار، PNR...'
+                        ? 'جستجوی کلیدواژه، کاربر، قطار...'
                         : 'Search keyword, actor, train, PNR...'
                     }
-                    className="ps-8 pe-7 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 w-64 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="ps-8 pe-7 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 w-48 sm:w-52 focus:outline-none focus:border-blue-500 transition-colors"
                   />
                   <AnimatePresence>
                     {activitySearchQuery && (
@@ -2722,9 +2726,9 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   variants={filterControlEntranceVariants}
                   whileHover={{ scale: 1.01 }}
                   transition={SOFT_SPRING_TRANSITION}
-                  className="flex items-center gap-1.5"
+                  className="flex items-center gap-1.5 shrink-0"
                 >
-                  <Filter className="w-3.5 h-3.5 text-slate-400" />
+                  <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <select
                     data-testid="activity-role-filter"
                     value={activityRoleFilter}
@@ -2734,22 +2738,22 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       )
                     }
                     aria-label={isFa ? 'فیلتر نقش کاربر' : 'Filter by actor role'}
-                    className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300"
+                    className="px-2.5 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300"
                   >
                     <option value="ALL">
                       {isFa ? 'همه نقش‌ها' : 'All Actor Roles'}
                     </option>
                     <option value="passenger">
-                      {isFa ? 'مسافران (Passenger)' : 'Passengers'}
+                      {isFa ? 'مسافران' : 'Passengers'}
                     </option>
                     <option value="staff">
-                      {isFa ? 'کارشناسان عملیات (Staff)' : 'Operations Staff'}
+                      {isFa ? 'کارشناسان عملیات ریلی' : 'Operations Staff'}
                     </option>
                     <option value="admin">
-                      {isFa ? 'مدیر کل (Admin)' : 'System Admin'}
+                      {isFa ? 'مدیر کل سازمان' : 'System Admin'}
                     </option>
                     <option value="system">
-                      {isFa ? 'هسته سامانه (System)' : 'System Core'}
+                      {isFa ? 'هسته سامانه' : 'System Core'}
                     </option>
                   </select>
                 </motion.div>
@@ -2764,7 +2768,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       selectedExportLogs.length > 0 ? 'SELECTED' : 'FILTERED'
                     )
                   }
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                  className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg border text-xs font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
                     selectedExportLogs.length > 0
                       ? 'border-blue-600 bg-blue-600 hover:bg-blue-700 text-white shadow-2xs'
                       : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -2772,10 +2776,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   title={
                     selectedExportLogs.length > 0
                       ? isFa
-                        ? 'دریافت خروجی CSV از رخدادهای انتخاب‌شده برای گزارش انطباق'
+                        ? 'دریافت خروجی جدول از رخدادهای انتخاب‌شده برای گزارش انطباق'
                         : 'Export selected audit log entries to CSV for compliance reporting'
                       : isFa
-                      ? 'دریافت خروجی CSV از رخدادهای فیلترشده فعلی برای گزارش انطباق'
+                      ? 'دریافت خروجی جدول از رخدادهای فیلترشده فعلی برای گزارش انطباق'
                       : 'Export currently filtered audit logs to CSV for compliance reporting'
                   }
                 >
@@ -2789,10 +2793,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   <span>
                     {selectedExportLogs.length > 0
                       ? isFa
-                        ? `خروجی CSV انتخاب‌شده (${formatNumber(selectedExportLogs.length, 'fa')})`
+                        ? `خروجی انتخاب‌شده (${formatNumber(selectedExportLogs.length, 'fa')})`
                         : `Export Selected CSV (${selectedExportLogs.length})`
                       : isFa
-                      ? `خروجی CSV (${formatNumber(filteredAuditLogs.length, 'fa')})`
+                      ? `خروجی جدول (${formatNumber(filteredAuditLogs.length, 'fa')})`
                       : `Export CSV (${filteredAuditLogs.length})`}
                   </span>
                 </motion.button>
@@ -3008,7 +3012,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     <CheckCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                     <span data-testid="activity-selected-count-label">
                       {isFa
-                        ? `${formatNumber(selectedExportLogs.length, 'fa')} رخداد ممیزی برای صدور گروهی گزارش CSV انتخاب شده است`
+                        ? `${formatNumber(selectedExportLogs.length, 'fa')} رخداد ممیزی برای صدور گروهی گزارش انتخاب شده است`
                         : `${selectedExportLogs.length} audit log ${
                             selectedExportLogs.length === 1 ? 'entry' : 'entries'
                           } selected for bulk CSV export`}
@@ -3026,7 +3030,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       <Download className="w-3.5 h-3.5" />
                       <span>
                         {isFa
-                          ? `صدور CSV موارد انتخاب‌شده (${formatNumber(selectedExportLogs.length, 'fa')})`
+                          ? `صدور گزارش موارد انتخاب‌شده (${formatNumber(selectedExportLogs.length, 'fa')})`
                           : `Export Selected to CSV (${selectedExportLogs.length})`}
                       </span>
                     </motion.button>
@@ -3066,7 +3070,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                         onChange={handleToggleSelectAllAuditLogs}
                         aria-label={
                           isFa
-                            ? 'انتخاب همه رخدادهای جدول ممیزی برای خروجی CSV'
+                            ? 'انتخاب همه رخدادهای جدول ممیزی برای خروجی گزارش'
                             : 'Select all audit log entries for CSV export'
                         }
                         title={
@@ -3155,14 +3159,18 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                             {cat === 'STAFF' && <Users className="w-3 h-3" />}
                             {cat === 'FINANCIAL' && <Wallet className="w-3 h-3" />}
                             {cat === 'SYSTEM' && <ShieldCheck className="w-3 h-3" />}
-                            <span>{localizeAuditAction(log.action, lang)}</span>
+                            <span>
+                              {isFa
+                                ? localizeAuditAction(log.action, 'fa')
+                                : localizeAuditAction(log.action, 'en').replace(/_/g, ' ')}
+                            </span>
                           </span>
                           {log.entityId && (
                             <span
                               dir="ltr"
                               className="ms-1.5 font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                             >
-                              {log.entityId}
+                              {toPersianDigits(log.entityId, lang)}
                             </span>
                           )}
                         </td>
@@ -3235,7 +3243,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       {isFa ? 'شناسه یکتای رخداد' : 'Event ID'}
                     </div>
                     <div dir="ltr" className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                      {inspectingLog.id}
+                      {toPersianDigits(inspectingLog.id, lang)}
                     </div>
                   </div>
                   <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
@@ -3262,7 +3270,9 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       {isFa ? 'نوع عملیات' : 'Operation Code'}
                     </div>
                     <div className="font-semibold text-blue-600 dark:text-blue-400">
-                      {localizeAuditAction(inspectingLog.action, lang)}
+                      {isFa
+                        ? localizeAuditAction(inspectingLog.action, 'fa')
+                        : localizeAuditAction(inspectingLog.action, 'en').replace(/_/g, ' ')}
                     </div>
                   </div>
                 </div>
@@ -3299,7 +3309,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                           ? 'کپی شد!'
                           : 'Copied JSON!'
                         : isFa
-                        ? 'کپی ساختار JSON'
+                        ? 'کپی ساختار داده'
                         : 'Copy Raw JSON'}
                     </span>
                   </button>
@@ -3467,7 +3477,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   <Sparkles className="w-4 h-4 text-blue-500" />
                   <span>
                     {isFa
-                      ? 'کنسول مدیریت و شبیه‌سازی اعلان‌های بلادرنگ (Push Notifications)'
+                      ? 'کنسول مدیریت و شبیه‌سازی اعلان‌های بلادرنگ'
                       : 'Real-Time Push Notification Dispatch & Filter Console'}
                   </span>
                 </h2>
@@ -3488,7 +3498,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   <Zap className="w-3.5 h-3.5" />
                   <span>
                     {isFa
-                      ? 'ارسال اعلان آنی رزرو کلان (VIP)'
+                      ? 'ارسال اعلان آنی رزرو کلان'
                       : 'Push High-Revenue Booking Alert'}
                   </span>
                 </motion.button>
@@ -3677,12 +3687,12 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                               )}
                               {alert.pnr && (
                                 <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
-                                  PNR: {alert.pnr}
+                                  {isFa ? 'کد رزرو:' : 'PNR:'} {toPersianDigits(alert.pnr, lang)}
                                 </span>
                               )}
                               {alert.trainId && (
                                 <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
-                                  {isFa ? 'قطار:' : 'Train:'} {alert.trainId}
+                                  {isFa ? 'قطار:' : 'Train:'} {toPersianDigits(alert.trainId, lang)}
                                 </span>
                               )}
                               {alert.lineName && (
@@ -3692,13 +3702,14 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                               )}
                               {alert.overlapWindow && (
                                 <span className="font-mono text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded">
-                                  {isFa ? 'بازه تداخل:' : 'Overlap:'} {alert.overlapWindow}
+                                  {isFa ? 'بازه تداخل:' : 'Overlap:'}{' '}
+                                  {formatTime(alert.overlapWindow, lang)}
                                 </span>
                               )}
                               {alert.suggestedSafeDeparture && (
                                 <span className="font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
                                   {isFa ? 'پیشنهاد اعزام ایمن:' : 'Safe Slot:'}{' '}
-                                  {alert.suggestedSafeDeparture}
+                                  {formatTime(alert.suggestedSafeDeparture, lang)}
                                 </span>
                               )}
                               <span className="font-mono">
@@ -3814,12 +3825,32 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                     {isFa ? 'واحد سازمانی' : 'Department'}
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={editDepartment}
                     onChange={(e) => setEditDepartment(e.target.value)}
                     className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
-                  />
+                  >
+                    <option value="Dispatch & Traffic Control">
+                      {isFa
+                        ? 'مرکز کنترل ترافیک و اعزام'
+                        : 'Dispatch & Traffic Control'}
+                    </option>
+                    <option value="Corridor Topology Engineering">
+                      {isFa
+                        ? 'مهندسی خطوط و شبکه ریلی'
+                        : 'Corridor Topology Engineering'}
+                    </option>
+                    <option value="Fleet & High-Speed Operations">
+                      {isFa
+                        ? 'بهره‌برداری ناوگان سریع‌السیر'
+                        : 'Fleet & High-Speed Operations'}
+                    </option>
+                    <option value="Safety & Signaling Compliance">
+                      {isFa
+                        ? 'ایمنی سیر و علائم الکتریکی'
+                        : 'Safety & Signaling Compliance'}
+                    </option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -3875,8 +3906,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-5">
               {isFa
-                ? `آیا از حذف حساب کاربری کارشناس «${deletingStaff.name} ${deletingStaff.lastname}» (@${deletingStaff.username}) اطمینان دارید؟`
-                : `Are you sure you want to revoke access and remove "${deletingStaff.name} ${deletingStaff.lastname}" (@${deletingStaff.username})?`}
+                ? `آیا از حذف حساب کاربری کارشناس «${localizeText(deletingStaff.name, 'fa')} ${localizeText(deletingStaff.lastname, 'fa')}» (@${deletingStaff.username}) اطمینان دارید؟`
+                : `Are you sure you want to revoke access and remove "${localizeText(deletingStaff.name, 'en')} ${localizeText(deletingStaff.lastname, 'en')}" (@${deletingStaff.username})?`}
             </p>
             <div className="flex justify-end gap-2">
               <button

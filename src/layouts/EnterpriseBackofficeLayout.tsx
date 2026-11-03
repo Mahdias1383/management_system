@@ -77,7 +77,7 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
       <aside
         className={`${
           collapsed ? 'w-[72px]' : sidebarAlertSlot ? 'w-[300px]' : 'w-[272px]'
-        } shrink-0 bg-slate-900 text-slate-100 border-e border-slate-800 flex flex-col justify-between transition-all duration-150`}
+        } sticky top-0 h-screen shrink-0 bg-slate-900 text-slate-100 border-e border-slate-800 flex flex-col justify-between transition-all duration-150`}
       >
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
           {/* Brand Lockup with Vector SVG RailPulse Logo */}
@@ -221,31 +221,32 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
       {/* Main Right/Left Workspace Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Operational Command Header (Breadcrumb + Primary Actions) */}
-        <header className="h-16 px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
-          {/* Breadcrumb Trail */}
-          <div className="flex items-center gap-2 text-xs min-w-0">
-            <span className="font-semibold text-slate-500 dark:text-slate-400 truncate">
-              {isFa ? portalTitleFa : portalTitleEn}
-            </span>
-            {isFa ? (
-              <ChevronLeft className="w-4 h-4 text-slate-400 shrink-0" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
-            )}
-            <span className="font-bold text-slate-900 dark:text-white truncate text-sm">
-              {isFa ? activeNavObj?.labelFa : activeNavObj?.labelEn}
-            </span>
+        <header className="min-h-16 py-2.5 px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
+          {/* Breadcrumb Trail + Subtitle */}
+          <div className="flex flex-col justify-center min-w-0">
+            <div className="flex items-center gap-2 text-xs min-w-0">
+              <span className="font-semibold text-slate-500 dark:text-slate-400 truncate">
+                {isFa ? portalTitleFa : portalTitleEn}
+              </span>
+              {isFa ? (
+                <ChevronLeft className="w-4 h-4 text-slate-400 shrink-0" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+              )}
+              <span className="font-bold text-slate-900 dark:text-white truncate text-sm">
+                {isFa ? activeNavObj?.labelFa : activeNavObj?.labelEn}
+              </span>
+            </div>
+            <p className="hidden sm:block text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+              {isFa ? portalSubtitleFa : portalSubtitleEn}
+            </p>
           </div>
 
-          {/* Right Controls: Language, Theme, Operator Pill */}
+          {/* Right Controls: Date/Time, PWA Install, Language, Theme */}
           <div className="flex items-center gap-2.5 shrink-0">
             {headerActionSlot}
             <span className="hidden xl:inline text-xs font-mono text-slate-500 dark:text-slate-400">
               {formatDateTime(new Date(), lang, 'full')}
-            </span>
-
-            <span className="hidden lg:inline text-xs text-slate-500 dark:text-slate-400">
-              {isFa ? portalSubtitleFa : portalSubtitleEn}
             </span>
 
             <PWAInstallButton isFa={isFa} />
@@ -254,7 +255,12 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
               type="button"
               onClick={onToggleLang}
               {...BUTTON_HOVER_PROPS}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer whitespace-nowrap"
+              aria-label={
+                isFa
+                  ? 'تغییر زبان به انگلیسی و چیدمان چپ‌به‌راست'
+                  : 'Switch language to Persian and RTL layout'
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
             >
               <Globe className="w-3.5 h-3.5" />
               <span>{lang === 'fa' ? 'English (LTR)' : 'فارسی (RTL)'}</span>
@@ -264,7 +270,7 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
               type="button"
               onClick={onToggleTheme}
               {...BUTTON_HOVER_PROPS}
-              className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer"
+              className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
               title={isFa ? 'تغییر حالت شب/روز' : 'Toggle Theme'}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}

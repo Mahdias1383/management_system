@@ -63,7 +63,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
             <span>
               {variant === 'full'
                 ? isFa
-                  ? 'نصب اپلیکیشن ریل‌پالس (PWA)'
+                  ? 'نصب وب‌اپلیکیشن ریل‌پالس'
                   : 'Install RailPulse PWA'
                 : isFa
                 ? 'نصب اپلیکیشن'
@@ -109,23 +109,23 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               {isFa
-                ? 'با نصب اپلیکیشن ریل‌پالس (PWA)، بدون نیاز به اپ‌استور می‌توانید مانند یک نرم‌افزار بومی به سامانه رزرواسیون، نقشه صندلی‌ها و کارت‌های سوارشدن دیجیتال دسترسی داشته باشید:'
+                ? 'با نصب وب‌اپلیکیشن ریل‌پالس، بدون نیاز به اپ‌استور می‌توانید مانند یک نرم‌افزار بومی به سامانه رزرواسیون، نقشه صندلی‌ها و کارت‌های سوارشدن دیجیتال دسترسی داشته باشید:'
                 : 'Install RailPulse as a Progressive Web App for instant access to high-speed train booking, real-time dispatch radar, and offline tickets:'}
             </p>
 
             <div className="space-y-2 text-xs bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
               <div className="flex items-start gap-2.5">
                 <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                  1
+                  {isFa ? '۱' : '1'}
                 </div>
                 <div className="flex-1 text-slate-700 dark:text-slate-300">
                   <span className="font-semibold flex items-center gap-1">
                     <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 inline" />
-                    {isFa ? 'دکمه اشتراک‌گذاری (Share)' : 'Tap the Share button'}
+                    {isFa ? 'دکمه اشتراک‌گذاری مرورگر' : 'Tap the Share button'}
                   </span>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
                     {isFa
-                      ? 'در نوار ابزار مرورگر خود (پایین در آیفون یا بالا در سافاری مک) روی دکمه Share بزنید.'
+                      ? 'در نوار ابزار مرورگر خود روی آیکون اشتراک‌گذاری بزنید.'
                       : 'In the browser toolbar (bottom on iOS Safari, or top address bar on Chrome).'}
                   </span>
                 </div>
@@ -133,16 +133,16 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
 
               <div className="flex items-start gap-2.5 pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
                 <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                  2
+                  {isFa ? '۲' : '2'}
                 </div>
                 <div className="flex-1 text-slate-700 dark:text-slate-300">
                   <span className="font-semibold flex items-center gap-1">
                     <PlusSquare className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 inline" />
-                    {isFa ? 'افزودن به صفحه اصلی (Add to Home Screen)' : 'Select Add to Home Screen'}
+                    {isFa ? 'افزودن به صفحه اصلی دستگاه' : 'Select Add to Home Screen'}
                   </span>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
                     {isFa
-                      ? 'گزینه "Add to Home Screen" را انتخاب کرده و سپس روی دکمه Add در بالا بزنید.'
+                      ? 'گزینه افزودن به صفحه اصلی را انتخاب کرده و تأیید نمایید.'
                       : 'Choose "Add to Home Screen" and tap "Add" in the top corner.'}
                   </span>
                 </div>

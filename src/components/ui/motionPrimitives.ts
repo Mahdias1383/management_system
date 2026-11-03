@@ -15,15 +15,15 @@ export const SOFT_SPRING_TRANSITION: Transition = {
 };
 
 export const BUTTON_HOVER_PROPS = {
-  whileHover: { scale: 1.05, y: -1.5 },
-  whileTap: { scale: 0.96 },
+  whileHover: { scale: 1.02, y: -1 },
+  whileTap: { scale: 0.97 },
   transition: SPRING_TRANSITION,
 };
 
 export const CARD_HOVER_PROPS = {
   whileHover: {
-    scale: 1.05,
-    y: -5,
+    scale: 1.01,
+    y: -3,
     boxShadow:
       '0 20px 38px -12px rgba(37, 99, 235, 0.18), 0 8px 18px -6px rgba(15, 23, 42, 0.1)',
   },
@@ -35,8 +35,8 @@ export const SECTION_CARD_HOVER_PROPS = {
   initial: { opacity: 0, y: 18 },
   animate: { opacity: 1, y: 0 },
   whileHover: {
-    scale: 1.015,
-    y: -3,
+    scale: 1.008,
+    y: -2,
     boxShadow:
       '0 18px 34px -12px rgba(37, 99, 235, 0.14), 0 6px 16px -6px rgba(15, 23, 42, 0.08)',
   },
@@ -93,8 +93,8 @@ export const interactiveCardVariants: Variants = {
     transition: { duration: 0.16 },
   },
   hover: {
-    scale: 1.05,
-    y: -5,
+    scale: 1.01,
+    y: -3,
     boxShadow:
       '0 20px 38px -12px rgba(37, 99, 235, 0.18), 0 8px 18px -6px rgba(15, 23, 42, 0.1)',
     transition: {
@@ -106,25 +106,27 @@ export const interactiveCardVariants: Variants = {
 };
 
 export const filterToolbarVariants: Variants = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 8 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
       ...SOFT_SPRING_TRANSITION,
-      staggerChildren: 0.05,
-      delayChildren: 0.04,
+      staggerChildren: 0.035,
+      delayChildren: 0.01,
     },
   },
 };
 
 export const filterControlEntranceVariants: Variants = {
-  hidden: { opacity: 0, y: 8, scale: 0.985 },
+  hidden: { opacity: 0, y: 6, scale: 0.99 },
   visible: {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: SOFT_SPRING_TRANSITION,
+    transition: {
+      ...SOFT_SPRING_TRANSITION,
+      staggerChildren: 0.03,
+    },
   },
 };
-

@@ -901,7 +901,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                   </button>
                 </div>
 
-                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-56 overflow-y-auto pe-1">
                   {stationsDraft.map((st, idx) => (
                     <div key={idx} className="flex items-center gap-2">
                       <span className="font-mono text-xs text-slate-400 w-5">
@@ -940,7 +940,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                           className="w-full px-2 py-1.5 text-xs font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pr-7"
                         />
                         <span className="absolute right-2 top-1.5 text-[10px] text-slate-400 font-mono">
-                          km
+                          {isFa ? 'ک‌م' : 'km'}
                         </span>
                       </div>
 
@@ -1046,7 +1046,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         {isFa
                           ? `مبدأ: ${localizeText(line.origin, lang)} ← مقصد: ${localizeText(line.destination, lang)} · ثبت: ${formatDateTime(line.createdAt, lang, 'date')}`
-                          : `Origin: ${localizeText(line.origin, lang)} -> Destination: ${localizeText(line.destination, lang)} · Created: ${formatDateTime(line.createdAt, lang, 'date')}`}
+                          : `Origin: ${localizeText(line.origin, lang)} → Destination: ${localizeText(line.destination, lang)} · Created: ${formatDateTime(line.createdAt, lang, 'date')}`}
                       </p>
                     </div>
 
@@ -1079,21 +1079,21 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                   </div>
 
                   {/* Visual Route Node Diagram */}
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 overflow-x-auto">
-                    <div className="flex items-center min-w-max gap-2 py-1">
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold">
-                        <MapPin className="w-3.5 h-3.5" />
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                    <div className="flex flex-wrap items-center gap-y-2 gap-x-1.5 py-1">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold">
+                        <MapPin className="w-3.5 h-3.5 shrink-0" />
                         <span>{localizeText(line.origin, lang)}</span>
                       </div>
 
                       {line.list_state.map((st, idx) => (
                         <React.Fragment key={`${line.id}-st-${idx}`}>
-                          <div className="flex flex-col items-center px-1">
-                            <span className="text-[10px] font-mono text-slate-400">
+                          <div className="flex flex-col items-center px-0.5">
+                            <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap">
                               {formatNumber(line.segmentDistancesKm?.[idx] ?? 120, lang)}{' '}
                               {isFa ? 'کیلومتر' : 'km'}
                             </span>
-                            <div className="w-10 h-0.5 bg-slate-300 dark:bg-slate-700" />
+                            <div className="w-7 h-0.5 bg-slate-300 dark:bg-slate-700" />
                           </div>
                           <div className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200">
                             {localizeText(st, lang)}
@@ -1101,19 +1101,19 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                         </React.Fragment>
                       ))}
 
-                      <div className="flex flex-col items-center px-1">
-                        <span className="text-[10px] font-mono text-slate-400">
+                      <div className="flex flex-col items-center px-0.5">
+                        <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap">
                           {formatNumber(
                             line.segmentDistancesKm?.[line.list_state.length] ?? 140,
                             lang
                           )}{' '}
                           {isFa ? 'کیلومتر' : 'km'}
                         </span>
-                        <div className="w-10 h-0.5 bg-slate-300 dark:bg-slate-700" />
+                        <div className="w-7 h-0.5 bg-slate-300 dark:bg-slate-700" />
                       </div>
 
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold">
-                        <MapPin className="w-3.5 h-3.5" />
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold">
+                        <MapPin className="w-3.5 h-3.5 shrink-0" />
                         <span>{localizeText(line.destination, lang)}</span>
                       </div>
                     </div>
@@ -1233,7 +1233,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      {isFa ? 'سرعت سیر (km/h)' : 'Cruising Speed (km/h)'}
+                      {isFa ? 'سرعت سیر (کیلومتر/ساعت)' : 'Cruising Speed (km/h)'}
                     </label>
                     <input
                       type="number"
@@ -1298,7 +1298,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                       className="w-full px-2 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100"
                     >
                       <option value="VIP 5-Star">
-                        {isFa ? '۵ ستاره ویژه (VIP)' : 'VIP 5-Star'}
+                        {isFa ? '۵ ستاره ویژه' : 'VIP 5-Star'}
                       </option>
                       <option value="Business 4-Star">
                         {isFa ? '۴ ستاره تجاری' : 'Business 4-Star'}
@@ -1606,7 +1606,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  {isFa ? 'سرعت آزمایشی (km/h)' : 'Simulated Velocity (km/h)'}
+                  {isFa ? 'سرعت آزمایشی (کیلومتر/ساعت)' : 'Simulated Velocity (km/h)'}
                 </label>
                 <input
                   type="number"
@@ -1668,7 +1668,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
             trains={db.trains}
             candidateTrain={{
               id_train: simTrainId || 'SIM-901',
-              name_train: 'Simulation Candidate',
+              name_train: isFa ? 'قطار شبیه‌سازی' : 'Simulation Candidate',
               departureTime: simDeparture,
               speed: parsedSimSpeed.valid ? parsedSimSpeed.value : 180,
               list_stop_time: Object.fromEntries(
@@ -1864,8 +1864,8 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-5">
               {isFa
-                ? `آیا از حذف مسیر «${deletingLine.name_line}» و تمامی قطارهای زمانبندی‌شده روی این خط اطمینان دارید؟`
-                : `Are you sure you want to delete corridor "${deletingLine.name_line}" and cascade-delete all associated train schedules?`}
+                ? `آیا از حذف مسیر «${localizeText(deletingLine.name_line, 'fa')}» و تمامی قطارهای زمانبندی‌شده روی این خط اطمینان دارید؟`
+                : `Are you sure you want to delete corridor "${localizeText(deletingLine.name_line, 'en')}" and cascade-delete all associated train schedules?`}
             </p>
             <div className="flex justify-end gap-2">
               <button
@@ -1903,7 +1903,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                   {isFa ? 'ویرایش جدول زمانبندی قطار' : 'Edit Train Timetable & Service'}
                 </h3>
                 <p className="text-xs text-slate-500 font-mono mt-0.5">
-                  {editingTrain.id_train} · {editingTrain.name_line}
+                  {toPersianDigits(editingTrain.id_train, lang)} · {localizeText(editingTrain.name_line, lang)}
                 </p>
               </div>
               <button

@@ -54,7 +54,7 @@ export const DigitalBoardingPassModal: React.FC<DigitalBoardingPassModalProps> =
 
           <div className="text-end font-mono">
             <div className="text-[10px] text-slate-400">
-              {isFa ? 'کد رهگیری (PNR)' : 'PNR REFERENCE'}
+              {isFa ? 'کد رهگیری رزرو' : 'PNR REFERENCE'}
             </div>
             <div className="text-base font-bold text-emerald-400">
               {toPersianDigits(ticket.pnr, lang)}
@@ -78,7 +78,9 @@ export const DigitalBoardingPassModal: React.FC<DigitalBoardingPassModalProps> =
               </div>
             </div>
 
-            <div className="text-slate-400 font-mono text-xs px-2">───►</div>
+            <div className="text-blue-500 font-mono text-xs px-2">
+              {isFa ? '◄───' : '───►'}
+            </div>
 
             <div className="text-end">
               <div className="text-[11px] text-slate-400">

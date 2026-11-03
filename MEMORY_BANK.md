@@ -164,3 +164,15 @@
   - Added per-row checkboxes (`data-testid="activity-row-checkbox-${log.id}"`) in `<tbody>` with row highlight styling when selected.
   - Added an animated bulk-selection action bar (`data-testid="activity-bulk-selection-bar"`) with selected entry count (`data-testid="activity-selected-count-label"`), one-click bulk CSV export (`data-testid="activity-export-selected-csv"`), and clear selection button (`data-testid="activity-clear-selection"`), as well as dynamic selection awareness on the toolbar CSV button (`data-testid="activity-export-csv-btn"`).
 
+### Phase 14: Comprehensive Bilingual Client-Side UI/UX Fine-Tuning & Visual Audit (FA RTL & EN LTR)
+- [x] Bilingual Copy Purity & Localization (`src/services/authService.ts`, `src/services/alertCenterService.ts`, `src/pages/*`, `src/components/*`):
+  - Eliminated mixed English parentheticals and technical abbreviations in Persian mode (`۵ ستاره ویژه`, `مرکز کنترل ترافیک و اعزام`, `پایشگر هوشمند فعالیت‌ها`, `کد رهگیری رزرو`, `کیلومتر/ساعت`, `سازمانی`, `صدور گزارش ممیزی انطباق`, `دانلود پشتیبان سامانه`, `بارگذاری پشتیبان`, `خروجی جدول`) and ensured pure English passenger/corridor names in English alerts (`localizeText(..., 'en')`).
+  - Preserved raw bilingual `displayName` in `ActiveSession` (`src/pages/AuthPage.tsx`) so toggling between Persian (`fa`) and English (`en`) dynamically translates logged-in user names across headers and sidebars.
+  - Localized entity IDs, train codes, PNR badges, and time windows (`toPersianDigits`, `formatTime`) across tables, modals, and alert cards.
+- [x] Layout, Control Alignment & Directional Polish (`src/index.css`, `src/layouts/EnterpriseBackofficeLayout.tsx`, `src/pages/PublicHomePage.tsx`, `src/pages/PassengerDashboard.tsx`, `src/pages/StaffOperationsPortal.tsx`, `src/pages/AdminExecutivePortal.tsx`, `src/components/ui/motionPrimitives.ts`):
+  - Unified control heights (`h-10` in storefront search & passenger booking filter bars; `h-8` in backoffice filter toolbars) for pixel-perfect horizontal alignment.
+  - Added RTL placeholder alignment rule (`[dir="rtl"] input[dir="ltr"]:placeholder-shown`) in `src/index.css` so Persian placeholders on LTR technical inputs align cleanly to the right when empty.
+  - Made the backoffice `<aside>` sticky (`sticky top-0 h-screen`) and stacked the portal subtitle underneath the breadcrumb trail in `EnterpriseBackofficeLayout.tsx` so breadcrumbs never truncate and the operator card/sign-out button stay anchored at the bottom of the viewport.
+  - Wrapped intermediate station nodes (`flex-wrap items-center gap-y-2 gap-x-1.5`) in `StaffOperationsPortal.tsx` corridor cards to prevent horizontal overflow, upgraded the Edit Staff department input to a localized `<select>` dropdown in `AdminExecutivePortal.tsx`, and added `staggerChildren` propagation to `filterControlEntranceVariants`.
+
+

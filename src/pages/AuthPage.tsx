@@ -124,7 +124,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           role: 'staff',
           userId: emp.id,
           username: emp.username,
-          displayName: `${localizeText(emp.name, lang)} ${localizeText(emp.lastname, lang)}`,
+          displayName: `${emp.name} ${emp.lastname}`,
           email: emp.email,
           sessionToken: issueSessionToken(emp.id, 'staff'),
         });
@@ -153,7 +153,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         role: 'passenger',
         userId: pass.id,
         username: pass.username,
-        displayName: localizeText(pass.name, lang),
+        displayName: pass.name,
         email: pass.email,
         sessionToken: issueSessionToken(pass.id, 'passenger'),
       });

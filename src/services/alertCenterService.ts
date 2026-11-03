@@ -7,7 +7,7 @@ import {
 import { formatCurrency, localizeText } from './authService';
 
 export const HIGH_REVENUE_THRESHOLD_RIAL = 15_000_000;
-const ALERT_STORAGE_KEY = 'railpulse_executive_alerts_v2';
+const ALERT_STORAGE_KEY = 'railpulse_executive_alerts_v3';
 export const ALERT_CENTER_EVENT = 'railpulse:executive-alert';
 
 interface AlertCenterEventDetail {
@@ -66,7 +66,7 @@ function buildSeedExecutiveAlerts(db?: PlatformDatabaseV2): ExecutiveAlert[] {
       titleFa: 'ثبت رزرو کلان و ویژه (درآمد بالا)',
       titleEn: 'New High-Revenue VIP Booking Confirmed',
       messageFa: `رزرو گروهی کوپه ویژه ۵ ستاره با کد پیگیری ${seedPnr} توسط «${localizeText(seedPassenger, 'fa')}» در قطار ${seedTrainId} به ارزش ${formatCurrency(seedHighRevAmount, 'Rial')} ثبت و تسویه شد.`,
-      messageEn: `High-value VIP 5-Star booking (${seedPnr}) by ${seedPassenger} on train ${seedTrainId} (${seedLine}) settled for ${formatCurrency(seedHighRevAmount, 'USD')}.`,
+      messageEn: `High-value VIP 5-Star booking (${seedPnr}) by ${localizeText(seedPassenger, 'en')} on train ${seedTrainId} (${localizeText(seedLine, 'en')}) settled for ${formatCurrency(seedHighRevAmount, 'USD')}.`,
       timestamp: new Date(now - 14 * 60 * 1000).toISOString(),
       read: false,
       amountIrr: seedHighRevAmount,
@@ -209,6 +209,9 @@ export function pushHighRevenueBookingAlert(ticket: TicketRecord): ExecutiveAler
   const originFa = localizeText(ticket.origin, 'fa');
   const destFa = localizeText(ticket.destination, 'fa');
   const passengerFa = localizeText(ticket.passengerName, 'fa');
+  const originEn = localizeText(ticket.origin, 'en');
+  const destEn = localizeText(ticket.destination, 'en');
+  const passengerEn = localizeText(ticket.passengerName, 'en');
 
   return pushExecutiveAlert({
     category: 'HIGH_REVENUE_BOOKING',
@@ -216,12 +219,12 @@ export function pushHighRevenueBookingAlert(ticket: TicketRecord): ExecutiveAler
     titleFa: 'ثبت رزرو جدید با درآمد بالا در شبکه',
     titleEn: 'New High-Revenue Ticket Booking Confirmed',
     messageFa: `رزرو ${ticket.ticketCount} صندلی (${ticket.seatNumbers.join('، ')}) در قطار ${ticket.id_train} (${originFa} به ${destFa}) توسط «${passengerFa}» با کد پیگیری ${ticket.pnr} به مبلغ ${formatCurrency(ticket.totalPrice, 'Rial')} ثبت شد.`,
-    messageEn: `${ticket.passengerName} booked ${ticket.ticketCount} seat(s) (${ticket.seatNumbers.join(', ')}) on ${ticket.id_train} (${ticket.origin} → ${ticket.destination}, PNR ${ticket.pnr}) for ${formatCurrency(ticket.totalPrice, 'USD')}.`,
+    messageEn: `${passengerEn} booked ${ticket.ticketCount} seat(s) (${ticket.seatNumbers.join(', ')}) on ${ticket.id_train} (${originEn} → ${destEn}, PNR ${ticket.pnr}) for ${formatCurrency(ticket.totalPrice, 'USD')}.`,
     amountIrr: ticket.totalPrice,
     pnr: ticket.pnr,
     trainId: ticket.id_train,
     lineName: ticket.name_line,
-    locationLabel: `${ticket.origin} → ${ticket.destination}`,
+    locationLabel: `${originEn} → ${destEn}`,
   });
 }
 
@@ -304,15 +307,15 @@ export function simulateHighRevenueBookingPush(
   return pushExecutiveAlert({
     category: 'HIGH_REVENUE_BOOKING',
     severity: totalAmount >= 35_000_000 ? 'CRITICAL' : 'HIGH',
-    titleFa: 'اعلان آنی: ثبت رزرو کلان و ویژه (VIP)',
+    titleFa: 'اعلان آنی: ثبت رزرو کلان و ویژه',
     titleEn: 'Real-Time Push: High-Revenue VIP Booking',
     messageFa: `رزرو قطعی ${seatsCount} صندلی فرست‌کلاس در قطار ${trainId} (${localizeText(origin, 'fa')} ← ${localizeText(destination, 'fa')}) توسط «${chosenPassenger.fa}» با کد پیگیری ${randomPnr} به مبلغ ${formatCurrency(totalAmount, 'Rial')} ثبت شد.`,
-    messageEn: `Instant settlement of ${seatsCount} First-Class seats on ${trainId} (${origin} → ${destination}) by ${chosenPassenger.en} (PNR ${randomPnr}) totaling ${formatCurrency(totalAmount, 'USD')}.`,
+    messageEn: `Instant settlement of ${seatsCount} First-Class seats on ${trainId} (${localizeText(origin, 'en')} → ${localizeText(destination, 'en')}) by ${chosenPassenger.en} (PNR ${randomPnr}) totaling ${formatCurrency(totalAmount, 'USD')}.`,
     amountIrr: totalAmount,
     pnr: randomPnr,
     trainId,
     lineName,
-    locationLabel: `${origin} → ${destination}`,
+    locationLabel: `${localizeText(origin, 'en')} → ${localizeText(destination, 'en')}`,
   });
 }
 

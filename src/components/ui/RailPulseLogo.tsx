@@ -177,7 +177,7 @@ export const RailPulseLogo: React.FC<RailPulseLogoProps> = ({
             <span
               className={`rounded-md font-mono font-bold uppercase tracking-wider bg-blue-600/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 ${sizeDimensions.badge}`}
             >
-              Enterprise
+              {isFa ? 'سازمانی' : 'Enterprise'}
             </span>
           )}
         </div>

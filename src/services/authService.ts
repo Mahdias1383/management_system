@@ -405,7 +405,7 @@ export function localizeQuality(quality: QualityTier | string | undefined, lang:
   if (lang === 'en') return q || 'VIP 5-Star';
   switch (q) {
     case 'VIP 5-Star':
-      return '۵ ستاره ویژه (VIP)';
+      return '۵ ستاره ویژه';
     case 'Business 4-Star':
       return '۴ ستاره تجاری';
     case 'Economy 3-Star':
@@ -425,7 +425,7 @@ export function localizeDepartment(dept: string | undefined, lang: Language = 'f
     'high-speed dispatch & signalling': 'مرکز کنترل ترافیک و علائم سریع‌السیر',
     'corridor topology & safety': 'مهندسی خطوط و ایمنی سیر',
     'fleet scheduling & rolling stock': 'برنامه‌ریزی ناوگان و بهره‌برداری',
-    'dispatch & traffic control': 'مرکز کنترل ترافیک و اعزام (CTC)',
+    'dispatch & traffic control': 'مرکز کنترل ترافیک و اعزام',
     'corridor topology engineering': 'مهندسی خطوط و شبکه ریلی',
     'fleet & high-speed operations': 'بهره‌برداری ناوگان سریع‌السیر',
     'safety & signaling compliance': 'ایمنی سیر و علائم الکتریکی',

@@ -221,7 +221,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                   value={originFilter}
                   onChange={(e) => setOriginFilter(e.target.value)}
                   aria-label={isFa ? 'انتخاب ایستگاه مبدا سفر' : 'Select Departure Origin Station'}
-                  className="w-full px-3.5 py-2.5 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                  className="w-full h-10 px-3.5 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
                 >
                   <option value="ALL">{isFa ? 'همه ایستگاه‌های مبدا' : 'All Origins'}</option>
                   {allOrigins.map((orig) => (
@@ -232,16 +232,16 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                 </select>
               </div>
 
-              {/* Swap Button with 180-deg Rotation & 1.05x Hover Scale */}
+              {/* Swap Button with 180-deg Rotation */}
               <div className="md:col-span-1 flex justify-center">
                 <motion.button
                   type="button"
                   onClick={handleSwapStations}
                   aria-label={isFa ? 'جابجایی ایستگاه‌های مبدا و مقصد' : 'Swap Origin and Destination Stations'}
-                  whileHover={{ scale: 1.05, y: -1.5 }}
+                  whileHover={{ scale: 1.04, y: -1.5 }}
                   whileTap={{ scale: 0.95 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                  className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-blue-600 hover:border-blue-600 hover:text-white transition-colors duration-200 cursor-pointer group"
+                  className="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-blue-600 hover:border-blue-600 hover:text-white transition-colors duration-200 cursor-pointer group"
                   title={isFa ? 'جابجایی مبدا و مقصد' : 'Swap Origin & Destination'}
                 >
                   <ArrowLeftRight className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />
@@ -257,7 +257,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                   value={destinationFilter}
                   onChange={(e) => setDestinationFilter(e.target.value)}
                   aria-label={isFa ? 'انتخاب ایستگاه مقصد سفر' : 'Select Arrival Destination Station'}
-                  className="w-full px-3.5 py-2.5 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                  className="w-full h-10 px-3.5 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
                 >
                   <option value="ALL">{isFa ? 'همه ایستگاه‌های مقصد' : 'All Destinations'}</option>
                   {allDestinations.map((dest) => (
@@ -277,10 +277,10 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                   value={qualityFilter}
                   onChange={(e) => setQualityFilter(e.target.value)}
                   aria-label={isFa ? 'انتخاب کلاس خدمات سالن' : 'Select Service Class'}
-                  className="w-full px-3.5 py-2.5 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                  className="w-full h-10 px-3.5 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
                 >
                   <option value="ALL">{isFa ? 'همه کلاس‌ها' : 'All Classes'}</option>
-                  <option value="VIP 5-Star">{isFa ? '۵ ستاره ویژه (VIP)' : 'VIP 5-Star'}</option>
+                  <option value="VIP 5-Star">{isFa ? '۵ ستاره ویژه' : 'VIP 5-Star'}</option>
                   <option value="Business 4-Star">{isFa ? '۴ ستاره تجاری' : 'Business 4-Star'}</option>
                   <option value="Economy 3-Star">{isFa ? '۳ ستاره اقتصادی' : 'Economy 3-Star'}</option>
                 </select>
@@ -298,7 +298,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                   value={passengerCount}
                   onChange={(e) => setPassengerCount(Math.max(1, Number(e.target.value)))}
                   aria-label={isFa ? 'تعداد صندلی‌ها و مسافران' : 'Number of passenger seats'}
-                  className="w-full px-2.5 py-2.5 text-xs font-mono font-bold text-center rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                  className="w-full h-10 px-2.5 text-xs font-mono font-bold text-center rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
                 />
               </div>
 
@@ -307,10 +307,10 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                 <motion.a
                   href="#live-departures"
                   aria-label={isFa ? 'مشاهده تابلوی حرکت قطارها و رزرو' : 'Search available train services'}
-                  whileHover={{ scale: 1.05, y: -1.5 }}
-                  whileTap={{ scale: 0.96 }}
+                  whileHover={{ scale: 1.02, y: -1.5 }}
+                  whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl rp-btn-primary text-white text-xs font-semibold transition-all whitespace-nowrap"
+                  className="w-full h-10 flex items-center justify-center gap-1.5 px-4 rounded-xl rp-btn-primary text-white text-xs font-semibold transition-all whitespace-nowrap"
                 >
                   <Search className="w-4 h-4" />
                   <span>{isFa ? 'جستجوی قطارها' : 'Search Trains'}</span>
@@ -522,7 +522,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
             </div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">
               {isFa
-                ? 'پیگیری وضعیت رزرو و دریافت مجدد کارت سوارشدن با کد رهگیری (PNR)'
+                ? 'پیگیری وضعیت رزرو و دریافت مجدد کارت سوارشدن با کد رهگیری'
                 : 'Verify Your Reservation & Retrieve Digital Boarding Pass'}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -533,23 +533,23 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
           </div>
 
           <div className="lg:col-span-5">
-            <form onSubmit={handleLookupPnr} role="search" aria-label={isFa ? 'فرم استعلام کد رهگیری PNR' : 'PNR Tracking Search Form'} className="flex gap-2.5">
+            <form onSubmit={handleLookupPnr} role="search" aria-label={isFa ? 'فرم استعلام کد رهگیری' : 'PNR Tracking Search Form'} className="flex gap-2.5">
               <input
                 type="text"
                 dir="ltr"
                 value={pnrInput}
                 onChange={(e) => setPnrInput(e.target.value)}
-                aria-label={isFa ? 'کد رهگیری پنج‌رقمی بلیط (PNR)' : '5-character PNR ticket reference code'}
-                placeholder="e.g. RP-89412"
-                className="flex-1 px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
+                aria-label={isFa ? 'کد رهگیری پنج‌رقمی بلیط' : '5-character PNR ticket reference code'}
+                placeholder={isFa ? 'مثال: RP-89412' : 'e.g. RP-89412'}
+                className="flex-1 h-10 px-3.5 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
               />
               <motion.button
                 type="submit"
-                aria-label={isFa ? 'استعلام وضعیت بلیط با کد PNR' : 'Submit PNR ticket lookup'}
-                whileHover={{ scale: 1.05, y: -1.5 }}
-                whileTap={{ scale: 0.96 }}
+                aria-label={isFa ? 'استعلام وضعیت بلیط با کد رهگیری' : 'Submit PNR ticket lookup'}
+                whileHover={{ scale: 1.02, y: -1.5 }}
+                whileTap={{ scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                className="px-5 py-2.5 rounded-xl rp-btn-primary text-white text-xs font-semibold cursor-pointer whitespace-nowrap"
+                className="h-10 px-5 rounded-xl rp-btn-primary text-white text-xs font-semibold cursor-pointer whitespace-nowrap"
               >
                 {isFa ? 'بررسی بلیط' : 'Track PNR'}
               </motion.button>
@@ -558,7 +558,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
             {pnrSearched && !foundTicket && (
               <div className="mt-2 text-xs text-red-600 dark:text-red-400 rp-animate-in">
                 {isFa
-                  ? 'بلیطی با این کد رزرو یافت نشد. لطفاً کد PNR را بررسی کنید.'
+                  ? 'بلیطی با این کد رزرو یافت نشد. لطفاً کد رهگیری را بررسی کنید.'
                   : 'No ticket found matching that PNR reference code.'}
               </div>
             )}

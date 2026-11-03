@@ -260,6 +260,7 @@ input[type="number"],
 input[type="email"],
 input[type="password"],
 input[type="time"],
+input[type="date"],
 input[type="search"],
 textarea {
   transition:
@@ -268,11 +269,18 @@ textarea {
     background-color 160ms ease;
 }
 
+/* Ensure Persian placeholders on dir="ltr" inputs align naturally to the right in RTL mode when empty */
+[dir="rtl"] input[dir="ltr"]:placeholder-shown:not([type="time"]):not([type="date"]):not([type="number"]) {
+  text-align: right;
+}
+
 input[type="text"]:hover,
 input[type="number"]:hover,
 input[type="email"]:hover,
 input[type="password"]:hover,
-input[type="time"]:hover {
+input[type="time"]:hover,
+input[type="date"]:hover,
+input[type="search"]:hover {
   border-color: #94a3b8;
 }
 
@@ -280,7 +288,9 @@ input[type="time"]:hover {
 .dark input[type="number"]:hover,
 .dark input[type="email"]:hover,
 .dark input[type="password"]:hover,
-.dark input[type="time"]:hover {
+.dark input[type="time"]:hover,
+.dark input[type="date"]:hover,
+.dark input[type="search"]:hover {
   border-color: #475569;
 }
 
@@ -291,6 +301,8 @@ input[type="number"]:focus,
 input[type="email"]:focus,
 input[type="password"]:focus,
 input[type="time"]:focus,
+input[type="date"]:focus,
+input[type="search"]:focus,
 textarea:focus {
   outline: none;
   border-color: #2563eb !important;
@@ -304,6 +316,8 @@ textarea:focus {
 .dark input[type="email"]:focus,
 .dark input[type="password"]:focus,
 .dark input[type="time"]:focus,
+.dark input[type="date"]:focus,
+.dark input[type="search"]:focus,
 .dark textarea:focus {
   border-color: #3b82f6 !important;
   box-shadow: 0 0 0 3.5px rgba(59, 130, 246, 0.24);
@@ -314,7 +328,7 @@ label {
   transition: color 150ms ease;
 }
 
-/* Tactile Button Micro-Interactions with Spring Easing & 1.05x Hover Scale */
+/* Tactile Button Micro-Interactions with Spring Easing & Balanced Hover Scale */
 button {
   will-change: transform, box-shadow;
   transition:
@@ -326,11 +340,11 @@ button {
 }
 
 button:hover:not(:disabled) {
-  transform: translateY(-1px) scale(1.05);
+  transform: translateY(-1px) scale(1.02);
 }
 
 button:not(:disabled):active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 
 button:focus-visible,
@@ -348,11 +362,11 @@ a:focus-visible {
 .rp-btn-primary:hover:not(:disabled) {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   box-shadow: 0 10px 24px -4px rgba(37, 99, 235, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px) scale(1.05);
+  transform: translateY(-1.5px) scale(1.02);
 }
 
 .rp-btn-primary:active:not(:disabled) {
-  transform: translateY(0) scale(0.96);
+  transform: translateY(0) scale(0.97);
 }
 
 .rp-btn-emerald {
@@ -363,10 +377,10 @@ a:focus-visible {
 .rp-btn-emerald:hover:not(:disabled) {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   box-shadow: 0 10px 24px -4px rgba(16, 185, 129, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px) scale(1.05);
+  transform: translateY(-1.5px) scale(1.02);
 }
 
-/* Interactive Card Elevation, 1.05x Hover Scaling & Spring Physics */
+/* Interactive Card Elevation & Spring Physics */
 .rp-card-hover {
   will-change: transform, box-shadow;
   transition:
@@ -376,7 +390,7 @@ a:focus-visible {
 }
 
 .rp-card-hover:hover {
-  transform: translateY(-4px) scale(1.05);
+  transform: translateY(-3px) scale(1.008);
   box-shadow:
     0 20px 38px -12px rgba(15, 23, 42, 0.14),
     0 8px 18px -6px rgba(37, 99, 235, 0.14);

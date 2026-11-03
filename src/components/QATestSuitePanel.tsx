@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { CheckCircle2, Play, ShieldCheck, Terminal, XCircle } from 'lucide-react';
 import { Language, TestCaseResult } from '../types/domain';
 import { runAllAutomatedTests } from '../services/qaTestSuite';
 import { formatDateTime, toPersianDigits } from '../services/authService';
+import {
+  BUTTON_HOVER_PROPS,
+  fadeSlideUpVariants,
+  interactiveCardVariants,
+  staggerGridVariants,
+} from './ui/motionPrimitives';
 
 interface QATestSuitePanelProps {
   lang: Language;
@@ -53,9 +60,14 @@ export const QATestSuitePanel: React.FC<QATestSuitePanelProps> = ({ lang }) => {
   };
 
   return (
-    <div className="space-y-6 rp-animate-in">
+    <div className="space-y-6">
       {/* Header Banner */}
-      <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-xs">
+      <motion.div
+        variants={fadeSlideUpVariants}
+        initial="hidden"
+        animate="visible"
+        className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-xs"
+      >
         <div className="flex items-start gap-3">
           <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
             <ShieldCheck className="w-6 h-6" />
@@ -88,24 +100,31 @@ export const QATestSuitePanel: React.FC<QATestSuitePanelProps> = ({ lang }) => {
             </div>
           </div>
 
-          <button
+          <motion.button
             type="button"
             onClick={executeSuite}
+            {...BUTTON_HOVER_PROPS}
             className="rp-btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-xs font-semibold cursor-pointer"
           >
             <Play className="w-4 h-4" />
             <span>{isFa ? 'اجرای مجدد تمام تست‌ها' : 'Re-Run All 5 Suites'}</span>
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Phase Filter Controls */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs">
+      <motion.div
+        variants={fadeSlideUpVariants}
+        initial="hidden"
+        animate="visible"
+        className="flex flex-wrap items-center gap-1.5 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs"
+      >
         {suiteBadges.map((b) => (
-          <button
+          <motion.button
             key={b.id}
             type="button"
             onClick={() => setSelectedSuite(b.id)}
+            {...BUTTON_HOVER_PROPS}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
               selectedSuite === b.id
                 ? 'bg-blue-600 text-white'
@@ -113,16 +132,23 @@ export const QATestSuitePanel: React.FC<QATestSuitePanelProps> = ({ lang }) => {
             }`}
           >
             {isFa ? b.labelFa : b.labelEn}
-          </button>
+          </motion.button>
         ))}
-      </div>
+      </motion.div>
 
       {/* Test Cases Results Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredResults.map((test, idx) => (
-          <div
+      <motion.div
+        variants={staggerGridVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+      >
+        {filteredResults.map((test) => (
+          <motion.div
             key={test.id}
-            className={`rp-card-hover rp-animate-in rp-stagger-${(idx % 4) + 1} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-xs`}
+            variants={interactiveCardVariants}
+            whileHover="hover"
+            className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-xs"
           >
             <div>
               <div className="flex items-start justify-between gap-2 mb-2">
@@ -171,9 +197,9 @@ export const QATestSuitePanel: React.FC<QATestSuitePanelProps> = ({ lang }) => {
                 ))}
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 };

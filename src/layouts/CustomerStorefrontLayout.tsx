@@ -19,6 +19,9 @@ import {
   UserRole,
 } from '../types/domain';
 import { formatCurrency, localizeText } from '../services/authService';
+import { motion } from 'framer-motion';
+import { BUTTON_HOVER_PROPS, fadeSlideUpVariants } from '../components/ui/motionPrimitives';
+import { RailPulseLogo } from '../components/ui/RailPulseLogo';
 
 interface CustomerStorefrontLayoutProps {
   lang: Language;
@@ -55,26 +58,35 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      {/* Top Bar Contract: Zone 1 (Wordmark) — Zone 2 (4 Concise Nav Links) — Zone 3 (Primary Action) */}
-      <header className="sticky top-0 z-40 flex items-center justify-between gap-8 px-6 py-3.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        {/* Zone 1: Single text element wordmark */}
+      {/* Top Bar Contract: Zone 1 (Wordmark / Brand Logo) — Zone 2 (Concise Nav Links) — Zone 3 (Primary Action) */}
+      <header
+        role="banner"
+        className="sticky top-0 z-40 flex items-center justify-between gap-8 px-6 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800"
+      >
+        {/* Zone 1: Vector SVG Brand Lockup */}
         <a
           href="#top"
           onClick={(e) => {
             e.preventDefault();
             onNavigateHome();
           }}
-          className="text-lg font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0"
+          aria-label={isFa ? 'صفحه اصلی ریل‌پالس اینترپرایز' : 'RailPulse Enterprise Home'}
+          className="shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg p-0.5"
         >
-          {isFa ? 'سامانه جامع ریل‌پالس' : 'RailPulse'}
+          <RailPulseLogo size="md" variant="lockup" lang={lang} />
         </a>
 
         {/* Zone 2: 4–5 Concise Single-Line Navigation Links */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-slate-300">
+        <nav
+          role="navigation"
+          aria-label={isFa ? 'ناوبری اصلی فروشگاهی' : 'Main storefront navigation'}
+          className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-slate-300"
+        >
           <button
             type="button"
             onClick={() => onNavigateHome('search-engine')}
-            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1 border-b-2 border-transparent hover:border-blue-500/60"
+            aria-label={isFa ? 'رزرو بلیط قطار و جستجوی کریدورها' : 'Book train tickets and search corridors'}
+            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1 border-b-2 border-transparent hover:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
           >
             {isFa ? 'رزرو بلیط قطار' : 'Book Tickets'}
           </button>
@@ -82,7 +94,8 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
           <button
             type="button"
             onClick={() => onNavigateHome('live-departures')}
-            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1 border-b-2 border-transparent hover:border-blue-500/60"
+            aria-label={isFa ? 'تابلوی زنده حرکت قطارها و زمانبندی' : 'Live train departures board and schedule'}
+            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1 border-b-2 border-transparent hover:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
           >
             {isFa ? 'تابلوی حرکت قطارها' : 'Live Departures'}
           </button>
@@ -90,7 +103,8 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
           <button
             type="button"
             onClick={() => onNavigateHome('pnr-tracker')}
-            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1 border-b-2 border-transparent hover:border-blue-500/60"
+            aria-label={isFa ? 'پیگیری بلیط با کد رزرو ۵ رقمی' : 'Track booking using 5-digit PNR reference'}
+            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1 border-b-2 border-transparent hover:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
           >
             {isFa ? 'پیگیری بلیط با کد رزرو' : 'Track Booking'}
           </button>
@@ -99,7 +113,9 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
             <button
               type="button"
               onClick={() => onNavigatePassengerPortal('BOOKING')}
-              className={`hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1 border-b-2 ${
+              aria-label={isFa ? 'پنل کاربری و کیف پول مسافر' : 'My Trips and passenger digital wallet'}
+              aria-current={activeRoute === 'PASSENGER_PORTAL' ? 'page' : undefined}
+              className={`hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer py-1 border-b-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded ${
                 activeRoute === 'PASSENGER_PORTAL'
                   ? 'text-blue-600 dark:text-blue-400 font-semibold border-blue-600 dark:border-blue-400'
                   : 'border-transparent hover:border-blue-500/60'
@@ -113,21 +129,25 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
         {/* Zone 3: Primary Action */}
         <div className="flex items-center gap-3 shrink-0">
           {session?.role === 'passenger' ? (
-            <button
+            <motion.button
               type="button"
               onClick={() => onNavigatePassengerPortal('BOOKING')}
-              className="px-4 py-2 text-xs font-semibold text-white rp-btn-primary rounded-lg whitespace-nowrap shrink-0 cursor-pointer"
+              {...BUTTON_HOVER_PROPS}
+              aria-label={isFa ? 'ورود به حساب کاربری مسافر' : 'Open Passenger Account portal'}
+              className="px-4 py-2 text-xs font-semibold text-white rp-btn-primary rounded-lg whitespace-nowrap shrink-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
               {isFa ? 'حساب کاربری مسافر' : 'Passenger Account'}
-            </button>
+            </motion.button>
           ) : (
-            <button
+            <motion.button
               type="button"
               onClick={() => onNavigateAuth('passenger', 'LOGIN')}
-              className="px-4 py-2 text-xs font-semibold text-white rp-btn-primary rounded-lg whitespace-nowrap shrink-0 cursor-pointer"
+              {...BUTTON_HOVER_PROPS}
+              aria-label={isFa ? 'ورود یا ثبت‌نام مسافر جدید' : 'Sign in or register as a passenger'}
+              className="px-4 py-2 text-xs font-semibold text-white rp-btn-primary rounded-lg whitespace-nowrap shrink-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
               {isFa ? 'ورود / ثبت‌نام مسافر' : 'Sign In / Register'}
-            </button>
+            </motion.button>
           )}
         </div>
       </header>
@@ -181,23 +201,25 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
             )}
 
             <div className="flex items-center gap-2">
-              <button
+              <motion.button
                 type="button"
                 onClick={onToggleLang}
+                {...BUTTON_HOVER_PROPS}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 cursor-pointer font-medium"
               >
                 <Globe className="w-3.5 h-3.5" />
                 <span>{lang === 'fa' ? 'English (LTR)' : 'فارسی (RTL)'}</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button
                 type="button"
                 onClick={onToggleTheme}
+                {...BUTTON_HOVER_PROPS}
                 className="p-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 cursor-pointer"
                 title={isFa ? 'تغییر تم روشن/تاریک' : 'Toggle Light/Dark Theme'}
               >
                 {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-              </button>
+              </motion.button>
             </div>
           </div>
         </div>
@@ -255,7 +277,12 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
       {/* Discreet Developer Documentation Modal (Accessible ONLY via footer link) */}
       {showDevDocsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 rp-modal-backdrop">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl rp-modal-content">
+          <motion.div
+            variants={fadeSlideUpVariants}
+            initial="hidden"
+            animate="visible"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl"
+          >
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -316,25 +343,27 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
             </div>
 
             <div className="flex items-center justify-end gap-2 mt-5">
-              <button
+              <motion.button
                 type="button"
                 onClick={() => {
                   setShowDevDocsModal(false);
                   onNavigateAuth('admin', 'LOGIN');
                 }}
+                {...BUTTON_HOVER_PROPS}
                 className="px-3.5 py-2 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 {isFa ? 'رفتن به صفحه ورود پرسنل' : 'Go to Corporate Login'}
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 type="button"
                 onClick={() => setShowDevDocsModal(false)}
+                {...BUTTON_HOVER_PROPS}
                 className="px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white cursor-pointer"
               >
                 {isFa ? 'بستن راهنما' : 'Close'}
-              </button>
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

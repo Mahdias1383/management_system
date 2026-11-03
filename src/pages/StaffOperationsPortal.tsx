@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   Activity,
   AlertTriangle,
@@ -49,6 +50,12 @@ import {
   EnterpriseBackofficeLayout,
   SidebarNavItem,
 } from '../layouts/EnterpriseBackofficeLayout';
+import {
+  BUTTON_HOVER_PROPS,
+  fadeSlideUpVariants,
+  interactiveCardVariants,
+  staggerGridVariants,
+} from '../components/ui/motionPrimitives';
 
 interface StaffOperationsPortalProps {
   db: PlatformDatabaseV2;
@@ -634,9 +641,14 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
           SECTION 1: CORRIDOR & LINE TOPOLOGY
           ===================================================================== */}
       {activeSection === 'TOPOLOGY' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 rp-animate-in">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left 5 Cols: Create New Railway Corridor */}
-          <div className="rp-card-hover lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 h-fit shadow-xs">
+          <motion.div
+            variants={fadeSlideUpVariants}
+            initial="hidden"
+            animate="visible"
+            className="rp-card-hover lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 h-fit shadow-xs"
+          >
             <div className="flex items-center gap-2.5 mb-4">
               <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                 <Plus className="w-5 h-5" />
@@ -827,18 +839,24 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                 />
               </div>
 
-              <button
+              <motion.button
                 type="submit"
+                {...BUTTON_HOVER_PROPS}
                 className="rp-btn-primary w-full py-2.5 px-4 rounded-lg text-white font-semibold text-sm cursor-pointer"
               >
                 {isFa ? 'ثبت کریدور در شبکه ریلی' : 'Register Railway Corridor'}
-              </button>
+              </motion.button>
             </form>
-          </div>
+          </motion.div>
 
           {/* Right 7 Cols: Active Railway Corridors */}
-          <div className="lg:col-span-7 space-y-4">
-            {db.lines.map((line, idx) => {
+          <motion.div
+            variants={staggerGridVariants}
+            initial="hidden"
+            animate="visible"
+            className="lg:col-span-7 space-y-4"
+          >
+            {db.lines.map((line) => {
               const lineTrainsCount = db.trains.filter(
                 (t) =>
                   normalizeIdentifier(t.name_line) ===
@@ -850,9 +868,11 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
               );
 
               return (
-                <div
+                <motion.div
                   key={line.id}
-                  className={`rp-card-hover rp-animate-in rp-stagger-${(idx % 4) + 1} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs`}
+                  variants={interactiveCardVariants}
+                  whileHover="hover"
+                  className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                     <div>
@@ -878,7 +898,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <button
+                      <motion.button
                         type="button"
                         onClick={() => {
                           setEditingLine(line);
@@ -887,19 +907,21 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                           setEditDest(line.destination);
                           setEditStations([...line.list_state]);
                         }}
+                        {...BUTTON_HOVER_PROPS}
                         className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                         <span>{isFa ? 'ویرایش مسیر' : 'Edit Corridor'}</span>
-                      </button>
-                      <button
+                      </motion.button>
+                      <motion.button
                         type="button"
                         onClick={() => setDeletingLine(line)}
+                        {...BUTTON_HOVER_PROPS}
                         className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-200 dark:border-red-900/50 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         <span>{isFa ? 'حذف' : 'Delete'}</span>
-                      </button>
+                      </motion.button>
                     </div>
                   </div>
 
@@ -943,10 +965,10 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                       </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         </div>
       )}
 
@@ -954,10 +976,15 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
           SECTION 2: FLEET & TIMETABLE DISPATCH
           ===================================================================== */}
       {activeSection === 'DISPATCH' && (
-        <div className="space-y-6 rp-animate-in">
+        <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Left 5 Cols: Schedule New Train Service */}
-            <div className="rp-card-hover lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 h-fit shadow-xs">
+            <motion.div
+              variants={fadeSlideUpVariants}
+              initial="hidden"
+              animate="visible"
+              className="rp-card-hover lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 h-fit shadow-xs"
+            >
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                   <Train className="w-5 h-5" />
@@ -1203,13 +1230,14 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                         ))}
 
                         {dispatchSafetyReport.suggestedSafeDeparture && (
-                          <button
+                          <motion.button
                             type="button"
                             onClick={() =>
                               setDepartureTime(
                                 dispatchSafetyReport.suggestedSafeDeparture
                               )
                             }
+                            {...BUTTON_HOVER_PROPS}
                             className="w-full mt-1 py-1.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <Sparkles className="w-3.5 h-3.5" />
@@ -1221,21 +1249,22 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                                   )})`
                                 : `Apply Suggested Safe Departure Slot (${dispatchSafetyReport.suggestedSafeDeparture})`}
                             </span>
-                          </button>
+                          </motion.button>
                         )}
                       </div>
                     )}
                   </div>
                 )}
 
-                <button
+                <motion.button
                   type="submit"
+                  {...BUTTON_HOVER_PROPS}
                   className="rp-btn-primary w-full py-2.5 px-4 rounded-lg text-white font-semibold text-sm cursor-pointer"
                 >
                   {isFa ? 'ثبت نهایی قطار در جدول سیر' : 'Commit Train to Timetable'}
-                </button>
+                </motion.button>
               </form>
-            </div>
+            </motion.div>
 
             {/* Right 7 Cols: Live Marey Preview + Active Fleet Table */}
             <div className="lg:col-span-7 space-y-6">
@@ -1261,7 +1290,12 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
               )}
 
               {/* Active Fleet Table */}
-              <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+              <motion.div
+                variants={fadeSlideUpVariants}
+                initial="hidden"
+                animate="visible"
+                className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs"
+              >
                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                     {isFa
@@ -1330,21 +1364,22 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                             </span>
                           </td>
                           <td className="py-3 px-4 text-end">
-                            <button
+                            <motion.button
                               type="button"
                               onClick={() => handleRemoveTrain(t)}
+                              {...BUTTON_HOVER_PROPS}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer"
                               title={isFa ? 'حذف سرویس قطار' : 'Remove Train Service'}
                             >
                               <Trash2 className="w-4 h-4" />
-                            </button>
+                            </motion.button>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </div>
@@ -1354,8 +1389,13 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
           SECTION 3: COLLISION RADAR & MAREY CHART SIMULATOR
           ===================================================================== */}
       {activeSection === 'MAREY' && mareyLineObj && (
-        <div className="space-y-6 rp-animate-in">
-          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div className="space-y-6">
+          <motion.div
+            variants={fadeSlideUpVariants}
+            initial="hidden"
+            animate="visible"
+            className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs"
+          >
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
               <div>
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -1439,11 +1479,12 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
 
                 {simSafetyReport.hasConflict &&
                   simSafetyReport.suggestedSafeDeparture && (
-                    <button
+                    <motion.button
                       type="button"
                       onClick={() =>
                         setSimDeparture(simSafetyReport.suggestedSafeDeparture)
                       }
+                      {...BUTTON_HOVER_PROPS}
                       className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs cursor-pointer"
                     >
                       {isFa
@@ -1452,11 +1493,11 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                             lang
                           )})`
                         : `Snap to Safe Slot (${simSafetyReport.suggestedSafeDeparture})`}
-                    </button>
+                    </motion.button>
                   )}
               </div>
             )}
-          </div>
+          </motion.div>
 
           <MareyChart
             line={mareyLineObj}
@@ -1475,7 +1516,12 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
           />
 
           {/* Station Arrival/Departure Breakdown */}
-          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+          <motion.div
+            variants={fadeSlideUpVariants}
+            initial="hidden"
+            animate="visible"
+            className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs"
+          >
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-3">
               {isFa
                 ? 'جدول محاسباتی زمان ورود و خروج ایستگاه‌ها (بر اساس معادلات دیفرانسیل حرکت)'
@@ -1537,7 +1583,7 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
                 </tbody>
               </table>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 

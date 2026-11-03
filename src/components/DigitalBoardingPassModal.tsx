@@ -1,6 +1,7 @@
 import React from 'react';
-import { CheckCircle2, Printer, QrCode, Train, X } from 'lucide-react';
+import { CheckCircle2, Printer, QrCode, X } from 'lucide-react';
 import { Language, TicketRecord } from '../types/domain';
+import { RailPulseLogo } from './ui/RailPulseLogo';
 import {
   formatCurrency,
   formatDateTime,
@@ -24,14 +25,19 @@ export const DigitalBoardingPassModal: React.FC<DigitalBoardingPassModalProps> =
   const isFa = lang === 'fa';
 
   return (
-    <div className="rp-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={isFa ? 'کارت سوارشدن دیجیتال مسافر' : 'Passenger Digital Boarding Pass'}
+      className="rp-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4"
+    >
       <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
-        {/* Top Ticket Header Banner */}
+        {/* Top Ticket Header Banner with RailPulse Logo */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-blue-950 text-white px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Train className="w-5 h-5 text-blue-400" />
+          <div className="flex items-center gap-3">
+            <RailPulseLogo size="sm" variant="icon" />
             <div>
-              <div className="text-xs text-slate-400">
+              <div className="text-[11px] font-semibold tracking-wider text-blue-400">
                 {isFa ? 'کارت سوارشدن دیجیتال ریل‌پالس' : 'RAILPULSE BOARDING PASS'}
               </div>
               <div className="text-sm font-bold">{localizeText(ticket.name_train, lang)}</div>
@@ -152,6 +158,7 @@ export const DigitalBoardingPassModal: React.FC<DigitalBoardingPassModalProps> =
           <button
             type="button"
             onClick={() => window.print()}
+            aria-label={isFa ? 'چاپ بلیط مسافرتی' : 'Print travel boarding pass'}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
@@ -161,6 +168,7 @@ export const DigitalBoardingPassModal: React.FC<DigitalBoardingPassModalProps> =
           <button
             type="button"
             onClick={onClose}
+            aria-label={isFa ? 'بستن پنجره بلیط' : 'Close boarding pass modal'}
             className="rp-btn-primary inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-white text-xs font-semibold cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />

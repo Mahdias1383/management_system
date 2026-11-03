@@ -85,6 +85,10 @@ import {
   EnterpriseBackofficeLayout,
   SidebarNavItem,
 } from '../layouts/EnterpriseBackofficeLayout';
+import {
+  BUTTON_HOVER_PROPS,
+  fadeSlideUpVariants,
+} from '../components/ui/motionPrimitives';
 
 interface AdminExecutivePortalProps {
   db: PlatformDatabaseV2;
@@ -129,7 +133,7 @@ const kpiCardVariants: Variants = {
   },
   hover: {
     y: -5,
-    scale: 1.02,
+    scale: 1.05,
     boxShadow:
       '0 18px 34px -10px rgba(37, 99, 235, 0.16), 0 8px 16px -6px rgba(15, 23, 42, 0.08)',
     transition: {
@@ -1539,7 +1543,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           </motion.section>
 
           {/* 12-Month Monthly Revenue Trend LineChart (Recharts) */}
-          <div
+          <motion.div
+            variants={fadeSlideUpVariants}
+            initial="hidden"
+            animate="visible"
             className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs"
             style={{
               fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
@@ -1756,7 +1763,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </motion.div>
 
           {/* 30-Day Recharts Revenue Analysis */}
           <RevenueAnalysis transactions={db.transactions} lang={lang} />
@@ -1767,9 +1774,14 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           SECTION 2: OPERATIONS STAFF DIRECTORY & PROVISIONING
           ===================================================================== */}
       {activeSection === 'STAFF_HR' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 rp-animate-in">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left 4 Cols: Add New Staff Form */}
-          <div className="rp-card-hover lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 h-fit shadow-xs">
+          <motion.div
+            variants={fadeSlideUpVariants}
+            initial="hidden"
+            animate="visible"
+            className="rp-card-hover lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 h-fit shadow-xs"
+          >
             <div className="flex items-center gap-2.5 mb-4">
               <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                 <UserPlus className="w-5 h-5" />
@@ -1924,19 +1936,25 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 </div>
               </div>
 
-              <button
+              <motion.button
                 type="submit"
+                {...BUTTON_HOVER_PROPS}
                 className="rp-btn-primary w-full py-2.5 px-4 rounded-lg text-white font-semibold text-sm cursor-pointer"
               >
                 {isFa
                   ? 'ایجاد حساب کارشناس عملیات'
                   : 'Provision Operations Specialist'}
-              </button>
+              </motion.button>
             </form>
-          </div>
+          </motion.div>
 
           {/* Right 8 Cols: Operations Staff Directory */}
-          <div className="rp-card-hover lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col shadow-xs">
+          <motion.div
+            variants={fadeSlideUpVariants}
+            initial="hidden"
+            animate="visible"
+            className="rp-card-hover lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col shadow-xs"
+          >
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
@@ -2050,7 +2068,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       </td>
                       <td className="py-3 px-3 text-end">
                         <div className="inline-flex items-center gap-1">
-                          <button
+                          <motion.button
                             type="button"
                             onClick={() => {
                               setEditingStaff(emp);
@@ -2060,19 +2078,21 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                               setEditDepartment(emp.department);
                               setEditStatus(emp.status);
                             }}
+                            {...BUTTON_HOVER_PROPS}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer"
                             title={isFa ? 'ویرایش مشخصات' : 'Edit Specialist'}
                           >
                             <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button
+                          </motion.button>
+                          <motion.button
                             type="button"
                             onClick={() => setDeletingStaff(emp)}
+                            {...BUTTON_HOVER_PROPS}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 cursor-pointer"
                             title={isFa ? 'حذف کارشناس' : 'Revoke Access'}
                           >
                             <Trash2 className="w-4 h-4" />
-                          </button>
+                          </motion.button>
                         </div>
                       </td>
                     </tr>
@@ -2089,7 +2109,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 </tbody>
               </table>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
@@ -2097,9 +2117,14 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           SECTION 3: AUDIT TRAIL & DATA SNAPSHOTS
           ===================================================================== */}
       {activeSection === 'AUDIT' && (
-        <div className="space-y-6 rp-animate-in">
+        <div className="space-y-6">
           {/* Snapshot & Seed Controls */}
-          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-xs">
+          <motion.div
+            variants={fadeSlideUpVariants}
+            initial="hidden"
+            animate="visible"
+            className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-xs"
+          >
             <div>
               <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {isFa
@@ -2114,14 +2139,15 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <button
+              <motion.button
                 type="button"
                 onClick={handleExportSnapshot}
+                {...BUTTON_HOVER_PROPS}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>{isFa ? 'دانلود پشتیبان JSON' : 'Export JSON Snapshot'}</span>
-              </button>
+              </motion.button>
 
               <label className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                 <Upload className="w-3.5 h-3.5" />
@@ -2134,24 +2160,30 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 />
               </label>
 
-              <button
+              <motion.button
                 type="button"
                 onClick={() => {
                   const fresh = resetToDefaultSeedDatabase();
                   onUpdateDb(fresh);
                 }}
+                {...BUTTON_HOVER_PROPS}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-medium text-amber-700 dark:text-amber-300 cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>
                   {isFa ? 'بازنشانی به داده‌های پیش‌فرض' : 'Reset Default Seed Data'}
                 </span>
-              </button>
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
 
           {/* Audit Logs Table */}
-          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+          <motion.div
+            variants={fadeSlideUpVariants}
+            initial="hidden"
+            animate="visible"
+            className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs"
+          >
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-3">
               {isFa
                 ? 'فهرست رخدادهای ثبت‌شده در دفتر کل ممیزی امنیتی'
@@ -2200,7 +2232,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 </tbody>
               </table>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
@@ -2341,7 +2373,12 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           </motion.div>
 
           {/* Real-Time Push Control & Filter Bar */}
-          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+          <motion.div
+            variants={fadeSlideUpVariants}
+            initial="hidden"
+            animate="visible"
+            className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4"
+          >
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -2360,9 +2397,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <button
+                <motion.button
                   type="button"
                   onClick={() => simulateHighRevenueBookingPush(db)}
+                  {...BUTTON_HOVER_PROPS}
                   className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                 >
                   <Zap className="w-3.5 h-3.5" />
@@ -2371,11 +2409,12 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       ? 'ارسال اعلان آنی رزرو کلان (VIP)'
                       : 'Push High-Revenue Booking Alert'}
                   </span>
-                </button>
+                </motion.button>
 
-                <button
+                <motion.button
                   type="button"
                   onClick={() => simulateSafetyRadarConflictPush(db)}
+                  {...BUTTON_HOVER_PROPS}
                   className="px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                 >
                   <Radar className="w-3.5 h-3.5" />
@@ -2384,11 +2423,12 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       ? 'ارسال هشدار آنی تداخل رادار ایمنی'
                       : 'Push Safety Radar Conflict Alert'}
                   </span>
-                </button>
+                </motion.button>
 
-                <button
+                <motion.button
                   type="button"
                   onClick={() => setAutoStreamActive((prev) => !prev)}
+                  {...BUTTON_HOVER_PROPS}
                   className={`px-3.5 py-2 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
                     autoStreamActive
                       ? 'bg-indigo-600 border-indigo-500 text-white'
@@ -2405,28 +2445,30 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       ? 'فعال‌سازی استریم خودکار'
                       : 'Start Live Auto-Stream'}
                   </span>
-                </button>
+                </motion.button>
 
                 {unreadAlertsCount > 0 && (
-                  <button
+                  <motion.button
                     type="button"
                     onClick={() => markAllExecutiveAlertsRead()}
+                    {...BUTTON_HOVER_PROPS}
                     className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <CheckCheck className="w-3.5 h-3.5" />
                     <span>
                       {isFa ? 'خواندن همه اعلان‌ها' : 'Mark All Read'}
                     </span>
-                  </button>
+                  </motion.button>
                 )}
               </div>
             </div>
 
             {/* Category Filter Pills */}
             <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
-              <button
+              <motion.button
                 type="button"
                 onClick={() => setWorkspaceAlertFilter('ALL')}
+                {...BUTTON_HOVER_PROPS}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
                   workspaceAlertFilter === 'ALL'
                     ? 'bg-blue-600 text-white'
@@ -2435,10 +2477,11 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
               >
                 {isFa ? 'همه هشدارها' : 'All Notifications'} (
                 {formatNumber(alerts.length, lang)})
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 type="button"
                 onClick={() => setWorkspaceAlertFilter('HIGH_REVENUE_BOOKING')}
+                {...BUTTON_HOVER_PROPS}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
                   workspaceAlertFilter === 'HIGH_REVENUE_BOOKING'
                     ? 'bg-emerald-600 text-white'
@@ -2451,10 +2494,11 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   lang
                 )}
                 )
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 type="button"
                 onClick={() => setWorkspaceAlertFilter('SAFETY_RADAR_CONFLICT')}
+                {...BUTTON_HOVER_PROPS}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
                   workspaceAlertFilter === 'SAFETY_RADAR_CONFLICT'
                     ? 'bg-rose-600 text-white'
@@ -2467,7 +2511,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   lang
                 )}
                 )
-              </button>
+              </motion.button>
             </div>
 
             {/* Alert Cards Stream */}
@@ -2481,6 +2525,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       layout
                       initial={{ opacity: 0, y: 12, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
+                      whileHover={{ scale: 1.05, y: -4 }}
                       exit={{ opacity: 0, scale: 0.96 }}
                       transition={{ type: 'spring', stiffness: 340, damping: 26 }}
                       className={`rp-card-hover rounded-xl p-4 border transition-all ${
@@ -2583,22 +2628,24 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
 
                         <div className="flex items-center gap-1.5 shrink-0">
                           {!alert.read && (
-                            <button
+                            <motion.button
                               type="button"
                               onClick={() => markExecutiveAlertRead(alert.id)}
+                              {...BUTTON_HOVER_PROPS}
                               className="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold cursor-pointer"
                             >
                               {isFa ? 'خوانده شد' : 'Mark Read'}
-                            </button>
+                            </motion.button>
                           )}
-                          <button
+                          <motion.button
                             type="button"
                             onClick={() => dismissExecutiveAlert(alert.id)}
+                            {...BUTTON_HOVER_PROPS}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                             title={isFa ? 'حذف اعلان' : 'Dismiss Alert'}
                           >
                             <X className="w-4 h-4" />
-                          </button>
+                          </motion.button>
                         </div>
                       </div>
                     </motion.div>
@@ -2606,7 +2653,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 })}
               </AnimatePresence>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 

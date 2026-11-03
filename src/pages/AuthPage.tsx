@@ -19,6 +19,13 @@ import {
   verifyPassword,
 } from '../services/authService';
 import { deepClone } from '../services/storageAndMigration';
+import { motion } from 'framer-motion';
+import {
+  BUTTON_HOVER_PROPS,
+  fadeSlideUpVariants,
+  interactiveCardVariants,
+} from '../components/ui/motionPrimitives';
+import { RailPulseLogo } from '../components/ui/RailPulseLogo';
 
 interface AuthPageProps {
   db: PlatformDatabaseV2;
@@ -244,19 +251,25 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   };
 
   return (
-    <div className="max-w-lg mx-auto py-6 rp-animate-in">
+    <motion.div
+      variants={fadeSlideUpVariants}
+      initial="hidden"
+      animate="visible"
+      className="max-w-lg mx-auto py-6"
+    >
       <div className="mb-4 flex items-center justify-between">
-        <button
+        <motion.button
           type="button"
           onClick={onBackToHome}
+          {...BUTTON_HOVER_PROPS}
           className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
         >
           {isFa ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
           <span>{isFa ? 'بازگشت به صفحه اصلی' : 'Back to Home'}</span>
-        </button>
+        </motion.button>
 
         {/* Clean Toggle between Passenger Login and Corporate Staff/Admin Login */}
-        <button
+        <motion.button
           type="button"
           onClick={() => {
             if (portalCategory === 'PASSENGER') {
@@ -268,6 +281,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               setSelectedRole('passenger');
             }
           }}
+          {...BUTTON_HOVER_PROPS}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer"
         >
           <Building2 className="w-3.5 h-3.5" />
@@ -280,12 +294,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               ? 'بازگشت به ورود مسافران'
               : 'Switch to Passenger Login'}
           </span>
-        </button>
+        </motion.button>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-md">
+      <motion.div
+        variants={interactiveCardVariants}
+        initial="hidden"
+        animate="visible"
+        whileHover="hover"
+        className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-md"
+      >
+        <div className="flex justify-center mb-6 pb-5 border-b border-slate-200 dark:border-slate-800">
+          <RailPulseLogo size="lg" variant="lockup" lang={lang} />
+        </div>
+
         {portalCategory === 'PASSENGER' ? (
-          <div className="rp-animate-in">
+          <div>
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -310,9 +334,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
             {/* Sign In / Register Switch */}
             <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 dark:bg-slate-950 rounded-xl mb-5 border border-slate-200/70 dark:border-slate-800/70">
-              <button
+              <motion.button
                 type="button"
                 onClick={() => setMode('LOGIN')}
+                {...BUTTON_HOVER_PROPS}
                 className={`py-2 text-xs font-semibold rounded-lg cursor-pointer transition-all duration-150 ${
                   mode === 'LOGIN'
                     ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs'
@@ -320,10 +345,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 }`}
               >
                 {isFa ? 'ورود به حساب' : 'Sign In'}
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 type="button"
                 onClick={() => setMode('REGISTER')}
+                {...BUTTON_HOVER_PROPS}
                 className={`py-2 text-xs font-semibold rounded-lg cursor-pointer transition-all duration-150 ${
                   mode === 'REGISTER'
                     ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs'
@@ -331,7 +357,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 }`}
               >
                 {isFa ? 'ثبت‌نام مسافر جدید' : 'Create Account'}
-              </button>
+              </motion.button>
             </div>
 
             {mode === 'LOGIN' ? (
@@ -364,13 +390,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   />
                 </div>
 
-                <button
+                <motion.button
                   type="submit"
+                  {...BUTTON_HOVER_PROPS}
                   className="rp-btn-primary w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-white text-sm font-semibold cursor-pointer"
                 >
                   <Lock className="w-4 h-4" />
                   <span>{isFa ? 'ورود به پنل مسافر' : 'Sign In'}</span>
-                </button>
+                </motion.button>
               </form>
             ) : (
               <form onSubmit={handleRegisterPassenger} className="space-y-3.5 rp-animate-in">
@@ -429,19 +456,20 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   />
                 </div>
 
-                <button
+                <motion.button
                   type="submit"
+                  {...BUTTON_HOVER_PROPS}
                   className="rp-btn-emerald w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-white text-sm font-semibold cursor-pointer"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>{isFa ? 'ایجاد حساب کاربری مسافر' : 'Create Passenger Account'}</span>
-                </button>
+                </motion.button>
               </form>
             )}
           </div>
         ) : (
           /* Corporate Staff & System Admin Authentication */
-          <div className="rp-animate-in">
+          <div>
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -466,9 +494,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   {isFa ? 'انتخاب سطح دسترسی سازمانی:' : 'Select Backoffice Department:'}
                 </label>
                 <div className="grid grid-cols-2 gap-2.5">
-                  <button
+                  <motion.button
                     type="button"
                     onClick={() => setSelectedRole('staff')}
+                    {...BUTTON_HOVER_PROPS}
                     className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-150 ${
                       selectedRole === 'staff'
                         ? 'border-blue-600 bg-blue-600/10 text-blue-600 dark:text-blue-400 shadow-xs'
@@ -477,11 +506,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   >
                     <Train className="w-4 h-4" />
                     <span>{isFa ? 'کارشناس عملیات ریلی' : 'Operations Staff'}</span>
-                  </button>
+                  </motion.button>
 
-                  <button
+                  <motion.button
                     type="button"
                     onClick={() => setSelectedRole('admin')}
+                    {...BUTTON_HOVER_PROPS}
                     className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-150 ${
                       selectedRole === 'admin'
                         ? 'border-blue-600 bg-blue-600/10 text-blue-600 dark:text-blue-400 shadow-xs'
@@ -490,7 +520,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   >
                     <Shield className="w-4 h-4" />
                     <span>{isFa ? 'مدیر کل سازمان' : 'System Admin'}</span>
-                  </button>
+                  </motion.button>
                 </div>
               </div>
 
@@ -522,8 +552,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 />
               </div>
 
-              <button
+              <motion.button
                 type="submit"
+                {...BUTTON_HOVER_PROPS}
                 className="rp-btn-primary w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-white text-sm font-semibold cursor-pointer"
               >
                 <Lock className="w-4 h-4" />
@@ -536,11 +567,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     ? 'ورود به میز کار مهندسی و عملیات ریلی'
                     : 'Sign In to Operations Backoffice'}
                 </span>
-              </button>
+              </motion.button>
             </form>
           </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };

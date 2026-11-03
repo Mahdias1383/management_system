@@ -53,8 +53,45 @@ export default function App() {
   const [lang, setLang] = useState<Language>(APP_ENV.defaultLocale);
   const [theme, setTheme] = useState<ThemeMode>(APP_ENV.defaultTheme);
 
-  const [route, setRoute] = useState<AppRoute>('HOME');
-  const [session, setSession] = useState<ActiveSession | null>(null);
+  const [session, setSession] = useState<ActiveSession | null>(() => {
+    try {
+      const stored = localStorage.getItem(APP_ENV.sessionStorageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored) as ActiveSession;
+        if (parsed && parsed.userId && parsed.role) return parsed;
+      }
+    } catch {
+      // fallback
+    }
+    return null;
+  });
+
+  const [route, setRoute] = useState<AppRoute>(() => {
+    try {
+      const stored = localStorage.getItem(APP_ENV.sessionStorageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored) as ActiveSession;
+        if (parsed?.role === 'admin') return 'ADMIN_PORTAL';
+        if (parsed?.role === 'staff') return 'STAFF_PORTAL';
+        if (parsed?.role === 'passenger') return 'PASSENGER_PORTAL';
+      }
+    } catch {
+      // fallback
+    }
+    return 'HOME';
+  });
+
+  useEffect(() => {
+    try {
+      if (session) {
+        localStorage.setItem(APP_ENV.sessionStorageKey, JSON.stringify(session));
+      } else {
+        localStorage.removeItem(APP_ENV.sessionStorageKey);
+      }
+    } catch {
+      // ignore
+    }
+  }, [session]);
 
   const [authInitialRole, setAuthInitialRole] = useState<UserRole>('passenger');
   const [authInitialMode, setAuthInitialMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');

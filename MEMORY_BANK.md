@@ -45,6 +45,34 @@
   - [x] `src/services/alertCenterService.ts`: Real-time pub/sub event bus (`railpulse:executive-alert` + `storage` cross-tab sync) pushing notifications whenever a high-revenue booking is made (`purchaseTrainTicket` in `bookingEngine.ts`) or a temporal-spatial conflict is detected in the safety radar (`checkAccident` / `StaffOperationsPortal.tsx` / `AdminExecutivePortal.tsx`).
   - [x] `src/pages/AdminExecutivePortal.tsx` & `src/layouts/EnterpriseBackofficeLayout.tsx`: 5-section sidebar workspace (`Executive & Revenue Analytics`, `Real-Time Alert Center`, `Operations Staff Directory`, `Audit Trail & Data Snapshots`, `Engineering QA & Automated Tests`) plus an embedded live **Real-Time Alert Center** stream widget directly inside the `<aside>` sidebar (`sidebarAlertSlot`), floating real-time push toast notifications, `framer-motion` staggered entry transitions (`kpiGridVariants`, `kpiCardVariants`, `kpiIconVariants`), and a 12-Month Ticket Sales Revenue Recharts `AreaChart` section (`#ticket-sales-12m-area-section`).
   - [x] `src/components/RevenueAnalysis.tsx`: Recharts 30-day area/bar revenue visualization and `framer-motion` animated KPI summary cards (`revenueKpiGridVariants`, `revenueKpiCardVariants`) powered by `db.transactions` with `formatCurrency` and `'Vazirmatn FD'` font inheritance.
+  - [x] `src/components/ui/motionPrimitives.ts`: Shared `framer-motion` spring physics (`SPRING_TRANSITION`, `SOFT_SPRING_TRANSITION`), `BUTTON_HOVER_PROPS` (`scale: 1.05`), `CARD_HOVER_PROPS` (`scale: 1.05, y: -5`), `fadeSlideUpVariants`, `staggerGridVariants`, and `interactiveCardVariants` applied across all Public (`PublicHomePage.tsx`, `PassengerDashboard.tsx`, `AuthPage.tsx`, `CustomerStorefrontLayout.tsx`) and Enterprise (`AdminExecutivePortal.tsx`, `StaffOperationsPortal.tsx`, `RevenueAnalysis.tsx`, `QATestSuitePanel.tsx`, `EnterpriseBackofficeLayout.tsx`) cards and buttons.
   - [x] `src/services/qaTestSuite.ts` & `src/components/QATestSuitePanel.tsx`: 12 programmatic test suites across all 5 mandatory testing phases (`UT-01`..`UT-05`, `IT-01`..`IT-02`, `MT-01`..`MT-02`, `E2E-01`..`E2E-02`, `UI-01`..`UI-03`).
 
 
+
+- [x] **PHASE 6: BRAND IDENTITY, VECTOR SVG LOGO, PAIRED BILINGUAL GALLERY & GITHUB EXCELLENCE** — COMPLETED & VERIFIED
+  - [x] `src/components/ui/RailPulseLogo.tsx`: Minimal, modern vector SVG logo with aerodynamic bullet train silhouette, pulse waveform frequency beam, converging perspective tracks, luminous gradient filters, dark/light mode adaptability, sizes (`sm`, `md`, `lg`, `xl`), and variants (`icon`, `full`, `lockup`).
+  - [x] Logo Integration across headers:
+    - `CustomerStorefrontLayout.tsx`: Integrated in public storefront header with responsive size and bilingual typography.
+    - `EnterpriseBackofficeLayout.tsx`: Integrated into enterprise operational sidebar header (dynamically switching from `full` to `icon` when collapsed).
+    - `AuthPage.tsx`: Centered above authentication portal container.
+    - `DigitalBoardingPassModal.tsx`: Rendered on official passenger boarding pass header alongside PNR reference.
+  - [x] WCAG 2.1 AA Accessibility:
+    - Added `role="banner"`, `role="navigation"`, `role="dialog"`, `role="search"`, `aria-label`, `aria-current`, `aria-expanded`, and `aria-modal` attributes across interactive components.
+  - [x] Paired Bilingual Screenshots Gallery:
+    - Captured 12 high-resolution screenshots in `docs/screenshots/` (both Persian RTL and English LTR for all 6 subsystems):
+      1. Storefront: `01-storefront-fa.png` & `01-storefront-en.png`
+      2. Passenger Portal & Coach Seat Map: `02-passenger-booking-fa.png` & `02-passenger-booking-en.png`
+      3. Digital Boarding Pass Modal: `03-boarding-pass-fa.png` & `03-boarding-pass-en.png`
+      4. Staff Operations & Marey Radar: `04-staff-operations-fa.png` & `04-staff-operations-en.png`
+      5. Admin Analytics & 12M AreaChart: `05-admin-analytics-fa.png` & `05-admin-analytics-en.png`
+      6. 5-Phase Automated QA Suite: `06-qa-suite-fa.png` & `06-qa-suite-en.png`
+  - [x] World-Class GitHub Repository Standards:
+    - Created `.github/workflows/ci.yml` (GitHub Actions CI for linting, type-check, and build verification).
+    - Created `.editorconfig` (consistent indentation, charset, and trimming).
+    - Created `.gitattributes` (consistent LF line endings and binary handling).
+    - Created `.env` and `.env.example` following production best practices.
+    - Rewrote `README.md` to top-tier international standards with bilingual documentation, logo integration guide, paired screenshot comparison tables, and architecture diagrams.
+  - [x] Verification:
+    - `lint_applet` passed with 0 errors (`tsc --noEmit`).
+    - `compile_applet` passed with 0 errors (`vite build`).

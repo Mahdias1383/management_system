@@ -21,6 +21,10 @@ import {
   localizeText,
   toPersianDigits,
 } from '../services/authService';
+import {
+  BUTTON_HOVER_PROPS,
+  fadeSlideUpVariants,
+} from './ui/motionPrimitives';
 
 interface RevenueAnalysisProps {
   transactions: WalletTransaction[];
@@ -58,8 +62,8 @@ const revenueKpiCardVariants: Variants = {
     transition: { type: 'spring', stiffness: 320, damping: 24 },
   },
   hover: {
-    y: -4,
-    scale: 1.018,
+    y: -5,
+    scale: 1.05,
     boxShadow:
       '0 14px 28px -8px rgba(37, 99, 235, 0.14), 0 6px 12px -4px rgba(15, 23, 42, 0.06)',
     transition: { type: 'spring', stiffness: 380, damping: 22 },
@@ -162,7 +166,12 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
   }, [dailyData]);
 
   return (
-    <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+    <motion.div
+      variants={fadeSlideUpVariants}
+      initial="hidden"
+      animate="visible"
+      className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs"
+    >
       {/* Header & Controls */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
         <div className="flex items-center gap-2.5">
@@ -198,9 +207,10 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
           )}
 
           <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
-            <button
+            <motion.button
               type="button"
               onClick={() => setChartMode('AREA')}
+              {...BUTTON_HOVER_PROPS}
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer whitespace-nowrap ${
                 chartMode === 'AREA'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs'
@@ -208,10 +218,11 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
               }`}
             >
               {isFa ? 'نمودار مساحتی' : 'Area Trend'}
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
               onClick={() => setChartMode('BAR')}
+              {...BUTTON_HOVER_PROPS}
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer whitespace-nowrap ${
                 chartMode === 'BAR'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs'
@@ -219,7 +230,7 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
               }`}
             >
               {isFa ? 'نمودار ستونی' : 'Daily Bars'}
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>
@@ -519,6 +530,6 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
         </div>
         <span>{isFa ? 'بازه زمانی ۳۰ روزه' : '30-Day Rolling Window'}</span>
       </div>
-    </div>
+    </motion.div>
   );
 };

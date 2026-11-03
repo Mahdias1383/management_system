@@ -46,6 +46,12 @@ import { computeTrainStationTimings } from '../services/collisionEngine';
 import { deepClone } from '../services/storageAndMigration';
 import { SeatMapSelector } from '../components/SeatMapSelector';
 import { DigitalBoardingPassModal } from '../components/DigitalBoardingPassModal';
+import {
+  BUTTON_HOVER_PROPS,
+  fadeSlideUpVariants,
+  interactiveCardVariants,
+  staggerGridVariants,
+} from '../components/ui/motionPrimitives';
 
 interface PassengerDashboardProps {
   db: PlatformDatabaseV2;
@@ -333,11 +339,17 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Passenger Navigation Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5">
+      <motion.div
+        variants={fadeSlideUpVariants}
+        initial="hidden"
+        animate="visible"
+        className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5"
+      >
         <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 dark:bg-slate-950 rounded-lg">
-          <button
+          <motion.button
             type="button"
             onClick={() => setActiveTab('BOOKING')}
+            {...BUTTON_HOVER_PROPS}
             className={`px-3.5 py-2 text-xs font-medium rounded-md transition-colors cursor-pointer ${
               activeTab === 'BOOKING'
                 ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs'
@@ -345,10 +357,11 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
             }`}
           >
             {isFa ? 'جستجو و رزرو آنلاین بلیط' : 'Search & Book Tickets'}
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             type="button"
             onClick={() => setActiveTab('TICKETS')}
+            {...BUTTON_HOVER_PROPS}
             className={`px-3.5 py-2 text-xs font-medium rounded-md transition-colors cursor-pointer ${
               activeTab === 'TICKETS'
                 ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs'
@@ -358,10 +371,11 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
             {isFa
               ? `بلیط‌های من و کارت سوارشدن (${formatNumber(userTickets.length, lang)})`
               : `My Tickets & Boarding Passes (${userTickets.length})`}
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             type="button"
             onClick={() => setActiveTab('WALLET')}
+            {...BUTTON_HOVER_PROPS}
             className={`px-3.5 py-2 text-xs font-medium rounded-md transition-colors cursor-pointer ${
               activeTab === 'WALLET'
                 ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs'
@@ -369,10 +383,11 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
             }`}
           >
             {isFa ? 'کیف پول دیجیتال و تراکنش‌ها' : 'Digital Wallet & Ledger'}
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             type="button"
             onClick={() => setActiveTab('PROFILE')}
+            {...BUTTON_HOVER_PROPS}
             className={`px-3.5 py-2 text-xs font-medium rounded-md transition-colors cursor-pointer ${
               activeTab === 'PROFILE'
                 ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs'
@@ -380,7 +395,7 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
             }`}
           >
             {isFa ? 'تنظیمات حساب کاربری' : 'Account Profile'}
-          </button>
+          </motion.button>
         </div>
 
         {/* Active Passenger Balance Indicator */}
@@ -391,15 +406,16 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
           <div className="font-mono text-sm sm:text-base font-bold text-emerald-600 dark:text-emerald-400">
             {formatCurrency(currentUser.balance, isFa ? 'Rial' : 'USD')}
           </div>
-          <button
+          <motion.button
             type="button"
             onClick={() => setActiveTab('WALLET')}
+            {...BUTTON_HOVER_PROPS}
             className="px-2.5 py-1 text-xs font-medium rounded-lg bg-blue-600/10 text-blue-600 dark:text-blue-400 hover:bg-blue-600/20 cursor-pointer"
           >
             + {isFa ? 'افزایش اعتبار' : 'Top Up'}
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
 
       <AnimatePresence mode="wait">
         <motion.div
@@ -412,7 +428,12 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
           {/* TAB 1: SMART TRAIN SEARCH & TICKET BOOKING */}
           {activeTab === 'BOOKING' && (
             <div className="space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+          <motion.div
+            variants={fadeSlideUpVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-4 shadow-xs"
+          >
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute top-2.5 start-3 pointer-events-none" />
               <input
@@ -461,10 +482,15 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                 className="w-full px-3 py-2 text-xs font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
               />
             </div>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredTrains.map((train, idx) => {
+          <motion.div
+            variants={staggerGridVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
+            {filteredTrains.map((train) => {
               const line = db.lines.find(
                 (l) => normalizeIdentifier(l.name_line) === normalizeIdentifier(train.name_line)
               );
@@ -476,9 +502,11 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
               );
 
               return (
-                <div
+                <motion.div
                   key={train.id}
-                  className={`rp-card-hover rp-animate-in rp-stagger-${(idx % 4) + 1} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-xs`}
+                  variants={interactiveCardVariants}
+                  whileHover="hover"
+                  className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-xs"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-3">
@@ -560,29 +588,36 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                       />
                     </div>
 
-                    <button
+                    <motion.button
                       type="button"
                       onClick={() => {
                         setSelectedTrain(train);
                         setLowBalanceShortfall(null);
                       }}
+                      {...BUTTON_HOVER_PROPS}
                       className="rp-btn-primary w-full py-2.5 px-4 rounded-xl text-white text-xs font-semibold cursor-pointer"
                     >
                       {isFa ? 'انتخاب صندلی از نقشه واگن و رزرو' : 'Select Coach Seats & Book'}
-                    </button>
+                    </motion.button>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         </div>
       )}
 
       {/* TAB 2: MY TICKETS & QR BOARDING PASS */}
       {activeTab === 'TICKETS' && (
-        <div className="space-y-4 rp-animate-in">
+        <div className="space-y-4">
           {userTickets.length === 0 ? (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-10 text-center">
+            <motion.div
+              variants={interactiveCardVariants}
+              initial="hidden"
+              animate="visible"
+              whileHover="hover"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-10 text-center"
+            >
               <Ticket className="w-8 h-8 text-slate-400 mx-auto mb-2" />
               <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                 {isFa ? 'هنوز بلیطی خریداری نکرده‌اید' : 'No Tickets Purchased Yet'}
@@ -592,20 +627,28 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                   ? 'از بخش جستجو و رزرو بلیط، قطار و صندلی مورد نظر خود را انتخاب کنید.'
                   : 'Browse available trains to book your first digital boarding pass.'}
               </p>
-              <button
+              <motion.button
                 type="button"
                 onClick={() => setActiveTab('BOOKING')}
+                {...BUTTON_HOVER_PROPS}
                 className="rp-btn-primary px-4 py-2 rounded-lg text-white text-xs font-medium cursor-pointer"
               >
                 {isFa ? 'مشاهده سرویس‌های قطار' : 'Browse Trains'}
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {userTickets.map((tkt, idx) => (
-                <div
+            <motion.div
+              variants={staggerGridVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            >
+              {userTickets.map((tkt) => (
+                <motion.div
                   key={tkt.id}
-                  className={`rp-card-hover rp-animate-in rp-stagger-${(idx % 4) + 1} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-xs`}
+                  variants={interactiveCardVariants}
+                  whileHover="hover"
+                  className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-xs"
                 >
                   <div>
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-3">
@@ -693,38 +736,46 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-2">
-                    <button
+                    <motion.button
                       type="button"
                       onClick={() => setViewingTicketModal(tkt)}
+                      {...BUTTON_HOVER_PROPS}
                       className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>{isFa ? 'کارت سوارشدن' : 'Boarding Pass'}</span>
-                    </button>
+                    </motion.button>
 
                     {tkt.status === 'Confirmed' && (
-                      <button
+                      <motion.button
                         type="button"
                         onClick={() => handleRefundTicket(tkt.id)}
+                        {...BUTTON_HOVER_PROPS}
                         className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-red-300 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-medium transition-colors cursor-pointer"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                         <span>{isFa ? 'لغو و استرداد وجه' : 'Cancel & Refund'}</span>
-                      </button>
+                      </motion.button>
                     )}
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
       )}
 
       {/* TAB 3: DIGITAL WALLET & FINANCIAL LEDGER */}
       {activeTab === 'WALLET' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start rp-animate-in">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className="lg:col-span-5 space-y-5">
-            <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 text-white rounded-2xl p-6 border border-slate-800 shadow-lg">
+            <motion.div
+              variants={interactiveCardVariants}
+              initial="hidden"
+              animate="visible"
+              whileHover="hover"
+              className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 text-white rounded-2xl p-6 border border-slate-800 shadow-lg"
+            >
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-blue-400" />
@@ -746,10 +797,16 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                 <span>{localizeText(currentUser.name, lang)}</span>
                 <span dir="ltr" className="font-mono">@{currentUser.username}</span>
               </div>
-            </div>
+            </motion.div>
 
             {/* Increase Balance */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <motion.div
+              variants={interactiveCardVariants}
+              initial="hidden"
+              animate="visible"
+              whileHover="hover"
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs"
+            >
               <div className="flex items-center gap-2 mb-3">
                 <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
                 <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -759,14 +816,15 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
 
               <div className="flex items-center gap-2 mb-3">
                 {[5000000, 10000000, 25000000].map((preset) => (
-                  <button
+                  <motion.button
                     key={preset}
                     type="button"
                     onClick={() => handleDeposit(preset, true)}
+                    {...BUTTON_HOVER_PROPS}
                     className="flex-1 py-1.5 px-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-[11px] font-mono font-semibold transition-colors cursor-pointer"
                   >
                     +{formatCurrency(preset, isFa ? 'Rial' : 'USD')}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
 
@@ -780,18 +838,25 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                   onChange={(e) => setDepositAmount(e.target.value)}
                   className="flex-1 px-3 py-2 text-sm font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
                 />
-                <button
+                <motion.button
                   type="button"
                   onClick={() => handleDeposit(depositAmount, false)}
+                  {...BUTTON_HOVER_PROPS}
                   className="rp-btn-emerald px-4 py-2 rounded-lg text-white text-xs font-semibold cursor-pointer"
                 >
                   {isFa ? 'افزایش موجودی' : 'Deposit'}
-                </button>
+                </motion.button>
               </div>
-            </div>
+            </motion.div>
 
             {/* Withdraw Balance */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <motion.div
+              variants={interactiveCardVariants}
+              initial="hidden"
+              animate="visible"
+              whileHover="hover"
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs"
+            >
               <div className="flex items-center gap-2 mb-3">
                 <ArrowUpRight className="w-4 h-4 text-amber-500" />
                 <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -808,18 +873,24 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                   onChange={(e) => setWithdrawAmount(e.target.value)}
                   className="flex-1 px-3 py-2 text-sm font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
                 />
-                <button
+                <motion.button
                   type="submit"
+                  {...BUTTON_HOVER_PROPS}
                   className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-colors cursor-pointer"
                 >
                   {isFa ? 'ثبت برداشت' : 'Withdraw'}
-                </button>
+                </motion.button>
               </form>
-            </div>
+            </motion.div>
           </div>
 
           {/* Immutable Transaction Ledger */}
-          <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+          <motion.div
+            variants={fadeSlideUpVariants}
+            initial="hidden"
+            animate="visible"
+            className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs"
+          >
             <div className="flex items-center gap-2 mb-4">
               <Wallet className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
@@ -867,13 +938,19 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
                 </tbody>
               </table>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
       {/* TAB 4: AUTHENTICATED PROFILE MANAGEMENT */}
       {activeTab === 'PROFILE' && (
-        <div className="max-w-xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs rp-animate-in">
+        <motion.div
+          variants={interactiveCardVariants}
+          initial="hidden"
+          animate="visible"
+          whileHover="hover"
+          className="rp-card-hover max-w-xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs"
+        >
           <div className="flex items-center gap-2.5 mb-2">
             <UserCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
@@ -939,14 +1016,15 @@ export const PassengerDashboard: React.FC<PassengerDashboardProps> = ({
               />
             </div>
 
-            <button
+            <motion.button
               type="submit"
+              {...BUTTON_HOVER_PROPS}
               className="rp-btn-primary w-full py-2.5 px-4 rounded-xl text-white text-sm font-semibold cursor-pointer"
             >
               {isFa ? 'ذخیره تغییرات حساب کاربری' : 'Save Profile Changes'}
-            </button>
+            </motion.button>
           </form>
-        </div>
+        </motion.div>
       )}
         </motion.div>
       </AnimatePresence>

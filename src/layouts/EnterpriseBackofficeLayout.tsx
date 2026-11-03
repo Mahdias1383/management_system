@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { ActiveSession, Language, ThemeMode } from '../types/domain';
 import { formatDateTime, formatNumber, localizeText } from '../services/authService';
+import { BUTTON_HOVER_PROPS } from '../components/ui/motionPrimitives';
+import { RailPulseLogo } from '../components/ui/RailPulseLogo';
 
 export interface SidebarNavItem {
   id: string;
@@ -77,33 +79,32 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
         } shrink-0 bg-slate-900 text-slate-100 border-e border-slate-800 flex flex-col justify-between transition-all duration-150`}
       >
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
-          {/* Brand Lockup */}
-          <div className="h-16 px-4 flex items-center justify-between border-b border-slate-800 shrink-0">
-            <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shrink-0">
-                {session.role === 'admin' ? (
-                  <Shield className="w-5 h-5" />
-                ) : (
-                  <Train className="w-5 h-5" />
-                )}
-              </div>
-              {!collapsed && (
-                <div className="truncate">
-                  <div className="text-sm font-bold tracking-tight text-white truncate">
-                    {isFa ? 'سامانه جامع ریلی ریل‌پالس' : 'RailPulse Backoffice'}
-                  </div>
-                  <div className="text-[11px] text-slate-400 truncate">
-                    {isFa ? portalTitleFa : portalTitleEn}
-                  </div>
-                </div>
-              )}
+          {/* Brand Lockup with Vector SVG RailPulse Logo */}
+          <div className="h-16 px-3.5 flex items-center justify-between border-b border-slate-800 shrink-0">
+            <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
+              <RailPulseLogo
+                size={collapsed ? 'sm' : 'md'}
+                variant={collapsed ? 'icon' : 'lockup'}
+                lang={lang}
+                showBadge={!collapsed}
+              />
             </div>
 
             <button
               type="button"
               onClick={() => setCollapsed(!collapsed)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
               title={isFa ? 'جمع‌کردن / بازکردن منو' : 'Toggle Sidebar'}
+              aria-label={
+                collapsed
+                  ? isFa
+                    ? 'گسترش منوی عمودی'
+                    : 'Expand sidebar navigation'
+                  : isFa
+                  ? 'جمع کردن منوی عمودی'
+                  : 'Collapse sidebar navigation'
+              }
+              aria-expanded={!collapsed}
             >
               {collapsed ? (
                 <PanelLeftOpen className="w-4 h-4" />
@@ -120,10 +121,11 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
               const isCriticalBadge = item.badgeTone === 'critical' && (item.badgeCount || 0) > 0;
               const isLiveBadge = item.badgeTone === 'live' && (item.badgeCount || 0) > 0;
               return (
-                <button
+                <motion.button
                   key={item.id}
                   type="button"
                   onClick={() => onSelectTab(item.id)}
+                  {...BUTTON_HOVER_PROPS}
                   className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                     isActive
                       ? 'bg-blue-600 text-white shadow-xs'
@@ -164,7 +166,7 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
                       {formatNumber(item.badgeCount, lang)}
                     </span>
                   )}
-                </button>
+                </motion.button>
               );
             })}
           </nav>
@@ -203,14 +205,15 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
             </div>
           )}
 
-          <button
+          <motion.button
             type="button"
             onClick={onLogout}
+            {...BUTTON_HOVER_PROPS}
             className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-600/15 hover:bg-red-600 text-red-400 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4 shrink-0" />
             {!collapsed && <span>{isFa ? 'خروج از میز کار سازمانی' : 'Sign Out of Backoffice'}</span>}
-          </button>
+          </motion.button>
         </div>
       </aside>
 
@@ -244,23 +247,25 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
               {isFa ? portalSubtitleFa : portalSubtitleEn}
             </span>
 
-            <button
+            <motion.button
               type="button"
               onClick={onToggleLang}
+              {...BUTTON_HOVER_PROPS}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer whitespace-nowrap"
             >
               <Globe className="w-3.5 h-3.5" />
               <span>{lang === 'fa' ? 'English (LTR)' : 'فارسی (RTL)'}</span>
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
               type="button"
               onClick={onToggleTheme}
+              {...BUTTON_HOVER_PROPS}
               className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer"
               title={isFa ? 'تغییر حالت شب/روز' : 'Toggle Theme'}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
+            </motion.button>
           </div>
         </header>
 

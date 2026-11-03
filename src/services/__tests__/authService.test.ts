@@ -1,0 +1,202 @@
+import { describe, it, expect } from 'vitest';
+import {
+  toEnglishDigits,
+  toPersianDigits,
+  normalizeIdentifier,
+  hashPassword,
+  verifyPassword,
+  isValidEmail,
+  evaluatePasswordStrength,
+  isAuthorizedForRole,
+  parsePositiveNumber,
+  parsePositiveInteger,
+  formatTime,
+  localizeRole,
+  issueSessionToken,
+} from '../authService';
+import { ActiveSession } from '../../types/domain';
+
+describe('authService Core Utilities', () => {
+  describe('toEnglishDigits & toPersianDigits', () => {
+    it('converts Persian and Arabic digits to ASCII digits', () => {
+      expect(toEnglishDigits('۰۱۲۳۴۵۶۷۸۹')).toBe('0123456789');
+      expect(toEnglishDigits('٠١٢٣٤٥٦٧٨٩')).toBe('0123456789');
+      expect(toEnglishDigits('RP-۸۹۴۱۲')).toBe('RP-89412');
+    });
+
+    it('converts ASCII digits to Persian digits when lang is fa', () => {
+      expect(toPersianDigits('12345', 'fa')).toBe('۱۲۳۴۵');
+      expect(toPersianDigits('TR-101', 'fa')).toBe('TR-۱۰۱');
+    });
+
+    it('converts to ASCII digits when lang is en', () => {
+      expect(toPersianDigits('۱۲۳۴۵', 'en')).toBe('12345');
+    });
+
+    it('handles null and undefined gracefully', () => {
+      expect(toEnglishDigits(null)).toBe('');
+      expect(toEnglishDigits(undefined)).toBe('');
+      expect(toPersianDigits(null)).toBe('');
+      expect(toPersianDigits(undefined)).toBe('');
+    });
+  });
+
+  describe('normalizeIdentifier', () => {
+    it('trims whitespace and converts to lowercase', () => {
+      expect(normalizeIdentifier('  Admin.Chief  ')).toBe('admin.chief');
+      expect(normalizeIdentifier('TR-101')).toBe('tr-101');
+      expect(normalizeIdentifier('User@Example.COM')).toBe('user@example.com');
+    });
+
+    it('handles null and undefined safely', () => {
+      expect(normalizeIdentifier(null)).toBe('');
+      expect(normalizeIdentifier(undefined)).toBe('');
+    });
+  });
+
+  describe('hashPassword & verifyPassword', () => {
+    it('hashes passwords deterministically with rp_sha256$ prefix', () => {
+      const hash1 = hashPassword('Admin@123');
+      const hash2 = hashPassword('Admin@123');
+      expect(hash1).toBe(hash2);
+      expect(hash1.startsWith('rp_sha256$')).toBe(true);
+    });
+
+    it('correctly verifies matching plaintext and hashed passwords', () => {
+      const plain = 'SecretPassword456';
+      const hash = hashPassword(plain);
+      expect(verifyPassword(plain, hash)).toBe(true);
+      expect(verifyPassword('WrongPassword', hash)).toBe(false);
+    });
+
+    it('supports backward compatibility with raw plaintext hashes', () => {
+      expect(verifyPassword('legacyPass', 'legacyPass')).toBe(true);
+      expect(verifyPassword('legacyPass', 'differentPass')).toBe(false);
+    });
+
+    it('fails verification on empty stored hash', () => {
+      expect(verifyPassword('any', '')).toBe(false);
+    });
+  });
+
+  describe('isValidEmail', () => {
+    it('accepts valid RFC email formats', () => {
+      expect(isValidEmail('sara.ahmadi@example.com')).toBe(true);
+      expect(isValidEmail('admin_123@railpulse.ir')).toBe(true);
+      expect(isValidEmail('user.name+tag@sub.domain.org')).toBe(true);
+    });
+
+    it('rejects invalid email formats', () => {
+      expect(isValidEmail('plainaddress')).toBe(false);
+      expect(isValidEmail('@missinguser.com')).toBe(false);
+      expect(isValidEmail('missingdomain@')).toBe(false);
+      expect(isValidEmail('user@nodot')).toBe(false);
+      expect(isValidEmail('   ')).toBe(false);
+    });
+  });
+
+  describe('evaluatePasswordStrength', () => {
+    it('scores empty passwords as 0', () => {
+      expect(evaluatePasswordStrength('').score).toBe(0);
+    });
+
+    it('evaluates complexity across length and character diversity', () => {
+      const weak = evaluatePasswordStrength('12345');
+      expect(weak.score).toBeLessThanOrEqual(2);
+
+      const strong = evaluatePasswordStrength('RailPulse#2026!');
+      expect(strong.score).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe('isAuthorizedForRole', () => {
+    const validSession: ActiveSession = {
+      userId: 'usr_1',
+      username: 'passenger1',
+      role: 'passenger',
+      sessionToken: 'rptok_abc123',
+      displayName: 'Passenger One',
+      email: 'passenger1@example.com',
+    };
+
+    it('authorizes user when role is in allowed list', () => {
+      const res = isAuthorizedForRole(validSession, ['passenger']);
+      expect(res.authorized).toBe(true);
+    });
+
+    it('denies access when role is not in allowed list', () => {
+      const res = isAuthorizedForRole(validSession, ['admin', 'staff']);
+      expect(res.authorized).toBe(false);
+      expect(res.reasonEn).toContain('Access Denied');
+    });
+
+    it('denies access when session is missing or unauthenticated', () => {
+      expect(isAuthorizedForRole(null, ['passenger']).authorized).toBe(false);
+      expect(isAuthorizedForRole(undefined, ['passenger']).authorized).toBe(false);
+    });
+  });
+
+  describe('parsePositiveNumber & parsePositiveInteger', () => {
+    it('parses valid positive numbers and converts Persian digits', () => {
+      const res1 = parsePositiveNumber('450.5');
+      expect(res1.valid).toBe(true);
+      expect(res1.value).toBe(450.5);
+
+      const res2 = parsePositiveNumber('۴۵۰');
+      expect(res2.valid).toBe(true);
+      expect(res2.value).toBe(450);
+    });
+
+    it('falls back on negative, non-numeric, or invalid input', () => {
+      const resNeg = parsePositiveNumber('-50');
+      expect(resNeg.valid).toBe(false);
+      expect(resNeg.value).toBe(0);
+
+      const resInvalid = parsePositiveNumber('invalid');
+      expect(resInvalid.valid).toBe(false);
+      expect(resInvalid.value).toBe(0);
+
+      const resNull = parsePositiveNumber(null);
+      expect(resNull.valid).toBe(false);
+      expect(resNull.value).toBe(0);
+    });
+
+    it('validates positive integers and rejects decimals', () => {
+      const resInt = parsePositiveInteger('14');
+      expect(resInt.valid).toBe(true);
+      expect(resInt.value).toBe(14);
+
+      const resDecimal = parsePositiveInteger('14.7');
+      expect(resDecimal.valid).toBe(false);
+      expect(resDecimal.value).toBe(0);
+
+      const resZero = parsePositiveInteger('۰');
+      expect(resZero.valid).toBe(false);
+      expect(resZero.value).toBe(0);
+    });
+  });
+
+  describe('localizeRole & formatTime', () => {
+    it('localizes user roles into English and Persian', () => {
+      expect(localizeRole('admin', 'en')).toBe('System Admin');
+      expect(localizeRole('admin', 'fa')).toBe('مدیر کل سازمان');
+      expect(localizeRole('staff', 'en')).toBe('Operations Staff');
+      expect(localizeRole('staff', 'fa')).toBe('کارشناس عملیات');
+      expect(localizeRole('passenger', 'en')).toBe('Passenger');
+      expect(localizeRole('passenger', 'fa')).toBe('مسافر');
+    });
+
+    it('formats time with Persian digits for fa locale', () => {
+      expect(formatTime('08:30', 'fa')).toBe('۰۸:۳۰');
+      expect(formatTime('08:30', 'en')).toBe('08:30');
+    });
+  });
+
+  describe('issueSessionToken', () => {
+    it('creates unique signed token prefix', () => {
+      const token = issueSessionToken('usr_test', 'passenger');
+      expect(token.startsWith('rptok_')).toBe(true);
+      expect(token.length).toBeGreaterThan(10);
+    });
+  });
+});

@@ -108,3 +108,14 @@
   - Removed duplicate redundant `.env-sample`.
   - Standardized on industry-standard `.env.example`.
   - Updated `.gitignore` to track only `.env.example`.
+
+### Phase 9: Vitest Test Framework Integration
+- [x] Initialized Vitest in project (`vitest.config.ts`):
+  - Configured `@` alias resolution.
+  - Set test environment to `node` with glob pattern `src/**/*.{test,spec}.{ts,tsx}`.
+- [x] Added `test` script to `package.json` (`"test": "vitest run"`).
+- [x] Built core service unit test suites:
+  - `src/services/__tests__/authService.test.ts`: 23 automated tests verifying Persian/English digit conversions, identifier normalization, deterministic SHA-256 password hashing/verification, RFC-compliant email validation, password complexity scoring, strict RBAC authorization, and positive number/integer validation.
+  - `src/services/__tests__/collisionEngine.test.ts`: 7 automated tests verifying time conversion math, station timetable calculation, headway safety buffer violations, and safe alternate departure recommendations.
+- [x] Updated GitHub Actions CI workflow (`.github/workflows/ci.yml`) to execute `bun run test` on every push/PR.
+- [x] 100% Passing: All 30 unit tests pass in under 400ms.

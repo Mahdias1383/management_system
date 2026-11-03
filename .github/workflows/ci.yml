@@ -33,5 +33,8 @@ jobs:
       - name: Run TypeScript Type Check
         run: bun run lint
 
+      - name: Execute Vitest Automated Tests
+        run: bun run test
+
       - name: Verify Production Build
         run: bun run build

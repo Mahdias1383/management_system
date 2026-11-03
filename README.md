@@ -144,7 +144,9 @@ RailPulse Enterprise is fully configured as an installable Progressive Web App:
 
 ```text
 railpulse-enterprise/
-├── .github/workflows/ci.yml       # GitHub Actions CI (lint, typecheck, build)
+├── .github/workflows/
+│   ├── ci.yml                     # GitHub Actions CI (lint, test, build)
+│   └── test.yml                   # Automated Vitest test runner on every push
 ├── .editorconfig                  # Consistent cross-editor formatting rules
 ├── .gitattributes                 # LF line-ending normalization
 ├── .env.example                   # Environment configuration template
@@ -161,6 +163,7 @@ railpulse-enterprise/
 ├── index.html                     # HTML5 entry with PWA tags & typography
 ├── package.json                   # Dependencies and scripts
 ├── tsconfig.json                  # TypeScript 5.8 strict compiler options
+├── vitest.config.ts               # Vitest test framework configuration
 └── src/
     ├── App.tsx                    # Route engine, session manager & global toasts
     ├── config/env.ts              # Typed environment variables
@@ -253,6 +256,9 @@ Navigate to `http://localhost:3000`.
 ```bash
 # Typecheck & lint
 npm run lint
+
+# Run Vitest automated test suites
+npm test
 
 # Production build
 npm run build

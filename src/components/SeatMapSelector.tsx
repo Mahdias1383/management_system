@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Check, Train, X } from 'lucide-react';
 import { Language, StationNodeTiming, TrainSchedule } from '../types/domain';
+import { useOnClickOutside } from '../hooks/useOnClickOutside';
 import {
   formatCurrency,
   formatTime,
@@ -38,6 +39,8 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
   const isFa = lang === 'fa';
   const [coachNumber, setCoachNumber] = useState<number>(1);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const modalContentRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(modalContentRef, onClose);
 
   // Pre-select first available seat on mount
   useEffect(() => {
@@ -68,8 +71,15 @@ export const SeatMapSelector: React.FC<SeatMapSelectorProps> = ({
   const totalCost = Math.round(selectedSeats.length * train.cost_ticket * 100) / 100;
 
   return (
-    <div className="rp-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full p-6 shadow-2xl my-auto">
+    <div
+      onClick={onClose}
+      className="rp-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 overflow-y-auto"
+    >
+      <div
+        ref={modalContentRef}
+        onClick={(e) => e.stopPropagation()}
+        className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full p-6 shadow-2xl my-auto"
+      >
         {/* Modal Header */}
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4 mb-5">
           <div className="flex items-center gap-3">

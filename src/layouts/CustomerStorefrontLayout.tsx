@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   BookOpen,
   Globe,
@@ -23,6 +23,7 @@ import { motion } from 'framer-motion';
 import { BUTTON_HOVER_PROPS, fadeSlideUpVariants } from '../components/ui/motionPrimitives';
 import { RailPulseLogo } from '../components/ui/RailPulseLogo';
 import { PWAInstallButton } from '../components/ui/PWAInstallButton';
+import { useOnClickOutside } from '../hooks/useOnClickOutside';
 
 interface CustomerStorefrontLayoutProps {
   lang: Language;
@@ -56,6 +57,10 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
   const isFa = lang === 'fa';
   const currencyType = isFa ? 'Rial' : 'USD';
   const [showDevDocsModal, setShowDevDocsModal] = useState(false);
+  const devDocsModalRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(devDocsModalRef, () => setShowDevDocsModal(false), {
+    enabled: showDevDocsModal,
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
@@ -279,12 +284,17 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
 
       {/* Discreet Developer Documentation Modal (Accessible ONLY via footer link) */}
       {showDevDocsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 rp-modal-backdrop">
+        <div
+          onClick={() => setShowDevDocsModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 rp-modal-backdrop"
+        >
           <motion.div
+            ref={devDocsModalRef}
             variants={fadeSlideUpVariants}
             initial="hidden"
             animate="visible"
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl"
           >
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
               <div className="flex items-center gap-2">

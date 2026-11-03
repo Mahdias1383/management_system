@@ -134,3 +134,16 @@
   - Multi-category filter pills (`ALL`, `RESERVATIONS`, `SCHEDULES`, `STAFF`, `FINANCIAL`), actor role filter (`ALL`, `passenger`, `staff`, `admin`, `system`), and live keyword search.
   - Live simulation triggers (`Simulate Ticket Reservation` and `Simulate Schedule Modification`), CSV export, JSON snapshot import/export, and an expandable Activity Event Inspector modal with raw JSON copy.
 
+### Phase 11: Compliance CSV Export & Universal `useOnClickOutside` Modal Dismissal Hook
+- [x] Custom Hook (`src/hooks/useOnClickOutside.ts` & `src/hooks/index.ts`):
+  - Implemented `useOnClickOutside<T extends HTMLElement>(ref, handler, options)` listening for outside `mousedown` and `touchstart` pointer events as well as `Escape` key presses (`closeOnEscape`).
+  - Extracted pure testable helpers `isTargetOutsideElements` and `shouldDismissOnKeyDown`.
+  - Added unit test suite (`src/hooks/__tests__/useOnClickOutside.test.ts`) verifying outside clicks, inside clicks, null refs, ignored trigger elements, and Escape key handling.
+- [x] Universal Modal & Overlay Integration:
+  - `src/components/ui/DigitalBoardingPassModal.tsx` (Digital Boarding Pass & QR dialog)
+  - `src/components/ui/SeatMapSelector.tsx` (Interactive Coach Seat Selector dialog)
+  - `src/components/ui/PWAInstallButton.tsx` (iOS/Desktop PWA Install Guide dialog)
+  - `src/layouts/CustomerStorefrontLayout.tsx` (Developer Documentation & Architecture dialog)
+  - `src/pages/StaffOperationsPortal.tsx` (Edit Corridor, Delete Corridor Confirmation, and Edit Train Schedule dialogs)
+  - `src/pages/AdminExecutivePortal.tsx` (Activity Event Inspector, Edit Staff Account, and Revoke Staff Access Confirmation dialogs)
+

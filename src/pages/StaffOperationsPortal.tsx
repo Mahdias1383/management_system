@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Activity,
@@ -56,6 +56,7 @@ import {
   interactiveCardVariants,
   staggerGridVariants,
 } from '../components/ui/motionPrimitives';
+import { useOnClickOutside } from '../hooks/useOnClickOutside';
 
 interface StaffOperationsPortalProps {
   db: PlatformDatabaseV2;
@@ -107,12 +108,24 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
   const [editOrigin, setEditOrigin] = useState('');
   const [editDest, setEditDest] = useState('');
   const [editStations, setEditStations] = useState<string[]>([]);
+  const editLineModalRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(editLineModalRef, () => setEditingLine(null), {
+    enabled: Boolean(editingLine),
+  });
 
   // Corridor Delete Confirmation Modal State
   const [deletingLine, setDeletingLine] = useState<TrainLine | null>(null);
+  const deleteLineModalRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(deleteLineModalRef, () => setDeletingLine(null), {
+    enabled: Boolean(deletingLine),
+  });
 
   // Train Edit Modal State (Schedule Modification & Collision Validation)
   const [editingTrain, setEditingTrain] = useState<TrainSchedule | null>(null);
+  const editTrainModalRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(editTrainModalRef, () => setEditingTrain(null), {
+    enabled: Boolean(editingTrain),
+  });
   const [editTrainDeparture, setEditTrainDeparture] = useState('08:30');
   const [editTrainSpeed, setEditTrainSpeed] = useState('160');
   const [editTrainQuality, setEditTrainQuality] = useState<QualityTier>('VIP 5-Star');
@@ -1740,8 +1753,15 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
 
       {/* Edit Corridor Modal */}
       {editingLine && (
-        <div className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+        <div
+          onClick={() => setEditingLine(null)}
+          className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div
+            ref={editLineModalRef}
+            onClick={(e) => e.stopPropagation()}
+            className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl"
+          >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {isFa ? 'ویرایش مسیر ریلی' : 'Edit Railway Corridor'}
@@ -1830,8 +1850,15 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
 
       {/* Delete Corridor Confirmation Modal */}
       {deletingLine && (
-        <div className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+        <div
+          onClick={() => setDeletingLine(null)}
+          className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div
+            ref={deleteLineModalRef}
+            onClick={(e) => e.stopPropagation()}
+            className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl"
+          >
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-2">
               {isFa ? 'تأیید حذف مسیر ریلی' : 'Confirm Corridor Deletion'}
             </h3>
@@ -1861,8 +1888,15 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
       )}
       {/* Edit Train Schedule Modal (with Automated Collision Radar Check) */}
       {editingTrain && (
-        <div className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+        <div
+          onClick={() => setEditingTrain(null)}
+          className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div
+            ref={editTrainModalRef}
+            onClick={(e) => e.stopPropagation()}
+            className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl"
+          >
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">

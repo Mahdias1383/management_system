@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Download, Smartphone, X, CheckCircle2, Share2, PlusSquare } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { useOnClickOutside } from '../../hooks/useOnClickOutside';
 
 interface PWAInstallButtonProps {
   isFa?: boolean;
@@ -16,6 +17,8 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
   const [showIOSModal, setShowIOSModal] = useState(false);
   const [justInstalled, setJustInstalled] = useState(false);
+  const iosModalRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(iosModalRef, () => setShowIOSModal(false), { enabled: showIOSModal });
 
   // If already running in standalone PWA mode, suppress the button
   if (isInstalled) {
@@ -80,7 +83,8 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
           onClick={() => setShowIOSModal(false)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-2xl space-y-4"
+            ref={iosModalRef}
+            className="rp-modal-content w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-2xl space-y-4"
             onClick={(e) => e.stopPropagation()}
             dir={isFa ? 'rtl' : 'ltr'}
           >

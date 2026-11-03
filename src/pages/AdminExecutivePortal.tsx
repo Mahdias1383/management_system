@@ -96,6 +96,7 @@ import {
   BUTTON_HOVER_PROPS,
   fadeSlideUpVariants,
 } from '../components/ui/motionPrimitives';
+import { useOnClickOutside } from '../hooks/useOnClickOutside';
 
 interface AdminExecutivePortalProps {
   db: PlatformDatabaseV2;
@@ -201,9 +202,17 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
   const [editEmail, setEditEmail] = useState('');
   const [editDepartment, setEditDepartment] = useState('');
   const [editStatus, setEditStatus] = useState<Employee['status']>('Active');
+  const editStaffModalRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(editStaffModalRef, () => setEditingStaff(null), {
+    enabled: Boolean(editingStaff),
+  });
 
   // Staff Delete Confirmation Modal State
   const [deletingStaff, setDeletingStaff] = useState<Employee | null>(null);
+  const deleteStaffModalRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(deleteStaffModalRef, () => setDeletingStaff(null), {
+    enabled: Boolean(deletingStaff),
+  });
 
   // Real-Time Executive Alert Center State
   const [alerts, setAlerts] = useState<ExecutiveAlert[]>(() =>
@@ -733,6 +742,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
     'ALL' | 'admin' | 'staff' | 'passenger' | 'system'
   >('ALL');
   const [inspectingLog, setInspectingLog] = useState<AuditLogEntry | null>(null);
+  const inspectLogModalRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(inspectLogModalRef, () => setInspectingLog(null), {
+    enabled: Boolean(inspectingLog),
+  });
   const [copiedLogId, setCopiedLogId] = useState<string | null>(null);
   const [complianceExportNotice, setComplianceExportNotice] = useState<string | null>(null);
 
@@ -2807,9 +2820,14 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
               role="dialog"
               aria-modal="true"
               aria-label={isFa ? 'جزئیات رخداد ممیزی' : 'Audit Event Inspector'}
+              onClick={() => setInspectingLog(null)}
               className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
             >
-              <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+              <div
+                ref={inspectLogModalRef}
+                onClick={(e) => e.stopPropagation()}
+                className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4"
+              >
                 <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                   <div className="flex items-center gap-2">
                     <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -3343,8 +3361,15 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
 
       {/* Edit Staff Modal */}
       {editingStaff && (
-        <div className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+        <div
+          onClick={() => setEditingStaff(null)}
+          className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div
+            ref={editStaffModalRef}
+            onClick={(e) => e.stopPropagation()}
+            className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl"
+          >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {isFa
@@ -3449,8 +3474,15 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
 
       {/* Delete Staff Confirmation Modal */}
       {deletingStaff && (
-        <div className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+        <div
+          onClick={() => setDeletingStaff(null)}
+          className="rp-modal-backdrop fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div
+            ref={deleteStaffModalRef}
+            onClick={(e) => e.stopPropagation()}
+            className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl"
+          >
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-2">
               {isFa
                 ? 'تأیید لغو دسترسی و حذف کارشناس'

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { CheckCircle2, Printer, QrCode, X } from 'lucide-react';
 import { Language, TicketRecord } from '../types/domain';
 import { RailPulseLogo } from './ui/RailPulseLogo';
+import { useOnClickOutside } from '../hooks/useOnClickOutside';
 import {
   formatCurrency,
   formatDateTime,
@@ -23,15 +24,22 @@ export const DigitalBoardingPassModal: React.FC<DigitalBoardingPassModalProps> =
   onClose,
 }) => {
   const isFa = lang === 'fa';
+  const modalContentRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(modalContentRef, onClose);
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={isFa ? 'کارت سوارشدن دیجیتال مسافر' : 'Passenger Digital Boarding Pass'}
+      onClick={onClose}
       className="rp-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4"
     >
-      <div className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
+      <div
+        ref={modalContentRef}
+        onClick={(e) => e.stopPropagation()}
+        className="rp-modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl"
+      >
         {/* Top Ticket Header Banner with RailPulse Logo */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-blue-950 text-white px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

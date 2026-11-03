@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+    <linearGradient id="trainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+    <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.2" />
+      <stop offset="50%" stop-color="#38bdf8" stop-opacity="1" />
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.2" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle with safe zone -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <!-- Outer ambient ring -->
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="none" stroke="#38bdf8" stroke-width="2" stroke-opacity="0.25" />
+
+  <!-- Converging perspective railway tracks -->
+  <g opacity="0.35" stroke="#38bdf8" stroke-width="3">
+    <line x1="160" y1="440" x2="236" y2="280" />
+    <line x1="352" y1="440" x2="276" y2="280" />
+    <!-- Crossties -->
+    <line x1="180" y1="410" x2="332" y2="410" stroke-width="4" />
+    <line x1="202" y1="365" x2="310" y2="365" stroke-width="3" />
+    <line x1="220" y1="325" x2="292" y2="325" stroke-width="2.5" />
+    <line x1="232" y1="295" x2="280" y2="295" stroke-width="2" />
+  </g>
+
+  <!-- High-Speed Aerodynamic Locomotive Nose -->
+  <g filter="url(#glow)">
+    <!-- Aerodynamic Cabin Body -->
+    <path d="M256 96 C290 96 332 140 336 210 L340 320 C340 338 326 352 308 352 L204 352 C186 352 172 338 172 320 L176 210 C180 140 222 96 256 96 Z"
+          fill="url(#trainGrad)" stroke="#7dd3fc" stroke-width="3" />
+    
+    <!-- Aerodynamic Windshield -->
+    <path d="M256 128 C280 128 304 156 308 196 L204 196 C208 156 232 128 256 128 Z"
+          fill="#0c4a6e" stroke="#38bdf8" stroke-width="2.5" />
+    
+    <!-- Cockpit Divider Line -->
+    <line x1="256" y1="128" x2="256" y2="196" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,2" />
+
+    <!-- Center LED High-Beam -->
+    <circle cx="256" cy="226" r="10" fill="#ffffff" filter="url(#glow)" />
+
+    <!-- Dual Aerodynamic Headlights -->
+    <ellipse cx="206" cy="310" rx="14" ry="7" fill="#f8fafc" />
+    <ellipse cx="306" cy="310" rx="14" ry="7" fill="#f8fafc" />
+    <ellipse cx="206" cy="310" rx="9" ry="4" fill="#38bdf8" />
+    <ellipse cx="306" cy="310" rx="9" ry="4" fill="#38bdf8" />
+  </g>
+
+  <!-- Digital Telemetry Pulse Wave Across Front Cowling -->
+  <path d="M120 280 L180 280 L204 250 L228 310 L256 260 L284 310 L308 250 L332 280 L392 280"
+        fill="none" stroke="url(#pulseGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)" />
+
+  <!-- Speed dynamic streaks -->
+  <g stroke="#38bdf8" stroke-width="3" stroke-linecap="round" opacity="0.45">
+    <line x1="120" y1="180" x2="150" y2="180" />
+    <line x1="100" y1="210" x2="140" y2="210" />
+    <line x1="362" y1="180" x2="392" y2="180" />
+    <line x1="372" y1="210" x2="412" y2="210" />
+  </g>
+
+  <!-- Speed Dots -->
+  <circle cx="106" cy="180" r="3" fill="#38bdf8" opacity="0.6" />
+  <circle cx="406" cy="180" r="3" fill="#38bdf8" opacity="0.6" />
+</svg>

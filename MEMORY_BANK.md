@@ -76,3 +76,24 @@
   - [x] Verification:
     - `lint_applet` passed with 0 errors (`tsc --noEmit`).
     - `compile_applet` passed with 0 errors (`vite build`).
+
+### Phase 7: Progressive Web App (PWA) Integration & Offline Capabilities
+- [x] PWA Manifest (`public/manifest.json` and `manifest.json`):
+  - Configured `id`, `start_url`, `scope`, `name`, `short_name: "RailPulse"` (≤ 12 chars), `display: "standalone"`, `background_color: "#0f172a"`, `theme_color: "#0f172a"`.
+  - Defined bilingual travel shortcuts for Booking, Operations Backoffice, and Executive Analytics.
+- [x] Responsive Icon Suite (`public/icons/`):
+  - `icon.svg`: Scalable brand vector logo.
+  - `icon-192.png`: 192x192 PNG for standard Android / mobile launchers.
+  - `icon-512.png`: 512x512 PNG for high-DPI splash and store displays.
+  - `icon-maskable-512.png`: 512x512 PNG with 10% safe zone padding for adaptive Android icons.
+  - `apple-touch-icon.png`: 180x180 PNG for iOS home screen bookmarks.
+- [x] HTML Head Integration (`index.html`):
+  - Added `<link rel="manifest" href="/manifest.json" />`.
+  - Added iOS Safari capabilities (`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`, `apple-mobile-web-app-title`).
+- [x] In-App Install Prompt UI (`src/hooks/usePWAInstall.ts` & `src/components/ui/PWAInstallButton.tsx`):
+  - Seamless install button mounted in both `CustomerStorefrontLayout` and `EnterpriseBackofficeLayout`.
+  - Captures `beforeinstallprompt` on Chromium/Android.
+  - Auto-hides when running in native `standalone` mode.
+  - Provides guided step-by-step modal for iOS Safari users.
+- [x] Offline Service Worker (`public/sw.js` & `src/main.tsx`):
+  - Registered service worker precaching shell, icons, and manifest.

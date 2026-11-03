@@ -22,6 +22,7 @@ import { formatCurrency, localizeText } from '../services/authService';
 import { motion } from 'framer-motion';
 import { BUTTON_HOVER_PROPS, fadeSlideUpVariants } from '../components/ui/motionPrimitives';
 import { RailPulseLogo } from '../components/ui/RailPulseLogo';
+import { PWAInstallButton } from '../components/ui/PWAInstallButton';
 
 interface CustomerStorefrontLayoutProps {
   lang: Language;
@@ -201,6 +202,8 @@ export const CustomerStorefrontLayout: React.FC<CustomerStorefrontLayoutProps> =
             )}
 
             <div className="flex items-center gap-2">
+              <PWAInstallButton isFa={isFa} />
+
               <motion.button
                 type="button"
                 onClick={onToggleLang}

@@ -16,6 +16,7 @@ import { ActiveSession, Language, ThemeMode } from '../types/domain';
 import { formatDateTime, formatNumber, localizeText } from '../services/authService';
 import { BUTTON_HOVER_PROPS } from '../components/ui/motionPrimitives';
 import { RailPulseLogo } from '../components/ui/RailPulseLogo';
+import { PWAInstallButton } from '../components/ui/PWAInstallButton';
 
 export interface SidebarNavItem {
   id: string;
@@ -246,6 +247,8 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
             <span className="hidden lg:inline text-xs text-slate-500 dark:text-slate-400">
               {isFa ? portalSubtitleFa : portalSubtitleEn}
             </span>
+
+            <PWAInstallButton isFa={isFa} />
 
             <motion.button
               type="button"

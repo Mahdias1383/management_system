@@ -55,11 +55,13 @@ import {
   ThemeMode,
 } from '../types/domain';
 import {
+  classifyAuditActionCategory,
   evaluatePasswordStrength,
   formatCompactCurrency,
   formatDateTime,
   formatNumber,
   formatCurrency,
+  generateComplianceAuditCsv,
   hashPassword,
   isValidEmail,
   localizeAuditAction,
@@ -732,36 +734,9 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
   >('ALL');
   const [inspectingLog, setInspectingLog] = useState<AuditLogEntry | null>(null);
   const [copiedLogId, setCopiedLogId] = useState<string | null>(null);
+  const [complianceExportNotice, setComplianceExportNotice] = useState<string | null>(null);
 
-  const classifyAuditCategory = (
-    action: string
-  ): 'RESERVATIONS' | 'SCHEDULES' | 'STAFF' | 'FINANCIAL' | 'SYSTEM' => {
-    if (action === 'TICKET_BOOKED' || action === 'TICKET_REFUNDED') {
-      return 'RESERVATIONS';
-    }
-    if (
-      action === 'DISPATCH_TRAIN_SCHEDULE' ||
-      action === 'UPDATE_TRAIN_SCHEDULE' ||
-      action === 'REMOVE_TRAIN_SCHEDULE' ||
-      action === 'CREATE_RAIL_CORRIDOR' ||
-      action === 'UPDATE_RAIL_CORRIDOR' ||
-      action === 'DELETE_RAIL_CORRIDOR'
-    ) {
-      return 'SCHEDULES';
-    }
-    if (
-      action === 'PROVISION_OPERATIONS_STAFF' ||
-      action === 'UPDATE_OPERATIONS_STAFF' ||
-      action === 'REVOKE_OPERATIONS_STAFF' ||
-      action === 'PROFILE_UPDATED'
-    ) {
-      return 'STAFF';
-    }
-    if (action === 'WALLET_DEPOSIT' || action === 'WALLET_WITHDRAWAL') {
-      return 'FINANCIAL';
-    }
-    return 'SYSTEM';
-  };
+  const classifyAuditCategory = classifyAuditActionCategory;
 
   const activityStats = useMemo(() => {
     let reservations = 0;
@@ -782,7 +757,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
       staff,
       financial,
     };
-  }, [db.auditLogs]);
+  }, [db.auditLogs, classifyAuditCategory]);
 
   const filteredAuditLogs = useMemo(() => {
     const q = activitySearchQuery.trim().toLowerCase();
@@ -805,7 +780,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
         (log.entityId && log.entityId.toLowerCase().includes(q))
       );
     });
-  }, [db.auditLogs, activitySearchQuery, activityCategoryFilter, activityRoleFilter]);
+  }, [db.auditLogs, activitySearchQuery, activityCategoryFilter, activityRoleFilter, classifyAuditCategory]);
 
   const handleSimulateReservationActivity = () => {
     const sampleTrain = db.trains[0] || {
@@ -873,27 +848,30 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
     });
   };
 
-  const handleExportAuditCsv = () => {
-    const headers = ['ID', 'Timestamp', 'ActorRole', 'ActorUsername', 'Action', 'EntityType', 'EntityId', 'DetailsEN', 'DetailsFA'];
-    const rows = filteredAuditLogs.map((l) => [
-      l.id,
-      l.timestamp,
-      l.actorRole,
-      l.actorUsername,
-      l.action,
-      l.entityType || classifyAuditCategory(l.action),
-      l.entityId || '',
-      `"${(l.detailsEn || '').replace(/"/g, '""')}"`,
-      `"${(l.detailsFa || '').replace(/"/g, '""')}"`,
-    ]);
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+  const handleExportAuditCsv = (scope: 'FILTERED' | 'ALL' = 'FILTERED') => {
+    const targetLogs = scope === 'ALL' ? db.auditLogs : filteredAuditLogs;
+    const csvContent = generateComplianceAuditCsv(targetLogs);
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const scopeSlug =
+      scope === 'ALL'
+        ? 'full-ledger'
+        : activityCategoryFilter.toLowerCase();
+    const fileName = `railpulse-compliance-audit-${scopeSlug}-${dateStamp}.csv`;
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `railpulse-activity-monitor-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
+
+    setComplianceExportNotice(
+      isFa
+        ? `گزارش ممیزی انطباق (${formatNumber(targetLogs.length, 'fa')} رکورد) با موفقیت در قالب CSV صادر شد (${fileName}).`
+        : `Compliance audit report (${targetLogs.length} records) exported as CSV (${fileName}).`
+    );
+    window.setTimeout(() => setComplianceExportNotice(null), 6000);
   };
 
   const navItems: SidebarNavItem[] = [
@@ -2496,12 +2474,16 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
 
               <motion.button
                 type="button"
-                onClick={handleExportAuditCsv}
+                onClick={() => handleExportAuditCsv('ALL')}
                 {...BUTTON_HOVER_PROPS}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-xs font-semibold text-blue-700 dark:text-blue-300 cursor-pointer"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>{isFa ? 'خروجی CSV ممیزی' : 'Export Audit CSV'}</span>
+                <span>
+                  {isFa
+                    ? 'صدور گزارش ممیزی انطباق (CSV)'
+                    : 'Export Compliance CSV'}
+                </span>
               </motion.button>
 
               <motion.button
@@ -2540,6 +2522,23 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
             </div>
           </motion.div>
 
+          {/* Compliance CSV Export Confirmation Banner */}
+          {complianceExportNotice && (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200 text-xs font-medium">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>{complianceExportNotice}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setComplianceExportNotice(null)}
+                className="p-1 text-emerald-600 dark:text-emerald-400 hover:opacity-80 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Activity Monitor Filter Bar & Real-Time Event Feed */}
           <motion.div
             variants={fadeSlideUpVariants}
@@ -2564,7 +2563,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 </p>
               </div>
 
-              {/* Search & Actor Role Filter */}
+              {/* Search, Actor Role Filter & Filtered CSV Export */}
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute top-1/2 -translate-y-1/2 start-3" />
@@ -2610,6 +2609,24 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     </option>
                   </select>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleExportAuditCsv('FILTERED')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+                  title={
+                    isFa
+                      ? 'دریافت خروجی CSV از رخدادهای فیلترشده فعلی برای گزارش انطباق'
+                      : 'Export currently filtered audit logs to CSV for compliance reporting'
+                  }
+                >
+                  <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>
+                    {isFa
+                      ? `خروجی CSV (${formatNumber(filteredAuditLogs.length, 'fa')})`
+                      : `Export CSV (${filteredAuditLogs.length})`}
+                  </span>
+                </button>
               </div>
             </div>
 

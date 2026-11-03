@@ -1,4 +1,4 @@
-import { ActiveSession, Language, QualityTier, UserRole } from '../types/domain';
+import { ActiveSession, AuditLogEntry, Language, QualityTier, UserRole } from '../types/domain';
 import { APP_ENV } from '../config/env';
 
 const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
@@ -476,6 +476,7 @@ export function localizeAuditAction(action: string | undefined, lang: Language =
     DATABASE_SNAPSHOT_EXPORTED: 'دریافت خروجی پشتیبان پایگاه‌داده',
     DATABASE_SNAPSHOT_RESTORED: 'بازگردانی نسخه پشتیبان پایگاه‌داده',
     DATABASE_SEED_RESET: 'بازنشانی پایگاه‌داده به داده‌های پیش‌فرض',
+    COMPLIANCE_AUDIT_EXPORTED: 'صدور گزارش ممیزی انطباق (CSV)',
     SIMULATION_TRIGGERED: 'شبیه‌سازی رخداد ممیزی سامانه',
   };
   return map[act] || act;
@@ -638,3 +639,87 @@ export function parsePositiveInteger(input: unknown): {
   }
   return { valid: true, value: Number(normalizedStr) };
 }
+
+/**
+ * Classifies an audit log action code into an enterprise compliance category.
+ */
+export function classifyAuditActionCategory(
+  action: string
+): 'RESERVATIONS' | 'SCHEDULES' | 'STAFF' | 'FINANCIAL' | 'SYSTEM' {
+  if (action === 'TICKET_BOOKED' || action === 'TICKET_REFUNDED') {
+    return 'RESERVATIONS';
+  }
+  if (
+    action === 'DISPATCH_TRAIN_SCHEDULE' ||
+    action === 'UPDATE_TRAIN_SCHEDULE' ||
+    action === 'REMOVE_TRAIN_SCHEDULE' ||
+    action === 'CREATE_RAIL_CORRIDOR' ||
+    action === 'UPDATE_RAIL_CORRIDOR' ||
+    action === 'DELETE_RAIL_CORRIDOR'
+  ) {
+    return 'SCHEDULES';
+  }
+  if (
+    action === 'PROVISION_OPERATIONS_STAFF' ||
+    action === 'UPDATE_OPERATIONS_STAFF' ||
+    action === 'REVOKE_OPERATIONS_STAFF' ||
+    action === 'PROFILE_UPDATED'
+  ) {
+    return 'STAFF';
+  }
+  if (action === 'WALLET_DEPOSIT' || action === 'WALLET_WITHDRAWAL') {
+    return 'FINANCIAL';
+  }
+  return 'SYSTEM';
+}
+
+/**
+ * Escapes a single CSV field according to RFC 4180 (wraps in double quotes if it contains commas, quotes, or newlines).
+ */
+function escapeCsvCell(value: unknown): string {
+  const str = String(value ?? '').replace(/\r?\n/g, ' ');
+  if (str.includes(',') || str.includes('"') || str.includes(';')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return `"${str}"`;
+}
+
+/**
+ * Generates an RFC 4180 compliant, UTF-8 BOM prefixed CSV string for enterprise compliance reporting.
+ * Includes full bilingual audit descriptions, actor roles, compliance categories, and entity references.
+ */
+export function generateComplianceAuditCsv(logs: AuditLogEntry[]): string {
+  const headers = [
+    'Event ID',
+    'Timestamp (ISO-8601)',
+    'Actor Role',
+    'Actor Username',
+    'Compliance Category',
+    'Action Code',
+    'Localized Action (FA)',
+    'Entity Type',
+    'Entity Reference ID',
+    'Audit Details (EN)',
+    'Audit Details (FA)',
+  ];
+
+  const rows = logs.map((log) => {
+    const category = classifyAuditActionCategory(log.action);
+    return [
+      escapeCsvCell(log.id),
+      escapeCsvCell(log.timestamp),
+      escapeCsvCell(log.actorRole),
+      escapeCsvCell(log.actorUsername),
+      escapeCsvCell(category),
+      escapeCsvCell(log.action),
+      escapeCsvCell(localizeAuditAction(log.action, 'fa')),
+      escapeCsvCell(log.entityType || category),
+      escapeCsvCell(log.entityId || 'N/A'),
+      escapeCsvCell(log.detailsEn),
+      escapeCsvCell(log.detailsFa),
+    ].join(',');
+  });
+
+  return '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+}
+

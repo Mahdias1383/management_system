@@ -13,6 +13,8 @@ import {
   formatTime,
   localizeRole,
   localizeAuditAction,
+  classifyAuditActionCategory,
+  generateComplianceAuditCsv,
   issueSessionToken,
 } from '../authService';
 import { purchaseTrainTicket, refundTrainTicket } from '../bookingEngine';
@@ -229,6 +231,20 @@ describe('authService Core Utilities', () => {
       expect(refundRes.db.auditLogs[0].action).toBe('TICKET_REFUNDED');
       expect(refundRes.db.auditLogs[0].entityType).toBe('TICKET');
       expect(refundRes.db.auditLogs[0].entityId).toBe(bookRes.ticket?.pnr);
+    });
+
+    it('generates an RFC 4180 compliant, UTF-8 BOM prefixed CSV string for compliance reporting', () => {
+      expect(classifyAuditActionCategory('TICKET_BOOKED')).toBe('RESERVATIONS');
+      expect(classifyAuditActionCategory('UPDATE_TRAIN_SCHEDULE')).toBe('SCHEDULES');
+      expect(classifyAuditActionCategory('PROVISION_OPERATIONS_STAFF')).toBe('STAFF');
+
+      const db = migrateV1ToV2(getDefaultLegacyV1Snapshot());
+      const csv = generateComplianceAuditCsv(db.auditLogs);
+
+      expect(csv.startsWith('\uFEFFEvent ID,Timestamp (ISO-8601),Actor Role,Actor Username,Compliance Category')).toBe(true);
+      expect(csv).toContain('"TICKET_BOOKED"');
+      expect(csv).toContain('"UPDATE_TRAIN_SCHEDULE"');
+      expect(csv).toContain('"RP-90234"');
     });
   });
 });

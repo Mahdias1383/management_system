@@ -18,8 +18,10 @@ import {
   BarChart3,
   Bell,
   BellRing,
+  Calendar,
   CheckCheck,
   CheckCircle2,
+  Clock,
   Copy,
   Download,
   Edit3,
@@ -55,8 +57,11 @@ import {
   ThemeMode,
 } from '../types/domain';
 import {
+  AuditTimeWindowPreset,
   classifyAuditActionCategory,
+  computeAuditBulkSelectionState,
   evaluatePasswordStrength,
+  filterAuditLogs,
   formatCompactCurrency,
   formatDateTime,
   formatNumber,
@@ -69,7 +74,10 @@ import {
   localizeRole,
   localizeText,
   normalizeIdentifier,
+  resolveAuditLogsForCsvExport,
   toPersianDigits,
+  toggleSelectAllAuditLogs,
+  toggleSingleAuditLogSelection,
 } from '../services/authService';
 import {
   dismissExecutiveAlert,
@@ -95,6 +103,9 @@ import {
 import {
   BUTTON_HOVER_PROPS,
   fadeSlideUpVariants,
+  filterControlEntranceVariants,
+  filterToolbarVariants,
+  SOFT_SPRING_TRANSITION,
 } from '../components/ui/motionPrimitives';
 import { useOnClickOutside } from '../hooks/useOnClickOutside';
 
@@ -225,6 +236,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
     'ALL' | ExecutiveAlertCategory
   >('ALL');
   const [livePushToast, setLivePushToast] = useState<ExecutiveAlert | null>(null);
+  const livePushToastRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(livePushToastRef, () => setLivePushToast(null), {
+    enabled: Boolean(livePushToast),
+  });
   const [autoStreamActive, setAutoStreamActive] = useState(false);
   const knownTicketIdsRef = useRef<Set<string>>(
     new Set(db.tickets.map((t) => t.id))
@@ -741,6 +756,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
   const [activityRoleFilter, setActivityRoleFilter] = useState<
     'ALL' | 'admin' | 'staff' | 'passenger' | 'system'
   >('ALL');
+  const [activityStartDate, setActivityStartDate] = useState('');
+  const [activityEndDate, setActivityEndDate] = useState('');
+  const [activityTimePreset, setActivityTimePreset] =
+    useState<AuditTimeWindowPreset>('ALL');
   const [inspectingLog, setInspectingLog] = useState<AuditLogEntry | null>(null);
   const inspectLogModalRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(inspectLogModalRef, () => setInspectingLog(null), {
@@ -748,8 +767,28 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
   });
   const [copiedLogId, setCopiedLogId] = useState<string | null>(null);
   const [complianceExportNotice, setComplianceExportNotice] = useState<string | null>(null);
+  const [selectedAuditLogIds, setSelectedAuditLogIds] = useState<string[]>([]);
+  const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
 
   const classifyAuditCategory = classifyAuditActionCategory;
+
+  const hasActiveAuditFilters = Boolean(
+    activitySearchQuery.trim() ||
+      activityCategoryFilter !== 'ALL' ||
+      activityRoleFilter !== 'ALL' ||
+      activityStartDate ||
+      activityEndDate ||
+      activityTimePreset !== 'ALL'
+  );
+
+  const handleResetActivityFilters = () => {
+    setActivitySearchQuery('');
+    setActivityCategoryFilter('ALL');
+    setActivityRoleFilter('ALL');
+    setActivityStartDate('');
+    setActivityEndDate('');
+    setActivityTimePreset('ALL');
+  };
 
   const activityStats = useMemo(() => {
     let reservations = 0;
@@ -773,27 +812,64 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
   }, [db.auditLogs, classifyAuditCategory]);
 
   const filteredAuditLogs = useMemo(() => {
-    const q = activitySearchQuery.trim().toLowerCase();
-    return db.auditLogs.filter((log) => {
-      if (activityCategoryFilter !== 'ALL') {
-        if (classifyAuditCategory(log.action) !== activityCategoryFilter) {
-          return false;
-        }
-      }
-      if (activityRoleFilter !== 'ALL' && log.actorRole !== activityRoleFilter) {
-        return false;
-      }
-      if (!q) return true;
-      return (
-        log.actorUsername.toLowerCase().includes(q) ||
-        log.action.toLowerCase().includes(q) ||
-        localizeAuditAction(log.action, 'fa').toLowerCase().includes(q) ||
-        log.detailsEn.toLowerCase().includes(q) ||
-        log.detailsFa.toLowerCase().includes(q) ||
-        (log.entityId && log.entityId.toLowerCase().includes(q))
-      );
+    return filterAuditLogs(db.auditLogs, {
+      keyword: activitySearchQuery,
+      category: activityCategoryFilter,
+      role: activityRoleFilter,
+      startDate: activityStartDate,
+      endDate: activityEndDate,
+      timeWindowPreset: activityTimePreset,
     });
-  }, [db.auditLogs, activitySearchQuery, activityCategoryFilter, activityRoleFilter, classifyAuditCategory]);
+  }, [
+    db.auditLogs,
+    activitySearchQuery,
+    activityCategoryFilter,
+    activityRoleFilter,
+    activityStartDate,
+    activityEndDate,
+    activityTimePreset,
+  ]);
+
+  const visibleAuditLogs = useMemo(
+    () => filteredAuditLogs.slice(0, 50),
+    [filteredAuditLogs]
+  );
+
+  const auditBulkSelection = useMemo(
+    () => computeAuditBulkSelectionState(visibleAuditLogs, selectedAuditLogIds),
+    [visibleAuditLogs, selectedAuditLogIds]
+  );
+
+  const selectedExportLogs = useMemo(
+    () =>
+      resolveAuditLogsForCsvExport(
+        db.auditLogs,
+        filteredAuditLogs,
+        selectedAuditLogIds,
+        'SELECTED'
+      ),
+    [db.auditLogs, filteredAuditLogs, selectedAuditLogIds]
+  );
+
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      selectAllCheckboxRef.current.indeterminate = auditBulkSelection.isIndeterminate;
+    }
+  }, [auditBulkSelection.isIndeterminate, auditBulkSelection.isAllVisibleSelected]);
+
+  const handleToggleSelectAllAuditLogs = () => {
+    setSelectedAuditLogIds((prev) =>
+      toggleSelectAllAuditLogs(visibleAuditLogs, prev)
+    );
+  };
+
+  const handleToggleSingleAuditLog = (logId: string) => {
+    setSelectedAuditLogIds((prev) => toggleSingleAuditLogSelection(logId, prev));
+  };
+
+  const handleClearAuditSelection = () => {
+    setSelectedAuditLogIds([]);
+  };
 
   const handleSimulateReservationActivity = () => {
     const sampleTrain = db.trains[0] || {
@@ -861,13 +937,22 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
     });
   };
 
-  const handleExportAuditCsv = (scope: 'FILTERED' | 'ALL' = 'FILTERED') => {
-    const targetLogs = scope === 'ALL' ? db.auditLogs : filteredAuditLogs;
+  const handleExportAuditCsv = (
+    scope: 'FILTERED' | 'ALL' | 'SELECTED' = 'FILTERED'
+  ) => {
+    const targetLogs = resolveAuditLogsForCsvExport(
+      db.auditLogs,
+      filteredAuditLogs,
+      selectedAuditLogIds,
+      scope
+    );
     const csvContent = generateComplianceAuditCsv(targetLogs);
     const dateStamp = new Date().toISOString().slice(0, 10);
     const scopeSlug =
       scope === 'ALL'
         ? 'full-ledger'
+        : scope === 'SELECTED'
+        ? 'selected-entries'
         : activityCategoryFilter.toLowerCase();
     const fileName = `railpulse-compliance-audit-${scopeSlug}-${dateStamp}.csv`;
 
@@ -880,7 +965,11 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
     URL.revokeObjectURL(url);
 
     setComplianceExportNotice(
-      isFa
+      scope === 'SELECTED'
+        ? isFa
+          ? `گزارش ممیزی انطباق برای ${formatNumber(targetLogs.length, 'fa')} رخداد انتخاب‌شده با موفقیت در قالب CSV صادر شد (${fileName}).`
+          : `Compliance audit report for ${targetLogs.length} selected entries exported as CSV (${fileName}).`
+        : isFa
         ? `گزارش ممیزی انطباق (${formatNumber(targetLogs.length, 'fa')} رکورد) با موفقیت در قالب CSV صادر شد (${fileName}).`
         : `Compliance audit report (${targetLogs.length} records) exported as CSV (${fileName}).`
     );
@@ -1228,6 +1317,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
       <AnimatePresence>
         {livePushToast && (
           <motion.div
+            ref={livePushToastRef}
             key={livePushToast.id}
             initial={{ opacity: 0, y: -24, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -2565,37 +2655,78 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   <span>
                     {isFa
-                      ? `جریان زنده پایشگر فعالیت‌ها (${formatNumber(filteredAuditLogs.length, lang)} رخداد)`
-                      : `Real-Time Activity Monitor Stream (${filteredAuditLogs.length} Events)`}
+                      ? `جریان زنده پایشگر فعالیت‌ها (${formatNumber(filteredAuditLogs.length, lang)} از ${formatNumber(activityStats.total, lang)} رخداد)`
+                      : `Real-Time Activity Monitor Stream (${filteredAuditLogs.length} of ${activityStats.total} Events)`}
                   </span>
                 </h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   {isFa
-                    ? 'فیلتر بر اساس دسته‌بندی عملیات (رزرو بلیط، تغییر برنامه حرکت، پرسنل، مالی) یا جستجو در جزئیات'
-                    : 'Filter by action category (Reservations, Schedule Modifications, Staff, Financial) or search by actor/PNR/train code'}
+                    ? 'جستجوی کلیدواژه، فیلتر بازه زمانی (از تاریخ / تا تاریخ)، نقش کاربری و دسته‌بندی عملیات ممیزی'
+                    : 'Filter audit log entries by keyword, custom date range or time window presets, actor role, and compliance category'}
                 </p>
               </div>
 
               {/* Search, Actor Role Filter & Filtered CSV Export */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute top-1/2 -translate-y-1/2 start-3" />
+              <motion.div
+                variants={filterToolbarVariants}
+                initial="hidden"
+                animate="visible"
+                className="flex flex-wrap items-center gap-2"
+              >
+                <motion.div
+                  variants={filterControlEntranceVariants}
+                  whileHover={{ scale: 1.01 }}
+                  transition={SOFT_SPRING_TRANSITION}
+                  className="relative"
+                >
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute top-1/2 -translate-y-1/2 start-3 pointer-events-none" />
                   <input
                     type="text"
+                    role="searchbox"
+                    data-testid="activity-search-input"
+                    aria-label={
+                      isFa
+                        ? 'جستجوی کلیدواژه در لاگ ممیزی'
+                        : 'Search audit logs by keyword'
+                    }
                     value={activitySearchQuery}
                     onChange={(e) => setActivitySearchQuery(e.target.value)}
                     placeholder={
                       isFa
-                        ? 'جستجوی کاربر، کد قطار، PNR...'
-                        : 'Search user, train, PNR...'
+                        ? 'جستجوی کلیدواژه، کاربر، کد قطار، PNR...'
+                        : 'Search keyword, actor, train, PNR...'
                     }
-                    className="ps-8 pe-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 w-56 focus:outline-none focus:border-blue-500"
+                    className="ps-8 pe-7 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 w-64 focus:outline-none focus:border-blue-500 transition-colors"
                   />
-                </div>
+                  <AnimatePresence>
+                    {activitySearchQuery && (
+                      <motion.button
+                        key="activity-search-clear"
+                        type="button"
+                        data-testid="activity-search-clear"
+                        initial={{ opacity: 0, scale: 0.75 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.75 }}
+                        transition={SOFT_SPRING_TRANSITION}
+                        onClick={() => setActivitySearchQuery('')}
+                        aria-label={isFa ? 'پاک کردن جستجو' : 'Clear search keyword'}
+                        className="absolute top-1/2 -translate-y-1/2 end-2 p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
 
-                <div className="flex items-center gap-1.5">
+                <motion.div
+                  variants={filterControlEntranceVariants}
+                  whileHover={{ scale: 1.01 }}
+                  transition={SOFT_SPRING_TRANSITION}
+                  className="flex items-center gap-1.5"
+                >
                   <Filter className="w-3.5 h-3.5 text-slate-400" />
                   <select
+                    data-testid="activity-role-filter"
                     value={activityRoleFilter}
                     onChange={(e) =>
                       setActivityRoleFilter(
@@ -2621,27 +2752,182 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       {isFa ? 'هسته سامانه (System)' : 'System Core'}
                     </option>
                   </select>
-                </div>
+                </motion.div>
 
-                <button
+                <motion.button
+                  variants={filterControlEntranceVariants}
+                  {...BUTTON_HOVER_PROPS}
                   type="button"
-                  onClick={() => handleExportAuditCsv('FILTERED')}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+                  data-testid="activity-export-csv-btn"
+                  onClick={() =>
+                    handleExportAuditCsv(
+                      selectedExportLogs.length > 0 ? 'SELECTED' : 'FILTERED'
+                    )
+                  }
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                    selectedExportLogs.length > 0
+                      ? 'border-blue-600 bg-blue-600 hover:bg-blue-700 text-white shadow-2xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  }`}
                   title={
-                    isFa
+                    selectedExportLogs.length > 0
+                      ? isFa
+                        ? 'دریافت خروجی CSV از رخدادهای انتخاب‌شده برای گزارش انطباق'
+                        : 'Export selected audit log entries to CSV for compliance reporting'
+                      : isFa
                       ? 'دریافت خروجی CSV از رخدادهای فیلترشده فعلی برای گزارش انطباق'
                       : 'Export currently filtered audit logs to CSV for compliance reporting'
                   }
                 >
-                  <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <Download
+                    className={`w-3.5 h-3.5 ${
+                      selectedExportLogs.length > 0
+                        ? 'text-white'
+                        : 'text-blue-600 dark:text-blue-400'
+                    }`}
+                  />
                   <span>
-                    {isFa
+                    {selectedExportLogs.length > 0
+                      ? isFa
+                        ? `خروجی CSV انتخاب‌شده (${formatNumber(selectedExportLogs.length, 'fa')})`
+                        : `Export Selected CSV (${selectedExportLogs.length})`
+                      : isFa
                       ? `خروجی CSV (${formatNumber(filteredAuditLogs.length, 'fa')})`
                       : `Export CSV (${filteredAuditLogs.length})`}
                   </span>
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             </div>
+
+            {/* Date-Range Picker & Quick Time-Window Toolbar */}
+            <motion.div
+              data-testid="activity-date-range-picker"
+              variants={filterToolbarVariants}
+              initial="hidden"
+              animate="visible"
+              className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 p-3 rounded-xl bg-slate-50/90 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80"
+            >
+              {/* Date Range Inputs (Start Date & End Date) */}
+              <motion.div
+                variants={filterControlEntranceVariants}
+                className="flex flex-wrap items-center gap-2.5"
+              >
+                <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>{isFa ? 'بازه زمانی ممیزی:' : 'Audit Time Window:'}</span>
+                </div>
+
+                <motion.label
+                  variants={filterControlEntranceVariants}
+                  whileHover={{ scale: 1.01 }}
+                  transition={SOFT_SPRING_TRANSITION}
+                  className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400"
+                >
+                  <span className="font-medium">{isFa ? 'از تاریخ:' : 'From:'}</span>
+                  <input
+                    type="date"
+                    dir="ltr"
+                    data-testid="activity-start-date"
+                    aria-label={isFa ? 'از تاریخ' : 'Start Date'}
+                    value={activityStartDate}
+                    max={activityEndDate || undefined}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setActivityStartDate(val);
+                      setActivityTimePreset(val || activityEndDate ? 'CUSTOM' : 'ALL');
+                    }}
+                    className="px-2.5 py-1 text-xs font-mono rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </motion.label>
+
+                <motion.label
+                  variants={filterControlEntranceVariants}
+                  whileHover={{ scale: 1.01 }}
+                  transition={SOFT_SPRING_TRANSITION}
+                  className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400"
+                >
+                  <span className="font-medium">{isFa ? 'تا تاریخ:' : 'To:'}</span>
+                  <input
+                    type="date"
+                    dir="ltr"
+                    data-testid="activity-end-date"
+                    aria-label={isFa ? 'تا تاریخ' : 'End Date'}
+                    value={activityEndDate}
+                    min={activityStartDate || undefined}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setActivityEndDate(val);
+                      setActivityTimePreset(val || activityStartDate ? 'CUSTOM' : 'ALL');
+                    }}
+                    className="px-2.5 py-1 text-xs font-mono rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </motion.label>
+              </motion.div>
+
+              {/* Quick Time-Window Presets & Reset Button */}
+              <motion.div
+                variants={filterControlEntranceVariants}
+                className="flex flex-wrap items-center gap-1.5"
+              >
+                <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 me-1">
+                  <Clock className="w-3 h-3" />
+                  <span>{isFa ? 'پنجره سریع:' : 'Quick Window:'}</span>
+                </span>
+                {(
+                  [
+                    { id: 'ALL', labelFa: 'همه زمان‌ها', labelEn: 'All Time' },
+                    { id: '24H', labelFa: '۲۴ ساعت اخیر', labelEn: 'Last 24h' },
+                    { id: '7D', labelFa: '۷ روز اخیر', labelEn: 'Last 7 Days' },
+                    { id: '30D', labelFa: '۳۰ روز اخیر', labelEn: 'Last 30 Days' },
+                  ] as const
+                ).map((preset) => {
+                  const isActive =
+                    activityTimePreset === preset.id &&
+                    !activityStartDate &&
+                    !activityEndDate;
+                  return (
+                    <motion.button
+                      key={preset.id}
+                      variants={filterControlEntranceVariants}
+                      {...BUTTON_HOVER_PROPS}
+                      type="button"
+                      data-testid={`activity-preset-${preset.id.toLowerCase()}`}
+                      onClick={() => {
+                        setActivityStartDate('');
+                        setActivityEndDate('');
+                        setActivityTimePreset(preset.id);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-2xs'
+                          : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {isFa ? preset.labelFa : preset.labelEn}
+                    </motion.button>
+                  );
+                })}
+
+                <AnimatePresence>
+                  {hasActiveAuditFilters && (
+                    <motion.button
+                      key="activity-reset-filters"
+                      type="button"
+                      data-testid="activity-reset-filters"
+                      initial={{ opacity: 0, scale: 0.9, x: 6 }}
+                      animate={{ opacity: 1, scale: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, x: 6 }}
+                      {...BUTTON_HOVER_PROPS}
+                      onClick={handleResetActivityFilters}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-[11px] font-semibold transition-colors cursor-pointer ms-1"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>{isFa ? 'پاکسازی فیلترها' : 'Reset Filters'}</span>
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </motion.div>
 
             {/* Category Filter Pills */}
             <div className="flex flex-wrap items-center gap-1.5">
@@ -2706,11 +2992,91 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
               })}
             </div>
 
+            {/* Bulk Selection Action Bar */}
+            <AnimatePresence>
+              {selectedExportLogs.length > 0 && (
+                <motion.div
+                  key="activity-bulk-selection-bar"
+                  data-testid="activity-bulk-selection-bar"
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={SOFT_SPRING_TRANSITION}
+                  className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/30 text-xs"
+                >
+                  <div className="flex items-center gap-2 text-blue-900 dark:text-blue-200 font-semibold">
+                    <CheckCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <span data-testid="activity-selected-count-label">
+                      {isFa
+                        ? `${formatNumber(selectedExportLogs.length, 'fa')} رخداد ممیزی برای صدور گروهی گزارش CSV انتخاب شده است`
+                        : `${selectedExportLogs.length} audit log ${
+                            selectedExportLogs.length === 1 ? 'entry' : 'entries'
+                          } selected for bulk CSV export`}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <motion.button
+                      type="button"
+                      data-testid="activity-export-selected-csv"
+                      onClick={() => handleExportAuditCsv('SELECTED')}
+                      {...BUTTON_HOVER_PROPS}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>
+                        {isFa
+                          ? `صدور CSV موارد انتخاب‌شده (${formatNumber(selectedExportLogs.length, 'fa')})`
+                          : `Export Selected to CSV (${selectedExportLogs.length})`}
+                      </span>
+                    </motion.button>
+
+                    <motion.button
+                      type="button"
+                      data-testid="activity-clear-selection"
+                      onClick={handleClearAuditSelection}
+                      {...BUTTON_HOVER_PROPS}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>{isFa ? 'لغو انتخاب' : 'Clear Selection'}</span>
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Audit Logs Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-slate-50 dark:bg-slate-950/60 text-slate-500 border-b border-slate-200 dark:border-slate-800">
                   <tr>
+                    <th className="py-2.5 px-3 w-10 text-center">
+                      <input
+                        ref={selectAllCheckboxRef}
+                        type="checkbox"
+                        data-testid="activity-select-all-checkbox"
+                        checked={auditBulkSelection.isAllVisibleSelected}
+                        aria-checked={
+                          auditBulkSelection.isIndeterminate
+                            ? 'mixed'
+                            : auditBulkSelection.isAllVisibleSelected
+                        }
+                        disabled={visibleAuditLogs.length === 0}
+                        onChange={handleToggleSelectAllAuditLogs}
+                        aria-label={
+                          isFa
+                            ? 'انتخاب همه رخدادهای جدول ممیزی برای خروجی CSV'
+                            : 'Select all audit log entries for CSV export'
+                        }
+                        title={
+                          isFa
+                            ? 'انتخاب یا لغو انتخاب همه رخدادهای نمایش‌داده‌شده'
+                            : 'Select or deselect all displayed audit log entries'
+                        }
+                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600 disabled:opacity-40 disabled:cursor-not-allowed align-middle"
+                      />
+                    </th>
                     <th className="py-2.5 px-3 text-start">
                       {isFa ? 'زمان ثبت' : 'Timestamp'}
                     </th>
@@ -2729,8 +3095,9 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {filteredAuditLogs.slice(0, 50).map((log) => {
+                  {visibleAuditLogs.map((log) => {
                     const cat = classifyAuditCategory(log.action);
+                    const isRowSelected = selectedAuditLogIds.includes(log.id);
                     const badgeStyle =
                       cat === 'RESERVATIONS'
                         ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
@@ -2745,8 +3112,26 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     return (
                       <tr
                         key={log.id}
-                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                        className={`transition-colors ${
+                          isRowSelected
+                            ? 'bg-blue-50/70 dark:bg-blue-950/30 hover:bg-blue-50 dark:hover:bg-blue-950/40'
+                            : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40'
+                        }`}
                       >
+                        <td className="py-3 px-3 w-10 text-center">
+                          <input
+                            type="checkbox"
+                            data-testid={`activity-row-checkbox-${log.id}`}
+                            checked={isRowSelected}
+                            onChange={() => handleToggleSingleAuditLog(log.id)}
+                            aria-label={
+                              isFa
+                                ? `انتخاب رخداد ممیزی ${log.id}`
+                                : `Select audit log entry ${log.id}`
+                            }
+                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600 align-middle"
+                          />
+                        </td>
                         <td className="py-3 px-3 font-mono text-slate-400 whitespace-nowrap">
                           {formatDateTime(log.timestamp, lang, 'full')}
                         </td>
@@ -2800,7 +3185,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   {filteredAuditLogs.length === 0 && (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="py-8 text-center text-slate-400 text-xs"
                       >
                         {isFa

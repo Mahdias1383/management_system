@@ -147,3 +147,20 @@
   - `src/pages/StaffOperationsPortal.tsx` (Edit Corridor, Delete Corridor Confirmation, and Edit Train Schedule dialogs)
   - `src/pages/AdminExecutivePortal.tsx` (Activity Event Inspector, Edit Staff Account, and Revoke Staff Access Confirmation dialogs)
 
+### Phase 12: Activity Monitor Keyword Search & Date-Range Picker Filtering + Framer Motion Entrance Animations
+- [x] Pure Audit Filter Engine (`src/services/authService.ts`):
+  - Implemented `parseAuditDateBoundary` and `filterAuditLogs(logs, options)` supporting keyword search across actor, role, action, entity ID, and bilingual descriptions (with Persian/English numeral normalization), inclusive start/end date-range filtering (`YYYY-MM-DD` start-of-day `00:00:00.000Z` to end-of-day `23:59:59.999Z`), quick time-window presets (`ALL`, `24H`, `7D`, `30D`), role filtering, and compliance category filtering.
+  - Added unit tests in `src/services/__tests__/authService.test.ts`.
+- [x] Activity Monitor UI Controls & Framer Motion Entrance Polish (`src/pages/AdminExecutivePortal.tsx` & `src/components/ui/motionPrimitives.ts`):
+  - Added reusable `filterToolbarVariants` and `filterControlEntranceVariants` spring entrance primitives in `src/components/ui/motionPrimitives.ts`.
+  - Applied subtle staggered Framer Motion entrance animations (`filterToolbarVariants`, `filterControlEntranceVariants`, `SOFT_SPRING_TRANSITION`, `BUTTON_HOVER_PROPS`, and `AnimatePresence`) to the keyword search input (`data-testid="activity-search-input"`), search clear button (`data-testid="activity-search-clear"`), actor role filter (`data-testid="activity-role-filter"`), Date-Range Picker (`data-testid="activity-date-range-picker"`), `From` (`data-testid="activity-start-date"`) and `To` (`data-testid="activity-end-date"`) date inputs, quick time-window preset buttons (`All Time`, `Last 24h`, `Last 7 Days`, `Last 30 Days`), and the `Reset Filters` (`data-testid="activity-reset-filters"`) button.
+
+### Phase 13: Activity Monitor 'Select All' Checkbox & Bulk Selection CSV Export
+- [x] Pure Bulk-Selection & CSV Scope Engine (`src/services/authService.ts`):
+  - Implemented `computeAuditBulkSelectionState`, `toggleSelectAllAuditLogs`, `toggleSingleAuditLogSelection`, and `resolveAuditLogsForCsvExport` supporting checked, unchecked, and indeterminate states across visible/filtered audit log entries.
+  - Added automated unit tests in `src/services/__tests__/authService.test.ts` verifying full selection, partial/indeterminate state transitions, deselection, and `SELECTED` scope CSV generation.
+- [x] Activity Monitor Table Checkboxes & Bulk Action Bar (`src/pages/AdminExecutivePortal.tsx`):
+  - Added a header "Select All" checkbox (`data-testid="activity-select-all-checkbox"`) in the Activity Monitor audit log table (`<thead>`) with automatic `.indeterminate` synchronization (`aria-checked="mixed"` when partially selected).
+  - Added per-row checkboxes (`data-testid="activity-row-checkbox-${log.id}"`) in `<tbody>` with row highlight styling when selected.
+  - Added an animated bulk-selection action bar (`data-testid="activity-bulk-selection-bar"`) with selected entry count (`data-testid="activity-selected-count-label"`), one-click bulk CSV export (`data-testid="activity-export-selected-csv"`), and clear selection button (`data-testid="activity-clear-selection"`), as well as dynamic selection awareness on the toolbar CSV button (`data-testid="activity-export-csv-btn"`).
+

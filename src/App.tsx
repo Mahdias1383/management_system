@@ -211,7 +211,11 @@ export default function App() {
   return (
     <>
       {/* Global Toast Notification with Framer Motion */}
-      <ToastNotificationBanner toast={toast} lang={lang} />
+      <ToastNotificationBanner
+        toast={toast}
+        lang={lang}
+        onDismiss={() => setToast(null)}
+      />
 
       <AnimatePresence mode="wait">
         {/* =====================================================================

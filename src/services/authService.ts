@@ -640,12 +640,29 @@ export function parsePositiveInteger(input: unknown): {
   return { valid: true, value: Number(normalizedStr) };
 }
 
+export type AuditActionCategory =
+  | 'RESERVATIONS'
+  | 'SCHEDULES'
+  | 'STAFF'
+  | 'FINANCIAL'
+  | 'SYSTEM';
+
+export type AuditTimeWindowPreset = 'ALL' | '24H' | '7D' | '30D' | 'CUSTOM';
+
+export interface AuditLogFilterOptions {
+  keyword?: string;
+  category?: 'ALL' | AuditActionCategory;
+  role?: 'ALL' | UserRole | 'system';
+  startDate?: string;
+  endDate?: string;
+  timeWindowPreset?: AuditTimeWindowPreset;
+  referenceTimeMs?: number;
+}
+
 /**
  * Classifies an audit log action code into an enterprise compliance category.
  */
-export function classifyAuditActionCategory(
-  action: string
-): 'RESERVATIONS' | 'SCHEDULES' | 'STAFF' | 'FINANCIAL' | 'SYSTEM' {
+export function classifyAuditActionCategory(action: string): AuditActionCategory {
   if (action === 'TICKET_BOOKED' || action === 'TICKET_REFUNDED') {
     return 'RESERVATIONS';
   }
@@ -671,6 +688,156 @@ export function classifyAuditActionCategory(
     return 'FINANCIAL';
   }
   return 'SYSTEM';
+}
+
+/**
+ * Parses a date boundary string ('YYYY-MM-DD' or ISO-8601 timestamp, supporting Persian/Arabic numerals)
+ * into a UTC epoch timestamp in milliseconds.
+ * - For 'start' boundary on 'YYYY-MM-DD', resolves to 00:00:00.000 UTC of that day.
+ * - For 'end' boundary on 'YYYY-MM-DD', resolves to 23:59:59.999 UTC of that day.
+ */
+export function parseAuditDateBoundary(
+  dateStr: string | undefined | null,
+  boundary: 'start' | 'end'
+): number | null {
+  if (!dateStr) return null;
+  const normalized = toEnglishDigits(String(dateStr)).trim();
+  if (!normalized) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    const isoTarget =
+      boundary === 'start'
+        ? `${normalized}T00:00:00.000Z`
+        : `${normalized}T23:59:59.999Z`;
+    const ms = Date.parse(isoTarget);
+    return Number.isNaN(ms) ? null : ms;
+  }
+
+  const parsedMs = Date.parse(normalized);
+  return Number.isNaN(parsedMs) ? null : parsedMs;
+}
+
+/**
+ * Pure, deterministic filter engine for Activity Monitor audit log entries.
+ * Supports keyword matching (across actor, role, action, entity ID, and bilingual descriptions
+ * with Persian/English digit normalization), compliance category filtering, actor role filtering,
+ * and time-window / date-range filtering.
+ */
+export function filterAuditLogs(
+  logs: AuditLogEntry[],
+  options: AuditLogFilterOptions = {}
+): AuditLogEntry[] {
+  if (!Array.isArray(logs) || logs.length === 0) return [];
+
+  const {
+    keyword = '',
+    category = 'ALL',
+    role = 'ALL',
+    startDate = '',
+    endDate = '',
+    timeWindowPreset = 'ALL',
+    referenceTimeMs,
+  } = options;
+
+  const rawQuery = String(keyword || '').trim().toLowerCase();
+  const normalizedQuery = toEnglishDigits(rawQuery).trim().toLowerCase();
+
+  const startMs = parseAuditDateBoundary(startDate, 'start');
+  const endMs = parseAuditDateBoundary(endDate, 'end');
+
+  let presetMinMs: number | null = null;
+  let presetMaxMs: number | null = null;
+
+  if (
+    startMs === null &&
+    endMs === null &&
+    (timeWindowPreset === '24H' ||
+      timeWindowPreset === '7D' ||
+      timeWindowPreset === '30D')
+  ) {
+    const anchorMs =
+      typeof referenceTimeMs === 'number' && Number.isFinite(referenceTimeMs)
+        ? referenceTimeMs
+        : Date.now();
+    const durationMs =
+      timeWindowPreset === '24H'
+        ? 24 * 60 * 60 * 1000
+        : timeWindowPreset === '7D'
+        ? 7 * 24 * 60 * 60 * 1000
+        : 30 * 24 * 60 * 60 * 1000;
+    presetMinMs = anchorMs - durationMs;
+    presetMaxMs = anchorMs;
+  }
+
+  return logs.filter((log) => {
+    const logCategory = classifyAuditActionCategory(log.action);
+    if (category !== 'ALL' && logCategory !== category) {
+      return false;
+    }
+
+    if (role !== 'ALL' && log.actorRole !== role) {
+      return false;
+    }
+
+    if (
+      startMs !== null ||
+      endMs !== null ||
+      presetMinMs !== null ||
+      presetMaxMs !== null
+    ) {
+      const logTimeMs = Date.parse(log.timestamp);
+      if (Number.isNaN(logTimeMs)) {
+        return false;
+      }
+      if (startMs !== null && endMs !== null && startMs > endMs) {
+        return false;
+      }
+      if (startMs !== null && logTimeMs < startMs) {
+        return false;
+      }
+      if (endMs !== null && logTimeMs > endMs) {
+        return false;
+      }
+      if (presetMinMs !== null && logTimeMs < presetMinMs) {
+        return false;
+      }
+      if (presetMaxMs !== null && logTimeMs > presetMaxMs) {
+        return false;
+      }
+    }
+
+    if (!rawQuery && !normalizedQuery) {
+      return true;
+    }
+
+    const searchableFields = [
+      log.id,
+      log.actorUsername,
+      log.actorRole,
+      localizeRole(log.actorRole, 'fa'),
+      localizeRole(log.actorRole, 'en'),
+      log.action,
+      localizeAuditAction(log.action, 'fa'),
+      localizeAuditAction(log.action, 'en'),
+      logCategory,
+      log.entityType || '',
+      log.entityId || '',
+      log.detailsEn,
+      log.detailsFa,
+    ];
+
+    return searchableFields.some((field) => {
+      const lowerField = String(field || '').toLowerCase();
+      if (rawQuery && lowerField.includes(rawQuery)) return true;
+      if (
+        normalizedQuery &&
+        toEnglishDigits(lowerField).includes(normalizedQuery)
+      ) {
+        return true;
+      }
+      return false;
+    });
+  });
 }
 
 /**
@@ -722,4 +889,117 @@ export function generateComplianceAuditCsv(logs: AuditLogEntry[]): string {
 
   return '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
 }
+
+export interface AuditBulkSelectionState {
+  selectedVisibleIds: string[];
+  selectedVisibleCount: number;
+  totalVisibleCount: number;
+  isAllVisibleSelected: boolean;
+  isIndeterminate: boolean;
+}
+
+/**
+ * Computes the bulk-selection state (including checked and indeterminate flags)
+ * for the currently visible audit log rows in the Activity Monitor table.
+ */
+export function computeAuditBulkSelectionState(
+  visibleLogs: AuditLogEntry[],
+  selectedIds: string[]
+): AuditBulkSelectionState {
+  const safeVisible = Array.isArray(visibleLogs) ? visibleLogs : [];
+  const selectedSet = new Set(Array.isArray(selectedIds) ? selectedIds : []);
+  const selectedVisibleIds = safeVisible
+    .filter((log) => selectedSet.has(log.id))
+    .map((log) => log.id);
+
+  const totalVisibleCount = safeVisible.length;
+  const selectedVisibleCount = selectedVisibleIds.length;
+  const isAllVisibleSelected =
+    totalVisibleCount > 0 && selectedVisibleCount === totalVisibleCount;
+  const isIndeterminate =
+    selectedVisibleCount > 0 && selectedVisibleCount < totalVisibleCount;
+
+  return {
+    selectedVisibleIds,
+    selectedVisibleCount,
+    totalVisibleCount,
+    isAllVisibleSelected,
+    isIndeterminate,
+  };
+}
+
+/**
+ * Toggles bulk selection of all visible audit log entries:
+ * - If all visible entries are already selected, deselects all visible entries.
+ * - Otherwise, selects all visible entries (preserving any existing non-visible selections without duplicates).
+ */
+export function toggleSelectAllAuditLogs(
+  visibleLogs: AuditLogEntry[],
+  selectedIds: string[]
+): string[] {
+  const safeVisible = Array.isArray(visibleLogs) ? visibleLogs : [];
+  const currentSelected = Array.isArray(selectedIds) ? selectedIds : [];
+  if (safeVisible.length === 0) {
+    return [...currentSelected];
+  }
+
+  const { isAllVisibleSelected } = computeAuditBulkSelectionState(
+    safeVisible,
+    currentSelected
+  );
+  const visibleIdSet = new Set(safeVisible.map((log) => log.id));
+
+  if (isAllVisibleSelected) {
+    return currentSelected.filter((id) => !visibleIdSet.has(id));
+  }
+
+  const merged = new Set(currentSelected);
+  safeVisible.forEach((log) => merged.add(log.id));
+  return Array.from(merged);
+}
+
+/**
+ * Toggles selection for a single audit log entry ID.
+ */
+export function toggleSingleAuditLogSelection(
+  logId: string,
+  selectedIds: string[]
+): string[] {
+  if (!logId) return Array.isArray(selectedIds) ? [...selectedIds] : [];
+  const currentSelected = Array.isArray(selectedIds) ? selectedIds : [];
+  if (currentSelected.includes(logId)) {
+    return currentSelected.filter((id) => id !== logId);
+  }
+  return [...currentSelected, logId];
+}
+
+/**
+ * Resolves the target audit log entries for compliance CSV export based on scope ('ALL' | 'FILTERED' | 'SELECTED').
+ */
+export function resolveAuditLogsForCsvExport(
+  allLogs: AuditLogEntry[],
+  filteredLogs: AuditLogEntry[],
+  selectedIds: string[],
+  scope: 'ALL' | 'FILTERED' | 'SELECTED' = 'FILTERED'
+): AuditLogEntry[] {
+  const safeAll = Array.isArray(allLogs) ? allLogs : [];
+  const safeFiltered = Array.isArray(filteredLogs) ? filteredLogs : [];
+
+  if (scope === 'ALL') {
+    return safeAll;
+  }
+
+  if (scope === 'SELECTED') {
+    const selectedSet = new Set(Array.isArray(selectedIds) ? selectedIds : []);
+    const fromFiltered = safeFiltered.filter((log) => selectedSet.has(log.id));
+    if (fromFiltered.length > 0) {
+      return fromFiltered;
+    }
+    return safeAll.filter((log) => selectedSet.has(log.id));
+  }
+
+  return safeFiltered;
+}
+
+
 

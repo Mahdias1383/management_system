@@ -14,7 +14,13 @@ import {
   localizeRole,
   localizeAuditAction,
   classifyAuditActionCategory,
+  parseAuditDateBoundary,
+  filterAuditLogs,
   generateComplianceAuditCsv,
+  computeAuditBulkSelectionState,
+  toggleSelectAllAuditLogs,
+  toggleSingleAuditLogSelection,
+  resolveAuditLogsForCsvExport,
   issueSessionToken,
 } from '../authService';
 import { purchaseTrainTicket, refundTrainTicket } from '../bookingEngine';
@@ -246,5 +252,118 @@ describe('authService Core Utilities', () => {
       expect(csv).toContain('"UPDATE_TRAIN_SCHEDULE"');
       expect(csv).toContain('"RP-90234"');
     });
+
+    it('filters audit logs by keyword, Persian digits, date-range boundaries, and time-window presets', () => {
+      const db = migrateV1ToV2(getDefaultLegacyV1Snapshot());
+      const logs = db.auditLogs;
+
+      // 1. Keyword search across English PNR and Persian numerals
+      const byPnrEn = filterAuditLogs(logs, { keyword: 'RP-90234' });
+      expect(byPnrEn.length).toBe(1);
+      expect(byPnrEn[0].id).toBe('aud_seed_5');
+
+      const byPnrFa = filterAuditLogs(logs, { keyword: '۹۰۲۳۴' });
+      expect(byPnrFa.length).toBe(1);
+      expect(byPnrFa[0].id).toBe('aud_seed_5');
+
+      // 2. Date-range boundaries (inclusive start-of-day and end-of-day)
+      const startMs = parseAuditDateBoundary('2026-10-21', 'start');
+      const endMs = parseAuditDateBoundary('2026-10-23', 'end');
+      expect(startMs).toBe(Date.parse('2026-10-21T00:00:00.000Z'));
+      expect(endMs).toBe(Date.parse('2026-10-23T23:59:59.999Z'));
+
+      const inDateRange = filterAuditLogs(logs, {
+        startDate: '2026-10-21',
+        endDate: '2026-10-23',
+      });
+      // Seed logs in 2026-10-21..2026-10-23 are aud_seed_5 (Oct 23), aud_seed_4 (Oct 22), aud_seed_3 (Oct 21)
+      expect(inDateRange.map((l) => l.id)).toEqual([
+        'aud_seed_5',
+        'aud_seed_4',
+        'aud_seed_3',
+      ]);
+
+      // 3. Combined date-range + category + keyword filter
+      const combined = filterAuditLogs(logs, {
+        startDate: '2026-10-21',
+        endDate: '2026-10-24',
+        category: 'SCHEDULES',
+        keyword: 'TR-102',
+      });
+      expect(combined.length).toBe(1);
+      expect(combined[0].id).toBe('aud_seed_6');
+
+      // 4. Time-window preset (e.g., 7D relative to a deterministic referenceTimeMs)
+      const refMs = Date.parse('2026-10-25T00:00:00.000Z');
+      const last7Days = filterAuditLogs(logs, {
+        timeWindowPreset: '7D',
+        referenceTimeMs: refMs,
+      });
+      // Oct 18 to Oct 25 includes Oct 20, 21, 22, 23, 24 (5 logs)
+      expect(last7Days.length).toBe(5);
+
+      // 5. Inverted date range (startDate > endDate) returns empty list cleanly
+      const inverted = filterAuditLogs(logs, {
+        startDate: '2026-10-25',
+        endDate: '2026-10-20',
+      });
+      expect(inverted.length).toBe(0);
+    });
+
+    it('supports select-all toggling, indeterminate state calculation, and bulk-selected CSV export', () => {
+      const db = migrateV1ToV2(getDefaultLegacyV1Snapshot());
+      const visibleLogs = db.auditLogs.slice(0, 4);
+
+      // Initially 0 selected
+      const initial = computeAuditBulkSelectionState(visibleLogs, []);
+      expect(initial.selectedVisibleCount).toBe(0);
+      expect(initial.isAllVisibleSelected).toBe(false);
+      expect(initial.isIndeterminate).toBe(false);
+
+      // Select all visible logs
+      const allSelectedIds = toggleSelectAllAuditLogs(visibleLogs, []);
+      expect(allSelectedIds).toEqual(visibleLogs.map((l) => l.id));
+
+      const fullState = computeAuditBulkSelectionState(visibleLogs, allSelectedIds);
+      expect(fullState.selectedVisibleCount).toBe(4);
+      expect(fullState.isAllVisibleSelected).toBe(true);
+      expect(fullState.isIndeterminate).toBe(false);
+
+      // Toggle off a single row -> becomes indeterminate
+      const partialIds = toggleSingleAuditLogSelection(visibleLogs[1].id, allSelectedIds);
+      expect(partialIds.length).toBe(3);
+      const partialState = computeAuditBulkSelectionState(visibleLogs, partialIds);
+      expect(partialState.selectedVisibleCount).toBe(3);
+      expect(partialState.isAllVisibleSelected).toBe(false);
+      expect(partialState.isIndeterminate).toBe(true);
+
+      // Clicking select-all while indeterminate selects all visible rows again
+      const reselectedAll = toggleSelectAllAuditLogs(visibleLogs, partialIds);
+      expect(reselectedAll.length).toBe(4);
+      expect(
+        computeAuditBulkSelectionState(visibleLogs, reselectedAll).isAllVisibleSelected
+      ).toBe(true);
+
+      // Clicking select-all when all are selected deselects all visible rows
+      const deselectedAll = toggleSelectAllAuditLogs(visibleLogs, reselectedAll);
+      expect(deselectedAll).toEqual([]);
+
+      // CSV export resolution for SELECTED scope exports only the chosen entries
+      const twoSelected = [visibleLogs[0].id, visibleLogs[2].id];
+      const resolvedSelected = resolveAuditLogsForCsvExport(
+        db.auditLogs,
+        visibleLogs,
+        twoSelected,
+        'SELECTED'
+      );
+      expect(resolvedSelected.map((l) => l.id)).toEqual(twoSelected);
+
+      const csvSelected = generateComplianceAuditCsv(resolvedSelected);
+      expect(csvSelected).toContain(`"${visibleLogs[0].id}"`);
+      expect(csvSelected).toContain(`"${visibleLogs[2].id}"`);
+      expect(csvSelected).not.toContain(`"${visibleLogs[1].id}"`);
+    });
   });
 });
+
+

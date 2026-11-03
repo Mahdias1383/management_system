@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, X, XCircle } from 'lucide-react';
 import { Language } from '../../types/domain';
+import { useOnClickOutside } from '../../hooks/useOnClickOutside';
 
 export interface ToastNotificationItem {
   id: number;
@@ -13,18 +14,30 @@ export interface ToastNotificationItem {
 interface ToastNotificationBannerProps {
   toast: ToastNotificationItem | null;
   lang: Language;
+  onDismiss?: () => void;
 }
 
 export const ToastNotificationBanner: React.FC<ToastNotificationBannerProps> = ({
   toast,
   lang,
+  onDismiss,
 }) => {
   const isFa = lang === 'fa';
+  const toastRef = useRef<HTMLDivElement>(null);
+
+  useOnClickOutside(
+    toastRef,
+    () => {
+      if (onDismiss) onDismiss();
+    },
+    { enabled: Boolean(toast && onDismiss) }
+  );
 
   return (
     <AnimatePresence>
       {toast && (
         <motion.div
+          ref={toastRef}
           key={toast.id}
           initial={{ opacity: 0, y: 20, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -37,11 +50,22 @@ export const ToastNotificationBanner: React.FC<ToastNotificationBannerProps> = (
           ) : (
             <XCircle className="w-4 h-4 text-red-400 shrink-0" />
           )}
-          <span className="leading-relaxed">
+          <span className="leading-relaxed flex-1">
             {isFa ? toast.msgFa : toast.msgEn}
           </span>
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              aria-label={isFa ? 'بستن اعلان' : 'Dismiss notification'}
+              className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer shrink-0"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </motion.div>
       )}
     </AnimatePresence>
   );
 };
+

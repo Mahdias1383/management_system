@@ -104,3 +104,27 @@ export const interactiveCardVariants: Variants = {
     },
   },
 };
+
+export const filterToolbarVariants: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      ...SOFT_SPRING_TRANSITION,
+      staggerChildren: 0.05,
+      delayChildren: 0.04,
+    },
+  },
+};
+
+export const filterControlEntranceVariants: Variants = {
+  hidden: { opacity: 0, y: 8, scale: 0.985 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: SOFT_SPRING_TRANSITION,
+  },
+};
+

@@ -17,7 +17,8 @@ server.js
 !.env.example
 !.env-sample
 
-# Browser automation & test artifacts
+# AI Studio & Browser automation artifacts
+.aistudio/
 .playwright-cli/
 test-results/
 playwright-report/

@@ -54,7 +54,30 @@ html[dir="ltr"],
 html[lang="en"] *,
 html[lang="en"] *::before,
 html[lang="en"] *::after,
-html[lang="en"] .font-sans,
+html[lang="en"] .font-sans {
+  font-family: 'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: "ss01" 0, "tnum" 1, "kern" 1, "liga" 1 !important;
+}
+
+/* Recharts Explicit 'Vazirmatn FD' Font Inheritance Rule */
+.recharts-wrapper,
+.recharts-wrapper *,
+.recharts-surface,
+.recharts-text,
+.recharts-cartesian-axis-tick,
+.recharts-cartesian-axis-tick-value,
+.recharts-cartesian-axis-tick-value tspan,
+.recharts-legend-wrapper,
+.recharts-legend-item-text,
+.recharts-default-tooltip,
+.recharts-tooltip-label,
+.recharts-tooltip-item-list,
+.recharts-tooltip-item,
+.recharts-tooltip-wrapper,
+.recharts-tooltip-wrapper * {
+  font-family: 'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif !important;
+}
+
 html[lang="en"] svg,
 html[lang="en"] svg text,
 html[lang="en"] svg tspan,
@@ -64,6 +87,7 @@ html[lang="en"] .recharts-surface,
 html[lang="en"] .recharts-text,
 html[lang="en"] .recharts-cartesian-axis-tick,
 html[lang="en"] .recharts-cartesian-axis-tick-value,
+html[lang="en"] .recharts-cartesian-axis-tick-value tspan,
 html[lang="en"] .recharts-legend-wrapper,
 html[lang="en"] .recharts-legend-item-text,
 html[lang="en"] .recharts-default-tooltip,
@@ -72,7 +96,7 @@ html[lang="en"] .recharts-tooltip-item-list,
 html[lang="en"] .recharts-tooltip-item,
 html[lang="en"] .recharts-tooltip-wrapper,
 html[lang="en"] .recharts-tooltip-wrapper * {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   font-feature-settings: "ss01" 0, "tnum" 1, "kern" 1, "liga" 1 !important;
 }
 

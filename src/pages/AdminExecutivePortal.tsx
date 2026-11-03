@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion, Variants } from 'framer-motion';
 import {
   Area,
   AreaChart,
@@ -16,14 +16,20 @@ import {
   Activity,
   AlertTriangle,
   BarChart3,
+  Bell,
+  BellRing,
+  CheckCheck,
   CheckCircle2,
   Download,
   Edit3,
   FileCode2,
   GitBranch,
+  Radar,
+  Radio,
   RotateCcw,
   Search,
   ShieldCheck,
+  Sparkles,
   Train,
   Trash2,
   TrendingUp,
@@ -32,10 +38,13 @@ import {
   Users,
   Wallet,
   X,
+  Zap,
 } from 'lucide-react';
 import {
   ActiveSession,
   Employee,
+  ExecutiveAlert,
+  ExecutiveAlertCategory,
   Language,
   PlatformDatabaseV2,
   ThemeMode,
@@ -55,6 +64,20 @@ import {
   normalizeIdentifier,
   toPersianDigits,
 } from '../services/authService';
+import {
+  dismissExecutiveAlert,
+  getExecutiveAlerts,
+  HIGH_REVENUE_THRESHOLD_RIAL,
+  isHighRevenueTicket,
+  markAllExecutiveAlertsRead,
+  markExecutiveAlertRead,
+  pushHighRevenueBookingAlert,
+  pushSafetyRadarConflictAlert,
+  simulateHighRevenueBookingPush,
+  simulateSafetyRadarConflictPush,
+  subscribeToExecutiveAlerts,
+} from '../services/alertCenterService';
+import { checkAccident } from '../services/collisionEngine';
 import { resetToDefaultSeedDatabase } from '../services/storageAndMigration';
 import { RevenueAnalysis } from '../components/RevenueAnalysis';
 import { QATestSuitePanel } from '../components/QATestSuitePanel';
@@ -74,7 +97,62 @@ interface AdminExecutivePortalProps {
   onLogout: () => void;
 }
 
-type AdminSidebarSection = 'OVERVIEW' | 'STAFF_HR' | 'AUDIT' | 'QA_SUITE';
+type AdminSidebarSection =
+  | 'OVERVIEW'
+  | 'ALERT_CENTER'
+  | 'STAFF_HR'
+  | 'AUDIT'
+  | 'QA_SUITE';
+
+const kpiGridVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.06,
+      delayChildren: 0.03,
+    },
+  },
+};
+
+const kpiCardVariants: Variants = {
+  hidden: { opacity: 0, y: 16, scale: 0.975 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 320,
+      damping: 24,
+    },
+  },
+  hover: {
+    y: -5,
+    scale: 1.02,
+    boxShadow:
+      '0 18px 34px -10px rgba(37, 99, 235, 0.16), 0 8px 16px -6px rgba(15, 23, 42, 0.08)',
+    transition: {
+      type: 'spring',
+      stiffness: 380,
+      damping: 22,
+    },
+  },
+};
+
+const kpiIconVariants: Variants = {
+  hidden: { scale: 0.9, opacity: 0.8 },
+  visible: { scale: 1, opacity: 1 },
+  hover: {
+    scale: 1.16,
+    rotate: 6,
+    transition: {
+      type: 'spring',
+      stiffness: 420,
+      damping: 16,
+    },
+  },
+};
 
 export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
   db,
@@ -115,6 +193,111 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
 
   // Staff Delete Confirmation Modal State
   const [deletingStaff, setDeletingStaff] = useState<Employee | null>(null);
+
+  // Real-Time Executive Alert Center State
+  const [alerts, setAlerts] = useState<ExecutiveAlert[]>(() =>
+    getExecutiveAlerts(db)
+  );
+  const [sidebarAlertFilter, setSidebarAlertFilter] = useState<
+    'ALL' | ExecutiveAlertCategory
+  >('ALL');
+  const [workspaceAlertFilter, setWorkspaceAlertFilter] = useState<
+    'ALL' | ExecutiveAlertCategory
+  >('ALL');
+  const [livePushToast, setLivePushToast] = useState<ExecutiveAlert | null>(null);
+  const [autoStreamActive, setAutoStreamActive] = useState(false);
+  const knownTicketIdsRef = useRef<Set<string>>(
+    new Set(db.tickets.map((t) => t.id))
+  );
+  const toastTimerRef = useRef<number | null>(null);
+
+  // Subscribe to real-time Alert Center events (same-tab & cross-tab)
+  useEffect(() => {
+    const unsubscribe = subscribeToExecutiveAlerts((nextAlerts, pushedAlert) => {
+      setAlerts(nextAlerts);
+      if (pushedAlert) {
+        setLivePushToast(pushedAlert);
+        if (toastTimerRef.current) {
+          window.clearTimeout(toastTimerRef.current);
+        }
+        toastTimerRef.current = window.setTimeout(() => {
+          setLivePushToast(null);
+        }, 7000);
+      }
+    });
+    return () => {
+      unsubscribe();
+      if (toastTimerRef.current) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Automatically detect newly created high-revenue bookings in db.tickets
+  useEffect(() => {
+    db.tickets.forEach((ticket) => {
+      if (!knownTicketIdsRef.current.has(ticket.id)) {
+        knownTicketIdsRef.current.add(ticket.id);
+        if (ticket.status === 'Confirmed' && isHighRevenueTicket(ticket)) {
+          pushHighRevenueBookingAlert(ticket);
+        }
+      }
+    });
+  }, [db.tickets]);
+
+  // Automatically scan active fleet schedules for safety radar conflicts
+  useEffect(() => {
+    db.lines.forEach((line) => {
+      const lineTrains = db.trains.filter(
+        (t) =>
+          normalizeIdentifier(t.name_line) === normalizeIdentifier(line.name_line)
+      );
+      lineTrains.forEach((train) => {
+        const report = checkAccident(train, lineTrains, line);
+        if (report.hasConflict) {
+          report.conflicts.forEach((conflict) => {
+            pushSafetyRadarConflictAlert(conflict);
+          });
+        }
+      });
+    });
+  }, [db.lines, db.trains]);
+
+  // Optional live auto-stream mode for real-time executive telemetry demonstration
+  useEffect(() => {
+    if (!autoStreamActive) return;
+    const interval = window.setInterval(() => {
+      if (Math.random() > 0.45) {
+        simulateHighRevenueBookingPush(db);
+      } else {
+        simulateSafetyRadarConflictPush(db);
+      }
+    }, 9000);
+    return () => window.clearInterval(interval);
+  }, [autoStreamActive, db]);
+
+  const unreadAlertsCount = useMemo(
+    () => alerts.filter((a) => !a.read).length,
+    [alerts]
+  );
+
+  const unreadCriticalAlertsCount = useMemo(
+    () =>
+      alerts.filter(
+        (a) => !a.read && a.category === 'SAFETY_RADAR_CONFLICT'
+      ).length,
+    [alerts]
+  );
+
+  const filteredSidebarAlerts = useMemo(() => {
+    if (sidebarAlertFilter === 'ALL') return alerts.slice(0, 6);
+    return alerts.filter((a) => a.category === sidebarAlertFilter).slice(0, 6);
+  }, [alerts, sidebarAlertFilter]);
+
+  const filteredWorkspaceAlerts = useMemo(() => {
+    if (workspaceAlertFilter === 'ALL') return alerts;
+    return alerts.filter((a) => a.category === workspaceAlertFilter);
+  }, [alerts, workspaceAlertFilter]);
 
   const pwdStrength = evaluatePasswordStrength(password);
 
@@ -513,6 +696,14 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
       icon: <BarChart3 className="w-4 h-4" />,
     },
     {
+      id: 'ALERT_CENTER',
+      labelFa: 'مرکز هشدارهای آنی و رادار',
+      labelEn: 'Real-Time Alert Center',
+      badgeCount: unreadAlertsCount,
+      badgeTone: unreadCriticalAlertsCount > 0 ? 'critical' : 'live',
+      icon: <BellRing className="w-4 h-4" />,
+    },
+    {
       id: 'STAFF_HR',
       labelFa: 'مدیریت کارشناسان عملیات ریلی',
       labelEn: 'Operations Staff Directory',
@@ -542,6 +733,12 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
       subtitleFa: 'پایش بلادرنگ شاخص‌های کلیدی عملکرد، فروش بلیط، ظرفیت ناوگان و ایمنی شبکه',
       subtitleEn: 'Real-time operational KPIs, 30-day ticket sales analytics, and fleet safety compliance',
     },
+    ALERT_CENTER: {
+      titleFa: 'مرکز هشدارهای آنی رزروهای کلان و رادار ایمنی سیر',
+      titleEn: 'Real-Time Executive Alert Center & Safety Radar Stream',
+      subtitleFa: 'دریافت بلادرنگ اعلان‌های خرید بلیط با درآمد بالا و هشدارهای تداخل زمانی-مکانی رادار ضدبرخورد',
+      subtitleEn: 'Real-time push notifications for high-revenue bookings and automated collision radar conflicts',
+    },
     STAFF_HR: {
       titleFa: 'مدیریت کارشناسان و مهندسان عملیات ریلی',
       titleEn: 'Railway Operations Staff Provisioning & Directory',
@@ -562,6 +759,253 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
     },
   }[activeSection];
 
+  const sidebarAlertCenterWidget = (
+    <div
+      data-testid="sidebar-alert-center"
+      className="rounded-xl bg-slate-950/90 border border-slate-800/90 p-3 flex flex-col gap-2.5 shadow-inner"
+    >
+      {/* Sidebar Alert Center Header */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="relative flex h-2.5 w-2.5 shrink-0">
+            <span
+              className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                unreadCriticalAlertsCount > 0 ? 'bg-rose-400' : 'bg-emerald-400'
+              }`}
+            />
+            <span
+              className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                unreadCriticalAlertsCount > 0 ? 'bg-rose-500' : 'bg-emerald-500'
+              }`}
+            />
+          </span>
+          <span className="text-xs font-bold text-white truncate">
+            {isFa ? 'مرکز هشدارهای آنی' : 'Real-Time Alert Center'}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          {unreadAlertsCount > 0 && (
+            <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/30">
+              {formatNumber(unreadAlertsCount, lang)}{' '}
+              {isFa ? 'جدید' : 'new'}
+            </span>
+          )}
+          {unreadAlertsCount > 0 && (
+            <button
+              type="button"
+              onClick={() => markAllExecutiveAlertsRead()}
+              className="p-1 rounded-md text-slate-400 hover:text-emerald-300 hover:bg-slate-800/80 transition-colors cursor-pointer"
+              title={isFa ? 'علامت‌گذاری همه به‌عنوان خوانده‌شده' : 'Mark all as read'}
+            >
+              <CheckCheck className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Category Filter Tabs inside Sidebar */}
+      <div className="grid grid-cols-3 gap-1 bg-slate-900/90 p-1 rounded-lg border border-slate-800/80 text-[10px]">
+        <button
+          type="button"
+          onClick={() => setSidebarAlertFilter('ALL')}
+          className={`py-1 px-1.5 rounded-md font-semibold transition-colors cursor-pointer truncate ${
+            sidebarAlertFilter === 'ALL'
+              ? 'bg-blue-600 text-white'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          {isFa ? 'همه' : 'All'} ({formatNumber(alerts.length, lang)})
+        </button>
+        <button
+          type="button"
+          onClick={() => setSidebarAlertFilter('HIGH_REVENUE_BOOKING')}
+          className={`py-1 px-1.5 rounded-md font-semibold transition-colors cursor-pointer truncate ${
+            sidebarAlertFilter === 'HIGH_REVENUE_BOOKING'
+              ? 'bg-emerald-600 text-white'
+              : 'text-slate-400 hover:text-emerald-300'
+          }`}
+        >
+          {isFa ? 'رزرو کلان' : 'Revenue'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setSidebarAlertFilter('SAFETY_RADAR_CONFLICT')}
+          className={`py-1 px-1.5 rounded-md font-semibold transition-colors cursor-pointer truncate ${
+            sidebarAlertFilter === 'SAFETY_RADAR_CONFLICT'
+              ? 'bg-rose-600 text-white'
+              : 'text-slate-400 hover:text-rose-300'
+          }`}
+        >
+          {isFa ? 'رادار ایمنی' : 'Radar'}
+        </button>
+      </div>
+
+      {/* Live Push Feed Stream inside Sidebar */}
+      <div className="space-y-1.5 max-h-[260px] overflow-y-auto pr-0.5">
+        <AnimatePresence initial={false}>
+          {filteredSidebarAlerts.map((alert) => {
+            const isRadar = alert.category === 'SAFETY_RADAR_CONFLICT';
+            return (
+              <motion.div
+                key={alert.id}
+                layout
+                initial={{ opacity: 0, y: -10, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.94 }}
+                transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+                onClick={() => {
+                  markExecutiveAlertRead(alert.id);
+                  setActiveSection('ALERT_CENTER');
+                }}
+                className={`group relative rounded-lg p-2.5 border text-start transition-all cursor-pointer ${
+                  isRadar
+                    ? alert.read
+                      ? 'bg-slate-900/60 border-slate-800/80 hover:border-rose-500/40'
+                      : 'bg-rose-950/35 border-rose-500/40 hover:border-rose-400'
+                    : alert.read
+                    ? 'bg-slate-900/60 border-slate-800/80 hover:border-emerald-500/40'
+                    : 'bg-emerald-950/30 border-emerald-500/40 hover:border-emerald-400'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-1.5">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span
+                      className={`p-1 rounded-md shrink-0 ${
+                        isRadar
+                          ? 'bg-rose-500/20 text-rose-400'
+                          : 'bg-emerald-500/20 text-emerald-400'
+                      }`}
+                    >
+                      {isRadar ? (
+                        <Radar className="w-3 h-3" />
+                      ) : (
+                        <Wallet className="w-3 h-3" />
+                      )}
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-100 truncate">
+                      {isFa ? alert.titleFa : alert.titleEn}
+                    </span>
+                  </div>
+                  {!alert.read && (
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 mt-1 ${
+                        isRadar ? 'bg-rose-400 animate-pulse' : 'bg-emerald-400 animate-pulse'
+                      }`}
+                    />
+                  )}
+                </div>
+
+                <p className="text-[10px] text-slate-300/90 line-clamp-2 mt-1 leading-relaxed">
+                  {isFa ? toPersianDigits(alert.messageFa, 'fa') : alert.messageEn}
+                </p>
+
+                <div className="flex items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-slate-800/70 text-[10px]">
+                  {alert.amountIrr ? (
+                    <span className="font-mono font-bold text-emerald-400">
+                      {formatCurrency(alert.amountIrr, isFa ? 'Rial' : 'USD')}
+                    </span>
+                  ) : (
+                    <span className="font-mono font-semibold text-rose-300 truncate">
+                      {alert.trainId} · {alert.overlapWindow || localizeText(alert.locationLabel || '', lang)}
+                    </span>
+                  )}
+                  <span className="text-slate-500 font-mono shrink-0">
+                    {formatDateTime(alert.timestamp, lang, 'shortDate')}
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+
+      {/* Quick Live Push Triggers inside Sidebar */}
+      <div className="pt-1 border-t border-slate-800/80 space-y-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            onClick={() => simulateHighRevenueBookingPush(db)}
+            className="px-2 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            title={
+              isFa
+                ? 'شبیه‌سازی اعلان آنی رزرو با درآمد بالا'
+                : 'Simulate High-Revenue Booking Push Notification'
+            }
+          >
+            <Zap className="w-3 h-3 shrink-0" />
+            <span className="truncate">
+              {isFa ? '+ اعلان رزرو کلان' : '+ High-Rev Push'}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => simulateSafetyRadarConflictPush(db)}
+            className="px-2 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            title={
+              isFa
+                ? 'شبیه‌سازی اعلان آنی تداخل رادار ایمنی'
+                : 'Simulate Safety Radar Conflict Push Notification'
+            }
+          >
+            <Radar className="w-3 h-3 shrink-0" />
+            <span className="truncate">
+              {isFa ? '+ هشدار رادار' : '+ Radar Conflict'}
+            </span>
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setActiveSection('ALERT_CENTER')}
+          className="w-full py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer text-center"
+        >
+          {isFa
+            ? 'مشاهده کامل مرکز هشدارهای آنی ←'
+            : 'Open Full Alert Center Workspace →'}
+        </button>
+      </div>
+    </div>
+  );
+
+  const sidebarCollapsedAlertButton = (
+    <button
+      type="button"
+      onClick={() => setActiveSection('ALERT_CENTER')}
+      className="relative p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 hover:text-white hover:border-blue-500/50 cursor-pointer"
+      title={isFa ? 'مرکز هشدارهای آنی' : 'Real-Time Alert Center'}
+    >
+      <BellRing className="w-4 h-4 text-emerald-400" />
+      {unreadAlertsCount > 0 && (
+        <span className="absolute -top-1 -right-1 px-1 min-w-[16px] h-4 rounded-full bg-rose-600 text-white text-[9px] font-mono font-bold flex items-center justify-center">
+          {formatNumber(unreadAlertsCount, lang)}
+        </span>
+      )}
+    </button>
+  );
+
+  const headerAlertIndicator = (
+    <button
+      type="button"
+      onClick={() => setActiveSection('ALERT_CENTER')}
+      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+        unreadCriticalAlertsCount > 0
+          ? 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
+          : unreadAlertsCount > 0
+          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+          : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+      }`}
+    >
+      <BellRing className="w-3.5 h-3.5" />
+      <span className="hidden sm:inline">
+        {isFa ? 'هشدارهای آنی' : 'Live Alerts'}
+      </span>
+      <span className="font-mono px-1.5 py-0.5 rounded bg-slate-900/10 dark:bg-white/10 text-[11px]">
+        {formatNumber(unreadAlertsCount, lang)}
+      </span>
+    </button>
+  );
+
   return (
     <EnterpriseBackofficeLayout
       lang={lang}
@@ -577,27 +1021,125 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
       onLogout={onLogout}
       onToggleLang={onToggleLang}
       onToggleTheme={onToggleTheme}
+      sidebarAlertSlot={sidebarAlertCenterWidget}
+      sidebarCollapsedSlot={sidebarCollapsedAlertButton}
+      headerActionSlot={headerAlertIndicator}
     >
+      {/* Floating Real-Time Push Notification Toast Banner */}
+      <AnimatePresence>
+        {livePushToast && (
+          <motion.div
+            key={livePushToast.id}
+            initial={{ opacity: 0, y: -24, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 25 }}
+            className={`mb-5 p-4 rounded-xl border shadow-lg flex flex-wrap items-center justify-between gap-4 ${
+              livePushToast.category === 'SAFETY_RADAR_CONFLICT'
+                ? 'bg-rose-950/95 border-rose-500/50 text-rose-100'
+                : 'bg-slate-900/95 border-emerald-500/50 text-emerald-50'
+            }`}
+          >
+            <div className="flex items-start gap-3 min-w-0 flex-1">
+              <div
+                className={`p-2.5 rounded-xl shrink-0 ${
+                  livePushToast.category === 'SAFETY_RADAR_CONFLICT'
+                    ? 'bg-rose-500/20 text-rose-400'
+                    : 'bg-emerald-500/20 text-emerald-400'
+                }`}
+              >
+                {livePushToast.category === 'SAFETY_RADAR_CONFLICT' ? (
+                  <Radar className="w-5 h-5 animate-pulse" />
+                ) : (
+                  <BellRing className="w-5 h-5 animate-bounce" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                      livePushToast.category === 'SAFETY_RADAR_CONFLICT'
+                        ? 'bg-rose-500/30 text-rose-200'
+                        : 'bg-emerald-500/30 text-emerald-200'
+                    }`}
+                  >
+                    {livePushToast.category === 'SAFETY_RADAR_CONFLICT'
+                      ? isFa
+                        ? 'اعلان آنی رادار ایمنی'
+                        : 'LIVE RADAR CONFLICT PUSH'
+                      : isFa
+                      ? 'اعلان آنی رزرو کلان'
+                      : 'LIVE HIGH-REVENUE BOOKING PUSH'}
+                  </span>
+                  <h4 className="text-sm font-bold text-white truncate">
+                    {isFa ? livePushToast.titleFa : livePushToast.titleEn}
+                  </h4>
+                  {livePushToast.amountIrr && (
+                    <span className="font-mono text-xs font-bold text-emerald-400">
+                      {formatCurrency(livePushToast.amountIrr, isFa ? 'Rial' : 'USD')}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-200 mt-1 leading-relaxed">
+                  {isFa
+                    ? toPersianDigits(livePushToast.messageFa, 'fa')
+                    : livePushToast.messageEn}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  markExecutiveAlertRead(livePushToast.id);
+                  setActiveSection('ALERT_CENTER');
+                  setLivePushToast(null);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold cursor-pointer"
+              >
+                {isFa ? 'بررسی در مرکز هشدار' : 'Inspect Alert'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLivePushToast(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+                title={isFa ? 'بستن اعلان' : 'Dismiss'}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* =====================================================================
           SECTION 1: EXECUTIVE & REVENUE ANALYTICS
           ===================================================================== */}
       {activeSection === 'OVERVIEW' && (
         <div className="space-y-6 rp-animate-in">
           {/* 5 Executive KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <motion.div
+            variants={kpiGridVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"
+          >
             <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.02 }}
-              whileHover={{ y: -4, scale: 1.015 }}
-              whileTap={{ scale: 0.99 }}
-              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs"
+              variants={kpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs cursor-default"
             >
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'کریدورهای ریلی فعال' : 'Active Rail Corridors'}
                 </span>
-                <GitBranch className="w-4 h-4 text-blue-500" />
+                <motion.span
+                  variants={kpiIconVariants}
+                  className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 inline-flex items-center justify-center"
+                >
+                  <GitBranch className="w-4 h-4" />
+                </motion.span>
               </div>
               <div className="text-2xl font-bold font-mono text-slate-900 dark:text-slate-100">
                 {formatNumber(db.lines.length, lang)}
@@ -612,18 +1154,21 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.07 }}
-              whileHover={{ y: -4, scale: 1.015 }}
-              whileTap={{ scale: 0.99 }}
-              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs"
+              variants={kpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs cursor-default"
             >
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'ناوگان قطارهای فعال' : 'Operating Train Fleet'}
                 </span>
-                <Train className="w-4 h-4 text-indigo-500" />
+                <motion.span
+                  variants={kpiIconVariants}
+                  className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 inline-flex items-center justify-center"
+                >
+                  <Train className="w-4 h-4" />
+                </motion.span>
               </div>
               <div className="text-2xl font-bold font-mono text-slate-900 dark:text-slate-100">
                 {formatNumber(db.trains.length, lang)}
@@ -638,18 +1183,21 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.12 }}
-              whileHover={{ y: -4, scale: 1.015 }}
-              whileTap={{ scale: 0.99 }}
-              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs"
+              variants={kpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs cursor-default"
             >
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'کارشناسان و مسافران' : 'Staff & Passengers'}
                 </span>
-                <Users className="w-4 h-4 text-violet-500" />
+                <motion.span
+                  variants={kpiIconVariants}
+                  className="p-1.5 rounded-lg bg-violet-500/10 text-violet-500 inline-flex items-center justify-center"
+                >
+                  <Users className="w-4 h-4" />
+                </motion.span>
               </div>
               <div className="text-2xl font-bold font-mono text-slate-900 dark:text-slate-100">
                 {formatNumber(db.employees.length, lang)} / {formatNumber(db.passengers.length, lang)}
@@ -662,18 +1210,21 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.17 }}
-              whileHover={{ y: -4, scale: 1.015 }}
-              whileTap={{ scale: 0.99 }}
-              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs"
+              variants={kpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs cursor-default"
             >
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'درآمد خالص فروش بلیط' : 'Net Ticket Revenue'}
                 </span>
-                <Wallet className="w-4 h-4 text-emerald-500" />
+                <motion.span
+                  variants={kpiIconVariants}
+                  className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 inline-flex items-center justify-center"
+                >
+                  <Wallet className="w-4 h-4" />
+                </motion.span>
               </div>
               <div className="text-lg sm:text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
                 {formatCurrency(totalRevenue, isFa ? 'Rial' : 'USD')}
@@ -685,18 +1236,21 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.22 }}
-              whileHover={{ y: -4, scale: 1.015 }}
-              whileTap={{ scale: 0.99 }}
-              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs"
+              variants={kpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs cursor-default"
             >
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">
                   {isFa ? 'شاخص ایمنی سیر' : 'Dispatch Safety Index'}
                 </span>
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                <motion.span
+                  variants={kpiIconVariants}
+                  className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 inline-flex items-center justify-center"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                </motion.span>
               </div>
               <div className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
                 {isFa ? '۱۰۰٪' : '100.0%'}
@@ -707,34 +1261,318 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   : 'Zero active track collisions'}
               </div>
             </motion.div>
-          </div>
+          </motion.div>
+
+          {/* 12-Month Ticket Sales Revenue AreaChart Section */}
+          <motion.section
+            id="ticket-sales-12m-area-section"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 26, delay: 0.12 }}
+            className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs"
+            style={{
+              fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+            }}
+          >
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                  <BarChart3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                    {isFa
+                      ? 'نمودار مساحتی درآمد فروش بلیط در ۱۲ ماه گذشته'
+                      : '12-Month Ticket Sales Revenue AreaChart'}
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {isFa
+                      ? `روند ۱۲ ماهه فروش ناخالص بلیط (${formatCurrency(annualRevenueSummary.annualGross, 'Rial')}) و درآمد خالص محقق‌شده (${formatCurrency(annualRevenueSummary.annualNet, 'Rial')})`
+                      : `12-month gross ticket sales (${formatCurrency(annualRevenueSummary.annualGross, 'USD')}) and realized net revenue (${formatCurrency(annualRevenueSummary.annualNet, 'USD')})`}
+                  </p>
+                </div>
+              </div>
+
+              <motion.div
+                variants={kpiGridVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-2 sm:grid-cols-4 gap-2.5"
+              >
+                <motion.div
+                  variants={kpiCardVariants}
+                  whileHover="hover"
+                  whileTap={{ scale: 0.985 }}
+                  className="rp-card-hover px-3 py-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 cursor-default"
+                >
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                    {isFa ? 'مجموع درآمد خالص ۱۲ ماهه' : '12-Month Net Ticket Revenue'}
+                  </span>
+                  <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                    {formatCurrency(annualRevenueSummary.annualNet, isFa ? 'Rial' : 'USD')}
+                  </span>
+                </motion.div>
+
+                <motion.div
+                  variants={kpiCardVariants}
+                  whileHover="hover"
+                  whileTap={{ scale: 0.985 }}
+                  className="rp-card-hover px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/20 cursor-default"
+                >
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                    {isFa ? 'مجموع فروش ناخالص ۱۲ ماهه' : '12-Month Gross Ticket Sales'}
+                  </span>
+                  <span className="text-xs font-bold font-mono text-blue-600 dark:text-blue-400 mt-0.5 block">
+                    {formatCurrency(annualRevenueSummary.annualGross, isFa ? 'Rial' : 'USD')}
+                  </span>
+                </motion.div>
+
+                <motion.div
+                  variants={kpiCardVariants}
+                  whileHover="hover"
+                  whileTap={{ scale: 0.985 }}
+                  className="rp-card-hover px-3 py-2 rounded-lg bg-indigo-500/5 border border-indigo-500/20 cursor-default"
+                >
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                    {isFa ? 'میانگین درآمد ماهانه بلیط' : 'Avg Monthly Net Revenue'}
+                  </span>
+                  <span className="text-xs font-bold font-mono text-indigo-600 dark:text-indigo-400 mt-0.5 block">
+                    {formatCurrency(Math.round(annualRevenueSummary.annualNet / 12), isFa ? 'Rial' : 'USD')}
+                  </span>
+                </motion.div>
+
+                <motion.div
+                  variants={kpiCardVariants}
+                  whileHover="hover"
+                  whileTap={{ scale: 0.985 }}
+                  className="rp-card-hover px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20 cursor-default"
+                >
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                    {isFa ? `رکورد ماهانه (${annualRevenueSummary.bestMonth.monthLabel})` : `Peak Month (${annualRevenueSummary.bestMonth.monthLabel})`}
+                  </span>
+                  <span className="text-xs font-bold font-mono text-amber-600 dark:text-amber-400 mt-0.5 block">
+                    {formatCurrency(annualRevenueSummary.bestMonth.netRevenue, isFa ? 'Rial' : 'USD')}
+                  </span>
+                </motion.div>
+              </motion.div>
+            </div>
+
+            <div
+              className="h-80 w-full"
+              dir="ltr"
+              style={{
+                fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={monthlyRevenueData}
+                  margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
+                  style={{
+                    fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                    fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                  }}
+                >
+                  <defs>
+                    <linearGradient id="ticketGrossAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="ticketNetAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.42} />
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0.03} />
+                    </linearGradient>
+                    <linearGradient id="ticketTargetAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.18} />
+                      <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.01} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#334155"
+                    opacity={0.18}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="monthLabel"
+                    tickFormatter={(v) => toPersianDigits(String(v), lang)}
+                    style={{
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                    }}
+                    tick={{
+                      fontSize: 11,
+                      fill: '#64748B',
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                      style: {
+                        fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                        fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                      },
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={(val: number) => formatCurrency(val, isFa ? 'Rial' : 'USD')}
+                    style={{
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                    }}
+                    tick={{
+                      fontSize: 10,
+                      fill: '#64748B',
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                      style: {
+                        fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                        fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                      },
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={isFa ? 125 : 90}
+                  />
+                  <Tooltip
+                    wrapperStyle={{
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                    }}
+                    contentStyle={{
+                      backgroundColor: '#0F172A',
+                      borderColor: '#1E293B',
+                      borderRadius: '0.75rem',
+                      color: '#F8FAFC',
+                      fontSize: '12px',
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                      direction: isFa ? 'rtl' : 'ltr',
+                      textAlign: isFa ? 'right' : 'left',
+                    }}
+                    labelStyle={{
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                      fontWeight: 700,
+                      marginBottom: '4px',
+                      color: '#E2E8F0',
+                    }}
+                    itemStyle={{
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                    }}
+                    labelFormatter={(label) =>
+                      isFa
+                        ? `دوره ماهانه: ${toPersianDigits(String(label), lang)}`
+                        : `Billing Month: ${label}`
+                    }
+                    formatter={(val: any, name: any) => {
+                      const currencyUnit = isFa ? 'Rial' : 'USD';
+                      const formattedVal = formatCurrency(Number(val ?? 0), currencyUnit);
+                      if (name === 'grossRevenue') {
+                        return [
+                          formattedVal,
+                          isFa ? 'فروش ناخالص بلیط' : 'Gross Ticket Sales',
+                        ];
+                      }
+                      if (name === 'netRevenue') {
+                        return [
+                          formattedVal,
+                          isFa ? 'درآمد خالص فروش بلیط' : 'Net Ticket Sales Revenue',
+                        ];
+                      }
+                      if (name === 'targetBenchmark') {
+                        return [
+                          formattedVal,
+                          isFa ? 'هدف بودجه مصوب' : 'Monthly Target Benchmark',
+                        ];
+                      }
+                      return [formattedVal, String(name)];
+                    }}
+                  />
+                  <Legend
+                    wrapperStyle={{
+                      fontSize: '12px',
+                      paddingTop: '12px',
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                    }}
+                    formatter={(value: string) => {
+                      const currencyUnit = isFa ? 'Rial' : 'USD';
+                      if (value === 'grossRevenue') {
+                        return isFa
+                          ? `فروش ناخالص بلیط (${formatCurrency(annualRevenueSummary.annualGross, currencyUnit)})`
+                          : `Gross Ticket Sales (${formatCurrency(annualRevenueSummary.annualGross, currencyUnit)})`;
+                      }
+                      if (value === 'netRevenue') {
+                        return isFa
+                          ? `درآمد خالص فروش بلیط (${formatCurrency(annualRevenueSummary.annualNet, currencyUnit)})`
+                          : `Net Ticket Sales Revenue (${formatCurrency(annualRevenueSummary.annualNet, currencyUnit)})`;
+                      }
+                      return isFa ? 'هدف بودجه ماهانه' : 'Monthly Target Benchmark';
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="grossRevenue"
+                    stroke="#3B82F6"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill="url(#ticketGrossAreaGrad)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="netRevenue"
+                    stroke="#10B981"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill="url(#ticketNetAreaGrad)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="targetBenchmark"
+                    stroke="#8B5CF6"
+                    strokeWidth={1.75}
+                    strokeDasharray="5 5"
+                    fillOpacity={1}
+                    fill="url(#ticketTargetAreaGrad)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.section>
 
           {/* 12-Month Monthly Revenue Trend LineChart (Recharts) */}
-          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+          <div
+            className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs"
+            style={{
+              fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+            }}
+          >
             <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <div>
                   <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
                     {isFa
-                      ? 'روند ۱۲ ماهه درآمد ماهانه شبکه ریلی (ریال)'
-                      : '12-Month Monthly Railway Revenue Trend (USD)'}
+                      ? 'روند خطی ۱۲ ماهه درآمد ماهانه شبکه ریلی (ریال)'
+                      : '12-Month Monthly Railway Revenue Line Trend (USD)'}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     {isFa
-                      ? 'مقایسه درآمد خالص ماهانه، فروش ناخالص و هدف‌گذاری بودجه عملیاتی در ۱۲ ماه گذشته'
-                      : 'Comparison of monthly net ticket revenue, gross sales, and operational target over the last 12 months'}
+                      ? 'مقایسه خطی درآمد خالص ماهانه، فروش ناخالص و هدف‌گذاری بودجه عملیاتی در ۱۲ ماه گذشته'
+                      : 'Linear comparison of monthly net ticket revenue, gross sales, and operational target over the last 12 months'}
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 text-xs">
+              <motion.div
+                variants={kpiGridVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-3 gap-3 text-xs"
+              >
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.1 }}
-                  whileHover={{ y: -3, scale: 1.015 }}
-                  className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800"
+                  variants={kpiCardVariants}
+                  whileHover="hover"
+                  whileTap={{ scale: 0.985 }}
+                  className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
                 >
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     {isFa ? 'درآمد خالص سالانه (۱۲ ماه)' : '12-Month Net Revenue'}
@@ -744,11 +1582,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   </div>
                 </motion.div>
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.15 }}
-                  whileHover={{ y: -3, scale: 1.015 }}
-                  className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800"
+                  variants={kpiCardVariants}
+                  whileHover="hover"
+                  whileTap={{ scale: 0.985 }}
+                  className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
                 >
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     {isFa ? 'فروش ناخالص سالانه' : '12-Month Gross Sales'}
@@ -758,11 +1595,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   </div>
                 </motion.div>
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.2 }}
-                  whileHover={{ y: -3, scale: 1.015 }}
-                  className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800"
+                  variants={kpiCardVariants}
+                  whileHover="hover"
+                  whileTap={{ scale: 0.985 }}
+                  className="rp-card-hover px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
                 >
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     {isFa ? 'پرفروش‌ترین ماه سال' : 'Peak Monthly Performance'}
@@ -771,7 +1607,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     {annualRevenueSummary.bestMonth.monthLabel}
                   </div>
                 </motion.div>
-              </div>
+              </motion.div>
             </div>
 
             <div className="h-72 w-full" dir="ltr">
@@ -780,9 +1616,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   data={monthlyRevenueData}
                   margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
                   style={{
-                    fontFamily: isFa
-                      ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                      : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                    fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                     fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                   }}
                 >
@@ -791,21 +1625,15 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     dataKey="monthLabel"
                     tickFormatter={(v) => toPersianDigits(String(v), lang)}
                     style={{
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                       fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                     }}
                     tick={{
                       fontSize: 11,
                       fill: '#94A3B8',
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                       style: {
-                        fontFamily: isFa
-                          ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                          : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                        fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                         fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                       },
                     }}
@@ -815,29 +1643,26 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   <YAxis
                     tickFormatter={(v: number) => formatCurrency(v, isFa ? 'Rial' : 'USD')}
                     style={{
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                       fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                     }}
                     tick={{
                       fontSize: 10,
                       fill: '#94A3B8',
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                       style: {
-                        fontFamily: isFa
-                          ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                          : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                        fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                         fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                       },
                     }}
                     tickLine={false}
                     axisLine={false}
-                    width={isFa ? 120 : 85}
+                    width={isFa ? 125 : 90}
                   />
                   <Tooltip
+                    wrapperStyle={{
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                    }}
                     contentStyle={{
                       backgroundColor: '#0F172A',
                       borderColor: '#1E293B',
@@ -846,24 +1671,18 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       color: '#F8FAFC',
                       direction: isFa ? 'rtl' : 'ltr',
                       textAlign: isFa ? 'right' : 'left',
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                       fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                     }}
                     labelStyle={{
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                       fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                       fontWeight: 700,
                       marginBottom: '4px',
                       color: '#E2E8F0',
                     }}
                     itemStyle={{
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                       fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                     }}
                     formatter={(value: any, name: any) => {
@@ -898,9 +1717,7 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     wrapperStyle={{
                       fontSize: '12px',
                       paddingTop: '10px',
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                       fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                     }}
                     formatter={(value) => {
@@ -937,208 +1754,6 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     dot={false}
                   />
                 </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* 12-Month Ticket Sales Revenue AreaChart Section */}
-          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                  <BarChart3 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                    {isFa
-                      ? 'نمودار مساحتی روند درآمد فروش بلیط (۱۲ ماه گذشته)'
-                      : 'Monthly Ticket Sales Revenue Trend AreaChart (Past 12 Months)'}
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {isFa
-                      ? 'نمایش حجم فروش ناخالص بلیط و درآمد خالص محقق‌شده بر حسب ریال با فونت وزیرمتن'
-                      : 'Visualizing gross ticket sales volume and realized net revenue in USD ($)'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="rp-card-hover px-3 py-1.5 rounded-lg bg-blue-500/5 border border-blue-500/20">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
-                    {isFa ? 'میانگین فروش ماهانه بلیط' : 'Avg Monthly Ticket Sales'}
-                  </span>
-                  <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
-                    {formatCurrency(Math.round(annualRevenueSummary.annualGross / 12), isFa ? 'Rial' : 'USD')}
-                  </span>
-                </div>
-                <div className="rp-card-hover px-3 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
-                    {isFa ? 'میانگین درآمد خالص ماهانه' : 'Avg Monthly Net Revenue'}
-                  </span>
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                    {formatCurrency(Math.round(annualRevenueSummary.annualNet / 12), isFa ? 'Rial' : 'USD')}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="h-80 w-full" dir="ltr">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={monthlyRevenueData}
-                  margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
-                  style={{
-                    fontFamily: isFa
-                      ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                      : "'Plus Jakarta Sans', -apple-system, sans-serif",
-                    fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
-                  }}
-                >
-                  <defs>
-                    <linearGradient id="ticketGrossAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.02} />
-                    </linearGradient>
-                    <linearGradient id="ticketNetAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0.03} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#334155"
-                    opacity={0.18}
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="monthLabel"
-                    tickFormatter={(v) => toPersianDigits(String(v), lang)}
-                    style={{
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
-                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
-                    }}
-                    tick={{
-                      fontSize: 11,
-                      fill: '#64748B',
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
-                      style: {
-                        fontFamily: isFa
-                          ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                          : "'Plus Jakarta Sans', -apple-system, sans-serif",
-                        fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
-                      },
-                    }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    tickFormatter={(val: number) => formatCurrency(val, isFa ? 'Rial' : 'USD')}
-                    style={{
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
-                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
-                    }}
-                    tick={{
-                      fontSize: 10,
-                      fill: '#64748B',
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
-                      style: {
-                        fontFamily: isFa
-                          ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                          : "'Plus Jakarta Sans', -apple-system, sans-serif",
-                        fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
-                      },
-                    }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={isFa ? 120 : 85}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#0F172A',
-                      borderColor: '#1E293B',
-                      borderRadius: '0.75rem',
-                      color: '#F8FAFC',
-                      fontSize: '12px',
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
-                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
-                      direction: isFa ? 'rtl' : 'ltr',
-                      textAlign: isFa ? 'right' : 'left',
-                    }}
-                    labelStyle={{
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
-                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
-                      fontWeight: 700,
-                      marginBottom: '4px',
-                      color: '#E2E8F0',
-                    }}
-                    itemStyle={{
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
-                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
-                    }}
-                    labelFormatter={(label) =>
-                      isFa
-                        ? `دوره ماهانه: ${toPersianDigits(String(label), lang)}`
-                        : `Month: ${label}`
-                    }
-                    formatter={(val: any, name: any) => {
-                      const label =
-                        name === 'grossRevenue'
-                          ? isFa
-                            ? 'فروش ناخالص بلیط'
-                            : 'Gross Ticket Sales'
-                          : isFa
-                          ? 'درآمد خالص فروش بلیط'
-                          : 'Net Ticket Revenue';
-                      return [formatCurrency(Number(val ?? 0), isFa ? 'Rial' : 'USD'), label];
-                    }}
-                  />
-                  <Legend
-                    wrapperStyle={{
-                      fontSize: '12px',
-                      paddingTop: '12px',
-                      fontFamily: isFa
-                        ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                        : "'Plus Jakarta Sans', -apple-system, sans-serif",
-                      fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
-                    }}
-                    formatter={(value: string) => {
-                      if (value === 'grossRevenue') {
-                        return isFa ? 'فروش ناخالص بلیط (ریال)' : 'Gross Ticket Sales (USD)';
-                      }
-                      return isFa ? 'درآمد خالص فروش بلیط (ریال)' : 'Net Ticket Revenue (USD)';
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="grossRevenue"
-                    stroke="#3B82F6"
-                    strokeWidth={2.5}
-                    fillOpacity={1}
-                    fill="url(#ticketGrossAreaGrad)"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="netRevenue"
-                    stroke="#10B981"
-                    strokeWidth={2.5}
-                    fillOpacity={1}
-                    fill="url(#ticketNetAreaGrad)"
-                  />
-                </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -1584,6 +2199,412 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          SECTION 1.5: REAL-TIME EXECUTIVE ALERT CENTER & RADAR STREAM
+          ===================================================================== */}
+      {activeSection === 'ALERT_CENTER' && (
+        <div className="space-y-6 rp-animate-in">
+          {/* 4 Alert Center KPI Summary Cards */}
+          <motion.div
+            variants={kpiGridVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          >
+            <motion.div
+              variants={kpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs cursor-default"
+            >
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-medium">
+                  {isFa ? 'هشدارهای خوانده‌نشده آنی' : 'Unread Real-Time Alerts'}
+                </span>
+                <motion.span
+                  variants={kpiIconVariants}
+                  className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 inline-flex items-center justify-center"
+                >
+                  <BellRing className="w-4 h-4" />
+                </motion.span>
+              </div>
+              <div className="text-2xl font-bold font-mono text-slate-900 dark:text-slate-100">
+                {formatNumber(unreadAlertsCount, lang)}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">
+                {isFa
+                  ? `از مجموع ${formatNumber(alerts.length, lang)} اعلان ثبت‌شده در مرکز`
+                  : `Out of ${alerts.length} total pushed notifications`}
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={kpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs cursor-default"
+            >
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-medium">
+                  {isFa ? 'اعلان‌های رزرو کلان (درآمد بالا)' : 'High-Revenue Booking Alerts'}
+                </span>
+                <motion.span
+                  variants={kpiIconVariants}
+                  className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 inline-flex items-center justify-center"
+                >
+                  <Wallet className="w-4 h-4" />
+                </motion.span>
+              </div>
+              <div className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                {formatNumber(
+                  alerts.filter((a) => a.category === 'HIGH_REVENUE_BOOKING').length,
+                  lang
+                )}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">
+                {isFa
+                  ? `آستانه پایش: ${formatCurrency(HIGH_REVENUE_THRESHOLD_RIAL, 'Rial')}`
+                  : `Threshold: ${formatCurrency(HIGH_REVENUE_THRESHOLD_RIAL, 'USD')}`}
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={kpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs cursor-default"
+            >
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-medium">
+                  {isFa ? 'تداخل‌های مسدودشده رادار ایمنی' : 'Safety Radar Conflicts Blocked'}
+                </span>
+                <motion.span
+                  variants={kpiIconVariants}
+                  className="p-1.5 rounded-lg bg-rose-500/10 text-rose-500 inline-flex items-center justify-center"
+                >
+                  <Radar className="w-4 h-4" />
+                </motion.span>
+              </div>
+              <div className="text-2xl font-bold font-mono text-rose-600 dark:text-rose-400">
+                {formatNumber(
+                  alerts.filter((a) => a.category === 'SAFETY_RADAR_CONFLICT').length,
+                  lang
+                )}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">
+                {isFa
+                  ? 'پایش همپوشانی سکو و سرفاصله ۵ دقیقه‌ای'
+                  : 'Platform overlap & 5m headway guard'}
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={kpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs cursor-default"
+            >
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-medium">
+                  {isFa ? 'وضعیت استریم تله‌متری آنی' : 'Live Telemetry Stream'}
+                </span>
+                <motion.span
+                  variants={kpiIconVariants}
+                  className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 inline-flex items-center justify-center"
+                >
+                  <Radio className="w-4 h-4" />
+                </motion.span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  {autoStreamActive
+                    ? isFa
+                      ? 'ارسال خودکار فعال (۹ ثانیه)'
+                      : 'Auto-Stream Active (9s)'
+                    : isFa
+                    ? 'گوش‌به‌زنگ رویدادهای زنده'
+                    : 'Listening for Live Events'}
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">
+                {isFa
+                  ? 'متصل به موتور رزرو بلیط و رادار اعزام'
+                  : 'Bound to Booking Engine & Collision Radar'}
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Real-Time Push Control & Filter Bar */}
+          <div className="rp-card-hover bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-500" />
+                  <span>
+                    {isFa
+                      ? 'کنسول مدیریت و شبیه‌سازی اعلان‌های بلادرنگ (Push Notifications)'
+                      : 'Real-Time Push Notification Dispatch & Filter Console'}
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {isFa
+                    ? 'هرگونه خرید بلیط با درآمد بالا یا تداخل در رادار ایمنی به‌صورت خودکار در سایدبار و این پنل اعلان می‌شود.'
+                    : 'Every high-revenue ticket purchase or collision radar conflict automatically pushes a live notification to the sidebar and this console.'}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => simulateHighRevenueBookingPush(db)}
+                  className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>
+                    {isFa
+                      ? 'ارسال اعلان آنی رزرو کلان (VIP)'
+                      : 'Push High-Revenue Booking Alert'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => simulateSafetyRadarConflictPush(db)}
+                  className="px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <Radar className="w-3.5 h-3.5" />
+                  <span>
+                    {isFa
+                      ? 'ارسال هشدار آنی تداخل رادار ایمنی'
+                      : 'Push Safety Radar Conflict Alert'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAutoStreamActive((prev) => !prev)}
+                  className={`px-3.5 py-2 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    autoStreamActive
+                      ? 'bg-indigo-600 border-indigo-500 text-white'
+                      : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <Radio className="w-3.5 h-3.5" />
+                  <span>
+                    {autoStreamActive
+                      ? isFa
+                        ? 'توقف استریم خودکار'
+                        : 'Stop Auto-Stream'
+                      : isFa
+                      ? 'فعال‌سازی استریم خودکار'
+                      : 'Start Live Auto-Stream'}
+                  </span>
+                </button>
+
+                {unreadAlertsCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => markAllExecutiveAlertsRead()}
+                    className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    <span>
+                      {isFa ? 'خواندن همه اعلان‌ها' : 'Mark All Read'}
+                    </span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setWorkspaceAlertFilter('ALL')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                  workspaceAlertFilter === 'ALL'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                {isFa ? 'همه هشدارها' : 'All Notifications'} (
+                {formatNumber(alerts.length, lang)})
+              </button>
+              <button
+                type="button"
+                onClick={() => setWorkspaceAlertFilter('HIGH_REVENUE_BOOKING')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                  workspaceAlertFilter === 'HIGH_REVENUE_BOOKING'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                {isFa ? 'رزروهای کلان و ویژه' : 'High-Revenue Bookings'} (
+                {formatNumber(
+                  alerts.filter((a) => a.category === 'HIGH_REVENUE_BOOKING').length,
+                  lang
+                )}
+                )
+              </button>
+              <button
+                type="button"
+                onClick={() => setWorkspaceAlertFilter('SAFETY_RADAR_CONFLICT')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                  workspaceAlertFilter === 'SAFETY_RADAR_CONFLICT'
+                    ? 'bg-rose-600 text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                {isFa ? 'تداخل‌های رادار ایمنی' : 'Safety Radar Conflicts'} (
+                {formatNumber(
+                  alerts.filter((a) => a.category === 'SAFETY_RADAR_CONFLICT').length,
+                  lang
+                )}
+                )
+              </button>
+            </div>
+
+            {/* Alert Cards Stream */}
+            <div className="space-y-3 pt-2">
+              <AnimatePresence initial={false}>
+                {filteredWorkspaceAlerts.map((alert) => {
+                  const isRadar = alert.category === 'SAFETY_RADAR_CONFLICT';
+                  return (
+                    <motion.div
+                      key={alert.id}
+                      layout
+                      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      transition={{ type: 'spring', stiffness: 340, damping: 26 }}
+                      className={`rp-card-hover rounded-xl p-4 border transition-all ${
+                        isRadar
+                          ? alert.read
+                            ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                            : 'bg-rose-500/5 border-rose-500/40'
+                          : alert.read
+                          ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                          : 'bg-emerald-500/5 border-emerald-500/40'
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <div
+                            className={`p-2.5 rounded-xl shrink-0 ${
+                              isRadar
+                                ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                                : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                            }`}
+                          >
+                            {isRadar ? (
+                              <Radar className="w-5 h-5" />
+                            ) : (
+                              <Wallet className="w-5 h-5" />
+                            )}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                  isRadar
+                                    ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                                    : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                }`}
+                              >
+                                {isRadar
+                                  ? isFa
+                                    ? 'هشدار رادار ضدبرخورد'
+                                    : 'SAFETY RADAR CONFLICT'
+                                  : isFa
+                                  ? 'رزرو با درآمد بالا'
+                                  : 'HIGH-REVENUE BOOKING'}
+                              </span>
+                              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                                {isFa ? alert.titleFa : alert.titleEn}
+                              </h3>
+                              {!alert.read && (
+                                <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-blue-600 text-white">
+                                  {isFa ? 'جدید' : 'NEW'}
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed">
+                              {isFa
+                                ? toPersianDigits(alert.messageFa, 'fa')
+                                : alert.messageEn}
+                            </p>
+
+                            <div className="flex flex-wrap items-center gap-3 mt-3 text-[11px] text-slate-500 dark:text-slate-400">
+                              {alert.amountIrr && (
+                                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                                  {formatCurrency(alert.amountIrr, isFa ? 'Rial' : 'USD')}
+                                </span>
+                              )}
+                              {alert.pnr && (
+                                <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                                  PNR: {alert.pnr}
+                                </span>
+                              )}
+                              {alert.trainId && (
+                                <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                                  {isFa ? 'قطار:' : 'Train:'} {alert.trainId}
+                                </span>
+                              )}
+                              {alert.lineName && (
+                                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                                  {localizeText(alert.lineName, lang)}
+                                </span>
+                              )}
+                              {alert.overlapWindow && (
+                                <span className="font-mono text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded">
+                                  {isFa ? 'بازه تداخل:' : 'Overlap:'} {alert.overlapWindow}
+                                </span>
+                              )}
+                              {alert.suggestedSafeDeparture && (
+                                <span className="font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                                  {isFa ? 'پیشنهاد اعزام ایمن:' : 'Safe Slot:'}{' '}
+                                  {alert.suggestedSafeDeparture}
+                                </span>
+                              )}
+                              <span className="font-mono">
+                                {formatDateTime(alert.timestamp, lang, 'full')}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {!alert.read && (
+                            <button
+                              type="button"
+                              onClick={() => markExecutiveAlertRead(alert.id)}
+                              className="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold cursor-pointer"
+                            >
+                              {isFa ? 'خوانده شد' : 'Mark Read'}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => dismissExecutiveAlert(alert.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                            title={isFa ? 'حذف اعلان' : 'Dismiss Alert'}
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </div>
           </div>
         </div>

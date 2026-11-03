@@ -220,3 +220,26 @@ export interface TestCaseResult {
   logs: string[];
   errorDetails?: string;
 }
+
+export type ExecutiveAlertCategory = 'HIGH_REVENUE_BOOKING' | 'SAFETY_RADAR_CONFLICT';
+
+export interface ExecutiveAlert {
+  id: string;
+  category: ExecutiveAlertCategory;
+  severity: 'CRITICAL' | 'HIGH' | 'INFO';
+  titleFa: string;
+  titleEn: string;
+  messageFa: string;
+  messageEn: string;
+  timestamp: string;
+  read: boolean;
+  amountIrr?: number;
+  pnr?: string;
+  trainId?: string;
+  lineName?: string;
+  locationLabel?: string;
+  conflictType?: 'STATION_PLATFORM_OVERLAP' | 'TRACK_SEGMENT_OVERTAKE';
+  overlapWindow?: string;
+  suggestedSafeDeparture?: string;
+}
+

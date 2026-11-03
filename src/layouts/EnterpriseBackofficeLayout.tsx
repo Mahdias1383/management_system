@@ -21,6 +21,7 @@ export interface SidebarNavItem {
   labelEn: string;
   icon: React.ReactNode;
   badgeCount?: number;
+  badgeTone?: 'default' | 'critical' | 'live';
 }
 
 interface EnterpriseBackofficeLayoutProps {
@@ -37,6 +38,9 @@ interface EnterpriseBackofficeLayoutProps {
   onLogout: () => void;
   onToggleLang: () => void;
   onToggleTheme: () => void;
+  sidebarAlertSlot?: React.ReactNode;
+  sidebarCollapsedSlot?: React.ReactNode;
+  headerActionSlot?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -54,6 +58,9 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
   onLogout,
   onToggleLang,
   onToggleTheme,
+  sidebarAlertSlot,
+  sidebarCollapsedSlot,
+  headerActionSlot,
   children,
 }) => {
   const isFa = lang === 'fa';
@@ -63,15 +70,15 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
 
   return (
     <div className="min-h-screen flex bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      {/* Persistent Vertical Sidebar Navigation (260px expanded, 72px collapsed) */}
+      {/* Persistent Vertical Sidebar Navigation (288px expanded when Alert Center present, 72px collapsed) */}
       <aside
         className={`${
-          collapsed ? 'w-[72px]' : 'w-[272px]'
+          collapsed ? 'w-[72px]' : sidebarAlertSlot ? 'w-[300px]' : 'w-[272px]'
         } shrink-0 bg-slate-900 text-slate-100 border-e border-slate-800 flex flex-col justify-between transition-all duration-150`}
       >
-        <div>
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
           {/* Brand Lockup */}
-          <div className="h-16 px-4 flex items-center justify-between border-b border-slate-800">
+          <div className="h-16 px-4 flex items-center justify-between border-b border-slate-800 shrink-0">
             <div className="flex items-center gap-2.5 overflow-hidden">
               <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shrink-0">
                 {session.role === 'admin' ? (
@@ -107,9 +114,11 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
           </div>
 
           {/* Vertical Navigation Items */}
-          <nav className="p-3 space-y-1.5">
+          <nav className="p-3 space-y-1.5 shrink-0">
             {navItems.map((item) => {
               const isActive = item.id === activeTabId;
+              const isCriticalBadge = item.badgeTone === 'critical' && (item.badgeCount || 0) > 0;
+              const isLiveBadge = item.badgeTone === 'live' && (item.badgeCount || 0) > 0;
               return (
                 <button
                   key={item.id}
@@ -123,17 +132,35 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
                   title={isFa ? item.labelFa : item.labelEn}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="shrink-0">{item.icon}</span>
+                    <span className="shrink-0 relative">
+                      {item.icon}
+                      {collapsed && (item.badgeCount || 0) > 0 && isCriticalBadge && (
+                        <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                      )}
+                    </span>
                     {!collapsed && (
                       <span className="truncate">{isFa ? item.labelFa : item.labelEn}</span>
                     )}
                   </div>
                   {!collapsed && item.badgeCount !== undefined && (
                     <span
-                      className={`font-mono text-[11px] px-1.5 py-0.5 rounded-md ${
-                        isActive ? 'bg-blue-700 text-white' : 'bg-slate-800 text-slate-300'
+                      className={`font-mono text-[11px] px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 ${
+                        isActive
+                          ? 'bg-blue-700 text-white'
+                          : isCriticalBadge
+                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                          : isLiveBadge
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-slate-800 text-slate-300'
                       }`}
                     >
+                      {(isCriticalBadge || isLiveBadge) && (
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                            isCriticalBadge ? 'bg-rose-400' : 'bg-emerald-400'
+                          }`}
+                        />
+                      )}
                       {formatNumber(item.badgeCount, lang)}
                     </span>
                   )}
@@ -141,10 +168,23 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
               );
             })}
           </nav>
+
+          {/* Real-Time Sidebar Alert Center Feed Slot */}
+          {!collapsed && sidebarAlertSlot && (
+            <div className="px-3 pb-3 flex-1 flex flex-col min-h-0">
+              {sidebarAlertSlot}
+            </div>
+          )}
+
+          {collapsed && sidebarCollapsedSlot && (
+            <div className="px-2 pb-3 flex flex-col items-center">
+              {sidebarCollapsedSlot}
+            </div>
+          )}
         </div>
 
         {/* Bottom Authenticated Operator Profile & Sign Out */}
-        <div className="p-3 border-t border-slate-800 space-y-2">
+        <div className="p-3 border-t border-slate-800 space-y-2 shrink-0">
           {!collapsed && (
             <div className="px-3 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80">
               <div className="text-xs font-semibold text-white truncate">
@@ -195,6 +235,7 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
 
           {/* Right Controls: Language, Theme, Operator Pill */}
           <div className="flex items-center gap-2.5 shrink-0">
+            {headerActionSlot}
             <span className="hidden xl:inline text-xs font-mono text-slate-500 dark:text-slate-400">
               {formatDateTime(new Date(), lang, 'full')}
             </span>

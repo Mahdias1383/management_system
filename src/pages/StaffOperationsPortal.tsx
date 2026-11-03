@@ -43,6 +43,7 @@ import {
   checkAccident,
   computeTrainStationTimings,
 } from '../services/collisionEngine';
+import { pushSafetyRadarConflictAlert } from '../services/alertCenterService';
 import { MareyChart } from '../components/MareyChart';
 import {
   EnterpriseBackofficeLayout,
@@ -486,6 +487,9 @@ export const StaffOperationsPortal: React.FC<StaffOperationsPortalProps> = ({
     }
 
     if (dispatchSafetyReport && dispatchSafetyReport.hasConflict) {
+      dispatchSafetyReport.conflicts.forEach((conflict) => {
+        pushSafetyRadarConflictAlert(conflict);
+      });
       setTrainFeedback({
         type: 'error',
         msg: isFa

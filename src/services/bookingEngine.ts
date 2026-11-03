@@ -1,6 +1,7 @@
 import { PlatformDatabaseV2, TicketRecord, WalletTransaction } from '../types/domain';
 import { APP_ENV } from '../config/env';
 import { formatCurrency, normalizeIdentifier, parsePositiveInteger, parsePositiveNumber } from './authService';
+import { isHighRevenueTicket, pushHighRevenueBookingAlert } from './alertCenterService';
 import { deepClone } from './storageAndMigration';
 
 export interface WalletOperationResult {
@@ -298,6 +299,10 @@ export function purchaseTrainTicket(
     detailsEn: `Passenger ${user.username} booked ${ticketCount} seat(s) (${assignedSeats.join(', ')}) on ${train.id_train} for ${formatCurrency(totalCost, 'USD')} (PNR: ${pnr}).`,
     detailsFa: `مسافر ${user.username} تعداد ${ticketCount} صندلی (${assignedSeats.join('، ')}) در قطار ${train.id_train} به مبلغ ${formatCurrency(totalCost, 'Rial')} رزرو کرد (کد: ${pnr}).`,
   });
+
+  if (isHighRevenueTicket(ticket)) {
+    pushHighRevenueBookingAlert(ticket);
+  }
 
   return {
     success: true,

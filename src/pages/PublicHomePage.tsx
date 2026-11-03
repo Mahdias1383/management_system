@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, Variants } from 'framer-motion';
 import {
   ArrowLeftRight,
   CheckCircle2,
@@ -30,6 +30,77 @@ interface PublicHomePageProps {
   lang: Language;
   onSelectTrainForBooking: (train: TrainSchedule) => void;
 }
+
+const trainSearchCardVariants: Variants = {
+  hidden: { opacity: 0, y: 20, scale: 0.98 },
+  visible: (idx: number = 0) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 310,
+      damping: 24,
+      delay: (idx % 6) * 0.05,
+    },
+  }),
+  exit: {
+    opacity: 0,
+    y: -10,
+    scale: 0.96,
+    transition: { duration: 0.16 },
+  },
+  hover: {
+    y: -6,
+    scale: 1.016,
+    boxShadow:
+      '0 22px 42px -12px rgba(37, 99, 235, 0.2), 0 10px 20px -8px rgba(15, 23, 42, 0.1)',
+    transition: {
+      type: 'spring',
+      stiffness: 380,
+      damping: 22,
+    },
+  },
+};
+
+const trainRouteStripVariants: Variants = {
+  hidden: { opacity: 0.92 },
+  visible: { opacity: 1 },
+  hover: {
+    scale: 1.01,
+    transition: {
+      type: 'spring',
+      stiffness: 400,
+      damping: 24,
+    },
+  },
+};
+
+const guaranteeCardVariants: Variants = {
+  hidden: { opacity: 0, y: 16, scale: 0.985 },
+  visible: (idx: number = 0) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 300,
+      damping: 24,
+      delay: 0.08 + idx * 0.06,
+    },
+  }),
+  hover: {
+    y: -5,
+    scale: 1.015,
+    boxShadow:
+      '0 18px 34px -10px rgba(37, 99, 235, 0.15), 0 8px 16px -6px rgba(15, 23, 42, 0.08)',
+    transition: {
+      type: 'spring',
+      stiffness: 380,
+      damping: 22,
+    },
+  },
+};
 
 export const PublicHomePage: React.FC<PublicHomePageProps> = ({
   db,
@@ -123,11 +194,16 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
 
           {/* Interactive Search Engine Widget */}
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.05 }}
-            whileHover={{ y: -2 }}
-            className="relative z-10 mt-8 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md text-slate-900 dark:text-slate-100 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg"
+            initial={{ opacity: 0, y: 18, scale: 0.99 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 310, damping: 24, delay: 0.05 }}
+            whileHover={{
+              y: -3,
+              scale: 1.004,
+              boxShadow: '0 22px 44px -12px rgba(15, 23, 42, 0.28)',
+              transition: { type: 'spring', stiffness: 360, damping: 24 },
+            }}
+            className="relative z-10 mt-8 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md text-slate-900 dark:text-slate-100 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg rp-card-hover"
           >
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-end">
               {/* Origin */}
@@ -291,17 +367,13 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                   <motion.div
                     key={train.id}
                     layout
-                    initial={{ opacity: 0, y: 18, scale: 0.985 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16 } }}
-                    transition={{
-                      type: 'spring',
-                      stiffness: 310,
-                      damping: 25,
-                      delay: (idx % 6) * 0.045,
-                    }}
-                    whileHover={{ y: -5, scale: 1.012 }}
-                    whileTap={{ scale: 0.994 }}
+                    custom={idx}
+                    variants={trainSearchCardVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    whileHover="hover"
+                    whileTap={{ scale: 0.992 }}
                     className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col justify-between rp-card-hover"
                   >
                     <div>
@@ -329,7 +401,10 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                       </div>
 
                       {line && (
-                        <div className="my-4 p-3.5 rounded-xl bg-slate-50/90 dark:bg-slate-950/90 border border-slate-200/80 dark:border-slate-800 text-xs">
+                        <motion.div
+                          variants={trainRouteStripVariants}
+                          className="my-4 p-3.5 rounded-xl bg-slate-50/90 dark:bg-slate-950/90 border border-slate-200/80 dark:border-slate-800 group-hover:border-blue-500/30 transition-colors text-xs"
+                        >
                           <div className="flex items-center justify-between font-semibold text-slate-900 dark:text-white">
                             <span className="flex items-center gap-1">
                               <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
@@ -358,7 +433,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                               {line.list_state.map((st) => localizeText(st, lang)).join(' · ')}
                             </div>
                           )}
-                        </div>
+                        </motion.div>
                       )}
                     </div>
 
@@ -369,13 +444,16 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                           : `${train.capacity} seats left`}
                       </span>
 
-                      <button
+                      <motion.button
                         type="button"
+                        whileHover={{ scale: 1.04 }}
+                        whileTap={{ scale: 0.96 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                         onClick={() => onSelectTrainForBooking(train)}
                         className="px-4 py-2 rounded-xl rp-btn-primary text-white text-xs font-semibold cursor-pointer"
                       >
                         {isFa ? 'انتخاب صندلی و خرید' : 'Select Seats & Book'}
-                      </button>
+                      </motion.button>
                     </div>
                   </motion.div>
                 );
@@ -386,8 +464,12 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
       </section>
 
       {/* 3. PNR TICKET TRACKER & DIGITAL BOARDING PASS VERIFICATION */}
-      <section
+      <motion.section
         id="pnr-tracker"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.1 }}
+        whileHover={{ y: -3, scale: 1.004 }}
         className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 rp-card-hover"
       >
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
@@ -422,12 +504,14 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
                 placeholder="e.g. RP-89412"
                 className="flex-1 px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950"
               />
-              <button
+              <motion.button
                 type="submit"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
                 className="px-5 py-2.5 rounded-xl rp-btn-primary text-white text-xs font-semibold cursor-pointer whitespace-nowrap"
               >
                 {isFa ? 'بررسی بلیط' : 'Track PNR'}
-              </button>
+              </motion.button>
             </form>
 
             {pnrSearched && !foundTicket && (
@@ -439,11 +523,19 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
             )}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* 4. WHY RAILPULSE ENTERPRISE GUARANTEES */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 rp-card-hover">
+        <motion.div
+          custom={0}
+          variants={guaranteeCardVariants}
+          initial="hidden"
+          animate="visible"
+          whileHover="hover"
+          whileTap={{ scale: 0.99 }}
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 rp-card-hover"
+        >
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3.5">
             <ShieldCheck className="w-5 h-5 text-emerald-500" />
           </div>
@@ -455,9 +547,17 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
               ? 'تمامی قطارهای شبکه پیش از صدور مجوز حرکت، توسط رادار ریاضی زمان-مسافت و رعایت سرفاصله ایمنی ۵ دقیقه‌ای پایش می‌شوند.'
               : 'Every train timetable is verified by our mathematical temporal-spatial safety engine with mandatory 5-minute block headway.'}
           </p>
-        </div>
+        </motion.div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 rp-card-hover">
+        <motion.div
+          custom={1}
+          variants={guaranteeCardVariants}
+          initial="hidden"
+          animate="visible"
+          whileHover="hover"
+          whileTap={{ scale: 0.99 }}
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 rp-card-hover"
+        >
           <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mb-3.5">
             <Ticket className="w-5 h-5 text-blue-500" />
           </div>
@@ -469,9 +569,17 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
               ? 'مسافران هنگام خرید بلیط می‌توانند واگن و شماره صندلی دلخواه خود را انتخاب کرده و بلافاصله کارت سوارشدن QR دریافت کنند.'
               : 'Choose your exact coach and window/aisle seat numbers visually and receive an instant verifiable QR boarding pass.'}
           </p>
-        </div>
+        </motion.div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 rp-card-hover">
+        <motion.div
+          custom={2}
+          variants={guaranteeCardVariants}
+          initial="hidden"
+          animate="visible"
+          whileHover="hover"
+          whileTap={{ scale: 0.99 }}
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 rp-card-hover"
+        >
           <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3.5">
             <Wallet className="w-5 h-5 text-amber-500" />
           </div>
@@ -483,7 +591,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
               ? 'در صورت انصراف از سفر، با یک کلیک بلیط خود را لغو کنید تا کل مبلغ بلافاصله به موجودی کیف پول شما بازگردانده شود.'
               : 'Plans changed? Cancel your confirmed ticket in one click for an immediate, full refund credited back to your personal wallet.'}
           </p>
-        </div>
+        </motion.div>
       </section>
 
       {foundTicket && (

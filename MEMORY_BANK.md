@@ -33,7 +33,7 @@
   - [x] `src/layouts/EnterpriseBackofficeLayout.tsx`: B2B collapsible vertical sidebar layout for Staff and Admin portals.
 
 - [x] **PHASE 3: PUBLIC STOREFRONT, AUTHENTICATION & PASSENGER RESERVATION PORTAL** — COMPLETED & VERIFIED
-  - [x] `src/pages/PublicHomePage.tsx`: Hero Search Engine widget, Live National Departures Board, PNR Ticket Verification Lookup, and Enterprise Value Propositions.
+  - [x] `src/pages/PublicHomePage.tsx`: Hero Search Engine widget, Live National Departures Board (`trainSearchCardVariants`, `trainRouteStripVariants`), PNR Ticket Verification Lookup, and Enterprise Value Propositions (`guaranteeCardVariants`) with orchestrated `framer-motion` entry transitions and spring `'hover'` animations.
   - [x] `src/pages/AuthPage.tsx`: Clean Passenger Sign In / Registration + toggleable Corporate Staff / System Admin login with zero exposed password boxes.
   - [x] `src/pages/PassengerDashboard.tsx`: 4-tab passenger portal (`BOOKING`, `TICKETS`, `WALLET`, `PROFILE`) with interactive `SeatMapSelector` and `DigitalBoardingPassModal`.
 
@@ -41,7 +41,10 @@
   - [x] `src/pages/StaffOperationsPortal.tsx`: 3-section sidebar workspace (`Corridor & Line Topology`, `Fleet & Timetable Dispatch`, `Collision Radar & Marey Chart`) with 1-click safe departure slot resolution.
   - [x] `src/components/MareyChart.tsx`: Interactive SVG time-distance diagram plotting all corridor trains, station dwell plateaus, and candidate collision zones.
 
-- [x] **PHASE 5: SYSTEM ADMIN EXECUTIVE BACKOFFICE, 30-DAY REVENUE ANALYTICS & 5-PHASE QA SUITE** — COMPLETED & VERIFIED
-  - [x] `src/pages/AdminExecutivePortal.tsx`: 4-section sidebar workspace (`Executive & Revenue Analytics`, `Operations Staff Directory`, `Audit Trail & Data Snapshots`, `Engineering QA & Automated Tests`).
-  - [x] `src/components/RevenueAnalysis.tsx`: Recharts 30-day area/bar revenue visualization powered by `db.transactions`.
+- [x] **PHASE 5: SYSTEM ADMIN EXECUTIVE BACKOFFICE, REAL-TIME ALERT CENTER, 12-MONTH & 30-DAY REVENUE ANALYTICS & 5-PHASE QA SUITE** — COMPLETED & VERIFIED
+  - [x] `src/services/alertCenterService.ts`: Real-time pub/sub event bus (`railpulse:executive-alert` + `storage` cross-tab sync) pushing notifications whenever a high-revenue booking is made (`purchaseTrainTicket` in `bookingEngine.ts`) or a temporal-spatial conflict is detected in the safety radar (`checkAccident` / `StaffOperationsPortal.tsx` / `AdminExecutivePortal.tsx`).
+  - [x] `src/pages/AdminExecutivePortal.tsx` & `src/layouts/EnterpriseBackofficeLayout.tsx`: 5-section sidebar workspace (`Executive & Revenue Analytics`, `Real-Time Alert Center`, `Operations Staff Directory`, `Audit Trail & Data Snapshots`, `Engineering QA & Automated Tests`) plus an embedded live **Real-Time Alert Center** stream widget directly inside the `<aside>` sidebar (`sidebarAlertSlot`), floating real-time push toast notifications, `framer-motion` staggered entry transitions (`kpiGridVariants`, `kpiCardVariants`, `kpiIconVariants`), and a 12-Month Ticket Sales Revenue Recharts `AreaChart` section (`#ticket-sales-12m-area-section`).
+  - [x] `src/components/RevenueAnalysis.tsx`: Recharts 30-day area/bar revenue visualization and `framer-motion` animated KPI summary cards (`revenueKpiGridVariants`, `revenueKpiCardVariants`) powered by `db.transactions` with `formatCurrency` and `'Vazirmatn FD'` font inheritance.
   - [x] `src/services/qaTestSuite.ts` & `src/components/QATestSuitePanel.tsx`: 12 programmatic test suites across all 5 mandatory testing phases (`UT-01`..`UT-05`, `IT-01`..`IT-02`, `MT-01`..`MT-02`, `E2E-01`..`E2E-02`, `UI-01`..`UI-03`).
+
+

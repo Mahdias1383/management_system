@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { motion, Variants } from 'framer-motion';
 import {
   Area,
   AreaChart,
@@ -36,6 +37,34 @@ export interface DailyRevenuePoint {
   netRevenue: number;
   transactionCount: number;
 }
+
+const revenueKpiGridVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.06,
+      delayChildren: 0.04,
+    },
+  },
+};
+
+const revenueKpiCardVariants: Variants = {
+  hidden: { opacity: 0, y: 12, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: 'spring', stiffness: 320, damping: 24 },
+  },
+  hover: {
+    y: -4,
+    scale: 1.018,
+    boxShadow:
+      '0 14px 28px -8px rgba(37, 99, 235, 0.14), 0 6px 12px -4px rgba(15, 23, 42, 0.06)',
+    transition: { type: 'spring', stiffness: 380, damping: 22 },
+  },
+};
 
 export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
   transactions,
@@ -196,26 +225,46 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
       </div>
 
       {/* 30-Day Financial Metrics Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        <div className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+      <motion.div
+        variants={revenueKpiGridVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5"
+      >
+        <motion.div
+          variants={revenueKpiCardVariants}
+          whileHover="hover"
+          whileTap={{ scale: 0.985 }}
+          className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
+        >
           <div className="text-[11px] text-slate-500 dark:text-slate-400">
             {isFa ? 'درآمد خالص ۳۰ روزه' : '30-Day Net Ticket Revenue'}
           </div>
           <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">
             {formatCurrency(summary.totalNet30d, isFa ? 'Rial' : 'USD')}
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+        <motion.div
+          variants={revenueKpiCardVariants}
+          whileHover="hover"
+          whileTap={{ scale: 0.985 }}
+          className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
+        >
           <div className="text-[11px] text-slate-500 dark:text-slate-400">
             {isFa ? 'میانگین درآمد روزانه' : 'Average Daily Revenue'}
           </div>
           <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
             {formatCurrency(summary.avgDaily, isFa ? 'Rial' : 'USD')}
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+        <motion.div
+          variants={revenueKpiCardVariants}
+          whileHover="hover"
+          whileTap={{ scale: 0.985 }}
+          className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
+        >
           <div className="text-[11px] text-slate-500 dark:text-slate-400">
             {isFa ? 'بیشترین فروش روزانه' : 'Peak Revenue Day'}
           </div>
@@ -225,29 +274,38 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
               ({toPersianDigits(summary.peakDay.label, lang)})
             </span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+        <motion.div
+          variants={revenueKpiCardVariants}
+          whileHover="hover"
+          whileTap={{ scale: 0.985 }}
+          className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
+        >
           <div className="text-[11px] text-slate-500 dark:text-slate-400">
             {isFa ? 'تعداد تراکنش‌های خرید بلیط' : 'Completed Ticket Orders'}
           </div>
           <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
             {formatNumber(summary.totalTxCount30d, lang)}
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Recharts 30-Day Visualization */}
-      <div className="h-72 w-full" dir="ltr">
+      <div
+        className="h-72 w-full"
+        dir="ltr"
+        style={{
+          fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+        }}
+      >
         <ResponsiveContainer width="100%" height="100%">
           {chartMode === 'AREA' ? (
             <AreaChart
               data={dailyData}
               margin={{ top: 10, right: 16, left: 8, bottom: 0 }}
               style={{
-                fontFamily: isFa
-                  ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                  : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                 fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
               }}
             >
@@ -262,21 +320,15 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
                 dataKey="label"
                 tickFormatter={(v) => toPersianDigits(v, lang)}
                 style={{
-                  fontFamily: isFa
-                    ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                    : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                   fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                 }}
                 tick={{
                   fontSize: 11,
                   fill: '#94A3B8',
-                  fontFamily: isFa
-                    ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                    : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                   style: {
-                    fontFamily: isFa
-                      ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                      : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                    fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                     fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                   },
                 }}
@@ -285,31 +337,28 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
                 minTickGap={16}
               />
               <YAxis
-                tickFormatter={(v) => formatCompactRial(v, isFa ? 'Rial' : 'USD')}
+                tickFormatter={(v) => formatCurrency(v, isFa ? 'Rial' : 'USD')}
                 style={{
-                  fontFamily: isFa
-                    ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                    : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                   fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                 }}
                 tick={{
-                  fontSize: 11,
+                  fontSize: 10,
                   fill: '#94A3B8',
-                  fontFamily: isFa
-                    ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                    : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                   style: {
-                    fontFamily: isFa
-                      ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                      : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                    fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                     fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                   },
                 }}
                 tickLine={false}
                 axisLine={false}
-                width={85}
+                width={isFa ? 120 : 85}
               />
               <Tooltip
+                wrapperStyle={{
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                }}
                 contentStyle={{
                   backgroundColor: '#0F172A',
                   borderColor: '#1E293B',
@@ -318,9 +367,18 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
                   color: '#F8FAFC',
                   direction: isFa ? 'rtl' : 'ltr',
                   textAlign: isFa ? 'right' : 'left',
-                  fontFamily: isFa
-                    ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                    : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                  fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                }}
+                labelStyle={{
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                  fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                  fontWeight: 700,
+                  marginBottom: '4px',
+                  color: '#E2E8F0',
+                }}
+                itemStyle={{
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                   fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                 }}
                 formatter={(value: any, name: any) => {
@@ -337,7 +395,7 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
                       isFa ? 'فروش ناخالص' : 'Gross Sales',
                     ];
                   }
-                  return [toPersianDigits(value, lang), name];
+                  return [formatCurrency(Number(value), currencyUnit), name];
                 }}
                 labelFormatter={(label) =>
                   isFa
@@ -359,9 +417,7 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
               data={dailyData}
               margin={{ top: 10, right: 16, left: 8, bottom: 0 }}
               style={{
-                fontFamily: isFa
-                  ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                  : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                 fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
               }}
             >
@@ -370,21 +426,15 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
                 dataKey="label"
                 tickFormatter={(v) => toPersianDigits(v, lang)}
                 style={{
-                  fontFamily: isFa
-                    ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                    : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                   fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                 }}
                 tick={{
                   fontSize: 11,
                   fill: '#94A3B8',
-                  fontFamily: isFa
-                    ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                    : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                   style: {
-                    fontFamily: isFa
-                      ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                      : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                    fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                     fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                   },
                 }}
@@ -393,31 +443,28 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
                 minTickGap={16}
               />
               <YAxis
-                tickFormatter={(v) => formatCompactRial(v, isFa ? 'Rial' : 'USD')}
+                tickFormatter={(v) => formatCurrency(v, isFa ? 'Rial' : 'USD')}
                 style={{
-                  fontFamily: isFa
-                    ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                    : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                   fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                 }}
                 tick={{
-                  fontSize: 11,
+                  fontSize: 10,
                   fill: '#94A3B8',
-                  fontFamily: isFa
-                    ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                    : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                   style: {
-                    fontFamily: isFa
-                      ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                      : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                    fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                     fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                   },
                 }}
                 tickLine={false}
                 axisLine={false}
-                width={85}
+                width={isFa ? 120 : 85}
               />
               <Tooltip
+                wrapperStyle={{
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                }}
                 contentStyle={{
                   backgroundColor: '#0F172A',
                   borderColor: '#1E293B',
@@ -426,9 +473,18 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
                   color: '#F8FAFC',
                   direction: isFa ? 'rtl' : 'ltr',
                   textAlign: isFa ? 'right' : 'left',
-                  fontFamily: isFa
-                    ? "'Vazirmatn FD', 'Vazirmatn', sans-serif"
-                    : "'Plus Jakarta Sans', -apple-system, sans-serif",
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                  fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                }}
+                labelStyle={{
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+                  fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
+                  fontWeight: 700,
+                  marginBottom: '4px',
+                  color: '#E2E8F0',
+                }}
+                itemStyle={{
+                  fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                   fontFeatureSettings: isFa ? '"ss01" 1, "tnum" 1' : '"ss01" 0, "tnum" 1',
                 }}
                 formatter={(value: any, name: any) => {
@@ -438,7 +494,7 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
                       isFa ? 'درآمد خالص بلیط' : 'Net Ticket Revenue',
                     ];
                   }
-                  return [toPersianDigits(value, lang), name];
+                  return [formatCurrency(Number(value), isFa ? 'Rial' : 'USD'), name];
                 }}
                 labelFormatter={(label) =>
                   isFa

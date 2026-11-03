@@ -3,151 +3,140 @@
 # RailPulse Enterprise
 
 ### Next-Generation Intelligent Railway Infrastructure, Operations Command & High-Speed Travel Reservation Platform
-### سامانه جامع مدیریت هوشمند خطوط ریلی، مهندسی ترافیک و رزرواسیون قطارهای سریع‌السیر
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-2563EB.svg)](./LICENSE)
 [![TypeScript 5.8+](https://img.shields.io/badge/TypeScript-5.8+-3178C6.svg)](https://www.typescriptlang.org/)
 [![React 19](https://img.shields.io/badge/React-19.0-61DAFB.svg)](https://react.dev/)
 [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4.0-38B2AC.svg)](https://tailwindcss.com/)
+[![PWA Ready](https://img.shields.io/badge/PWA-Installable-10B981.svg)](#progressive-web-app-pwa)
 [![Framer Motion](https://img.shields.io/badge/Framer_Motion-12.x-8B5CF6.svg)](https://www.framer.com/motion/)
 [![WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG_2.1_AA-059669.svg)](#accessibility--wcag-21-aa)
 [![QA Suite](https://img.shields.io/badge/Automated_QA-5_Phases_%7C_100%25_Passing-10B981.svg)](#qa-test-suite--diagnostics)
 
 <br/>
 
-**[English Documentation](#english-documentation)** • **[مستندات فارسی](#مستندات-فارسی)** • **[Visual Documentation](#visual-documentation--گالری-تصاویر)** • **[Quickstart](#quickstart--راه‌اندازی)**
+**[Overview](#project-overview)** • **[Key Features](#key-features)** • **[Visual Subsystems](#visual-subsystems-gallery)** • **[Collision Physics](#temporal-spatial-collision-physics-engine)** • **[PWA Architecture](#progressive-web-app-pwa)** • **[System Architecture](#system-architecture--file-structure)** • **[Quickstart](#quickstart)**
 
 </div>
 
 ---
 
-# English Documentation
-
 ## Project Overview
 
-**RailPulse Enterprise** is an enterprise-grade railway management and high-speed passenger reservation platform modeled after world-class platforms (*Trainline, Eurostar, Linear, and Stripe Dashboard*). It re-engineers a legacy Python CLI terminal prototype into a modern, production-deployable full-stack TypeScript web application with **zero mock fallbacks**, **true bidirectional localization** (Persian RTL with Iranian Rial `IRR` and English LTR with United States Dollar `USD`), and **uncompromising role-based access control (`RoleGuard`)**.
+**RailPulse Enterprise** is an enterprise-grade railway operations, dispatch telemetry, and passenger reservation platform modeled after industry-leading transport systems (*Trainline, Eurostar, Linear, and Stripe Dashboard*). Re-engineered from a legacy Python CLI terminal prototype into a modern, production-deployable full-stack TypeScript web application, it delivers:
 
-### Core Architecture
-- **Dual-Layout Architecture:** Strict isolation between the public, high-conversion **Customer Storefront** (`CustomerStorefrontLayout`) and the high-density, command-driven **Enterprise Backoffice** (`EnterpriseBackofficeLayout`).
-- **Mathematical Safety Dispatch Engine (`checkAccident`):** Enforces a mandatory 5-minute temporal-spatial headway safety buffer across corridor segments and station platform dwell times (20 minutes). Prevents train collisions before schedule approval and recommends the earliest safe alternate departure time.
-- **Interactive Coach Seat Selection:** Visual SVG-rendered 4-column coach layout with window/aisle designations, real-time availability locks, and instant balance deduction.
-- **Perforated QR Digital Boarding Pass:** Generates verifiable, print-ready passenger travel documents with unique PNR tracking codes and base64-payload QR codes.
-- **Executive Analytics & Alert Center:** Dynamic Recharts 12-month and 30-day revenue visualizations with Persian numeric digits (`Vazirmatn FD`) and real-time push alerts for high-revenue bookings and headway conflicts.
-- **5-Phase Programmatic Test Suite:** Comprehensive built-in test runner located strictly inside the administrator backoffice, validating Unit calculations, Integration workflows, Data Migration, End-to-End journeys, and RBAC boundary isolation.
+- **Zero Mock Fallbacks:** Realistic localized persistent database with deep-cloned immutable states.
+- **True Bidirectional Localization:** Seamless real-time switching between Persian (RTL layout, Iranian Rial `IRR`, and `Vazirmatn FD` typography) and English (LTR layout, United States Dollar `USD`, and `Plus Jakarta Sans` typography).
+- **Dual-Layout Architecture:** Complete separation between the public consumer booking interface (`CustomerStorefrontLayout`) and the high-density operational command center (`EnterpriseBackofficeLayout`).
+- **Mathematical Safety Dispatch Engine (`checkAccident`):** Strict headway enforcement across rail corridor segments and station platforms (20-minute dwell stops, mandatory 5-minute safety buffer) with automated alternative departure calculation.
+- **Progressive Web App (PWA):** Installable directly on desktop and mobile devices via standard web app manifest, offline service worker caching, and custom in-app install prompts.
+- **Enterprise Role-Based Access Control (`RoleGuard`):** Strict route authorization isolating Passenger, Operations Staff, and System Administrator privileges with zero credential exposure.
 
 ---
 
 ## Key Features
 
-| Domain | Technical Highlights & Capabilities |
+| Functional Domain | Architectural Highlights & Capabilities |
 | :--- | :--- |
-| **Dual-Layout UX** | Separate layouts for public storefront (`CustomerStorefrontLayout`) and backoffice workspace (`EnterpriseBackofficeLayout`). |
-| **Bilingual Localization** | Full bi-directional support: Persian (RTL, `IRR`, `Vazirmatn FD`) and English (LTR, `USD`, `Plus Jakarta Sans`). |
-| **Collision Prevention Engine** | Real-time calculation of station platform overlaps and segment headway conflicts with automatic safe slot recommendation. |
-| **Seat Map & Digital Boarding Pass** | Interactive coach seat selector (window/aisle) and verifiable QR digital boarding pass with PNR tracking. |
-| **Digital Wallet Ledger** | Atomic wallet deposit, withdrawal, ticket purchase, and instant full refund restoration on cancellation. |
-| **Executive Analytics** | Recharts 12-month and 30-day revenue analytics, KPI stat cards with spring animations, and real-time notification bus. |
-| **Security & RBAC** | Strict `RoleGuard` enforcement, SHA-256 password hashing, token validation, and zero credentials displayed on public pages. |
-| **5-Phase QA Suite** | Programmatic test runner covering Unit, Integration, Migration, E2E, and RBAC isolation tests. |
+| **Dual-Layout Separation** | Distinct layouts for public travelers (`CustomerStorefrontLayout`) and operations personnel (`EnterpriseBackofficeLayout`). |
+| **Bi-Directional Localization** | Real-time locale toggling across layout directions, currencies (IRR / USD), and localized number formatters. |
+| **Collision Prevention Engine** | Deterministic temporal-spatial calculation of station platform overlaps and in-transit overtakes with automated safe slot discovery. |
+| **Coach Seat Selection** | Interactive coach layout with seat availability states, window/aisle designations, and instant capacity calculation. |
+| **QR Digital Boarding Pass** | Official travel documents featuring unique 5-digit PNR tracking codes, ticket cancellation with instant wallet refund, and QR validation. |
+| **Atomic Digital Wallet** | Real-time financial ledger supporting credit top-ups, withdrawals, ticket purchases, and full automated refund credits. |
+| **Executive Analytics** | Recharts 12-month and 30-day revenue AreaCharts, animated KPI summary cards, and live reactive alert notifications. |
+| **Progressive Web App (PWA)** | Full PWA compliance with `manifest.json`, high-resolution icons (192px, 512px, maskable, Apple Touch), and offline support. |
+| **WCAG 2.1 AA Accessibility** | Semantic ARIA landmark roles (`role="banner"`, `role="navigation"`, `role="region"`, `role="search"`, `role="dialog"`), accessible labels, and focus rings. |
+| **5-Phase Automated QA Suite** | Built-in administrative diagnostic runner testing Unit formulas, Integration flows, Data Migration, E2E journeys, and RBAC isolation. |
 
 ---
 
-# مستندات فارسی
+## Visual Subsystems Gallery
 
-## معرفی جامع پروژه
+The platform features simultaneous support for Persian (RTL) and English (LTR) across all subsystems:
 
-**سامانه ریل‌پالس اینترپرایز (RailPulse Enterprise)** یک پلتفرم جامع سازمانی، مدرن و دومنظوره برای مدیریت یکپارچه خطوط ریلی، برنامه‌ریزی ناوگان قطارهای سریع‌السیر و رزرواسیون آنلاین بلیط است. این پروژه بر اساس استانداردهای مهندسی برترین سامانه‌های حمل‌ونقل و رزرو بین‌المللی طراحی شده و سامانه‌ای منسوخ و مبتنی بر خط فرمان پایتون را به یک وب‌اپلیکیشن تمام‌عیار، واکنش‌گرا و قابل‌استقرار در محیط پروداکشن تبدیل کرده است.
+### 1. Storefront & Live Departures
 
-### ارکان بنیادین سامانه
-- **معماری رابط کاربری دومحیطه (Dual-Layout):** جداسازی کامل و بدون تداخل محیط مسافرتی و فروشگاهی (`CustomerStorefrontLayout`) از پنل عملیاتی و متراکم مدیریت و ناوبری (`EnterpriseBackofficeLayout`).
-- **موتور ریاضی رادار ضدبرخورد و پایش تداخل (`checkAccident`):** پایش پیوسته زمان‌بندی قطارهای هر کریدور، محاسبه زمان سیر با سرعت مجاز، توقف ۲۰ دقیقه‌ای در ایستگاه‌های میانی، رعایت سرفاصله ایمنی ۵ دقیقه‌ای و پیشنهاد خودکار نزدیک‌ترین اسلات خالی و ایمن برای حرکت.
-- **انتخاب صندلی بر روی نقشه شماتیک واگن:** انتخاب بصری صندلی (کنار پنجره یا راهرو) با ثبت قطعی و کسر اتمیک مبلغ از کیف پول کاربر.
-- **صدور کارت سوارشدن دیجیتال با بارکد QR:** تولید کد رزرو یکتای ۵ رقمی (PNR) و کارت سوارشدن رسمی با قابلیت چاپ و اعتبارسنجی آفلاین.
-- **داشبورد تحلیلی ۱۲ ماهه و مرکز هشدار بلادرنگ:** نمودارهای پیشرفته Recharts برای پایش روند درآمد ۱۲ ماهه و ۳۰ روزه با فونت فارسی `وزیرمتن` و پایپ‌لاین نوتیفیکیشن بلادرنگ.
-- **مجموعه تست خودکار ۵ مرحله‌ای مهندسی:** تعبیه کامل تست‌رانر داخلی در سایدبار مدیریت ارشد جهت راستی‌آزمایی تست‌های واحد، یکپارچگی، مهاجرت داده `v1` به `v2`، سناریوهای سرتاسری و مرزبندی نقش‌ها (`RoleGuard`).
-
----
-
-## قابلیت‌های کلیدی سیستم
-
-| محور تخصصی | شرح قابلیت‌ها و دستاوردهای مهندسی |
-| :--- | :--- |
-| **معماری رابط کاربری دوگانه** | تفکیک کامل پورتال فروشگاهی مسافران از محیط داشبورد عملیاتی و مانیتورینگ کارشناسان. |
-| **بومی‌سازی دوزبانه استاندارد** | پشتیبانی هم‌زمان از تقویم، واحد پولی (ریال و دلار) و جهت چیدمان (فارسی راست‌به‌چپ و انگلیسی چپ‌به‌راست). |
-| **رادار ایمنی و پیشگیری از برخورد** | محاسبه ریاضی تداخل سکوی ایستگاه و سبقت روی بلاک میانی و ارائه پیشنهاد هوشمند زمان ایمن. |
-| **نقشه صندلی و کارت پرواز قطار** | شبیه‌سازی گرافیکی کوپه و صندلی‌ها و صدور آنی کارت سوارشدن QR با بارکد رمزنگاری‌شده. |
-| **کیف پول دیجیتال اتمیک** | مدیریت تراکنش‌های مالی، شارژ موجودی، برداشت، پرداخت بلیت و استرداد آنی و کامل وجه در صورت انصراف. |
-| **تحلیل داده و شاخص‌های مدیریتی** | پایش شاخص‌های درآمدی، نمودار مساحتی فروش ۱۲ ماهه و مرکز اعلانات زنده رویدادهای بحرانی. |
-| **امنیت و تفکیک سطوح دسترسی** | کنترل دقیق دسترسی مبتنی بر نقش (`RoleGuard`)، رمزنگاری کلمات عبور با `SHA-256` و عدم نمایش اعتبارنامه‌ها در صفحات عمومی. |
-| **مرکز آزمون و تضمین کیفیت خودکار** | اجرای زنده آزمون‌های مهندسی ۵ مرحله‌ای با لاگ دقیق متدها و گزارش سلامت ۱۰۰ درصدی. |
-
----
-
-# Visual Documentation / گالری تصاویر
-
-### 1. Storefront & Live Departures / ویترین فروشگاهی و تابلوی زنده حرکت
-
-| فارسی (RTL · Rial) | English (LTR · USD) |
-| :---: | :---: |
+| Persian | English |
+|:-------:|:-------:|
 | ![Storefront Persian](./docs/screenshots/01-storefront-fa.png) | ![Storefront English](./docs/screenshots/01-storefront-en.png) |
 
 ---
 
-### 2. Passenger Portal & Seat Map / پنل مسافر و نقشه انتخاب صندلی
+### 2. Passenger Portal & Booking Engine
 
-| فارسی (RTL · Rial) | English (LTR · USD) |
-| :---: | :---: |
+| Persian | English |
+|:-------:|:-------:|
 | ![Passenger Booking Persian](./docs/screenshots/02-passenger-booking-fa.png) | ![Passenger Booking English](./docs/screenshots/02-passenger-booking-en.png) |
 
 ---
 
-### 3. Digital Boarding Pass & QR Modal / کارت سوارشدن دیجیتال و بارکد QR
+### 3. Digital Boarding Pass & QR Modal
 
-| فارسی (RTL · Rial) | English (LTR · USD) |
-| :---: | :---: |
+| Persian | English |
+|:-------:|:-------:|
 | ![Boarding Pass Persian](./docs/screenshots/03-boarding-pass-fa.png) | ![Boarding Pass English](./docs/screenshots/03-boarding-pass-en.png) |
 
 ---
 
-### 4. Operations Dispatch & Marey Diagram / دیسپاچینگ عملیات و نمودار ماری
+### 4. Operations Dispatch & Marey Diagram
 
-| فارسی (RTL · Rial) | English (LTR · USD) |
-| :---: | :---: |
+| Persian | English |
+|:-------:|:-------:|
 | ![Staff Operations Persian](./docs/screenshots/04-staff-operations-fa.png) | ![Staff Operations English](./docs/screenshots/04-staff-operations-en.png) |
 
 ---
 
-### 5. Executive Administration & Revenue Analytics / داشبورد مدیریت و تحلیل درآمد
+### 5. Executive Administration & Revenue Analytics
 
-| فارسی (RTL · Rial) | English (LTR · USD) |
-| :---: | :---: |
+| Persian | English |
+|:-------:|:-------:|
 | ![Admin Analytics Persian](./docs/screenshots/05-admin-analytics-fa.png) | ![Admin Analytics English](./docs/screenshots/05-admin-analytics-en.png) |
 
 ---
 
-### 6. QA Test Suite & Diagnostics / سامانه تست و تضمین کیفیت ۵ مرحله‌ای
+### 6. QA Test Suite & Diagnostics
 
-| فارسی (RTL · Rial) | English (LTR · USD) |
-| :---: | :---: |
+| Persian | English |
+|:-------:|:-------:|
 | ![QA Suite Persian](./docs/screenshots/06-qa-suite-fa.png) | ![QA Suite English](./docs/screenshots/06-qa-suite-en.png) |
 
 ---
 
 ## Temporal-Spatial Collision Physics Engine
 
-The safety dispatch engine evaluates temporal-spatial schedules across corridor topologies to prevent both **station platform dwell conflicts** and **in-transit overtake conflicts**:
+The safety dispatch engine evaluates schedules across corridor topologies to prevent both **station platform dwell conflicts** and **in-transit overtake conflicts**:
 
 ```text
 Station Arrival:   T_arr(s) = T_dep(s-1) + [dist(s-1, s) / speed] * 60
-Station Departure: T_dep(s) = T_arr(s) + 20 min (Dwell Stop)
-Headway Safety:    Delta_t >= 5 min
+Station Departure: T_dep(s) = T_arr(s) + 20 min (Platform Dwell Stop)
+Headway Safety:    |T_dep(Train_A, s) - T_dep(Train_B, s)| >= 5 min
 ```
 
-If a temporal overlap is detected, the engine projects forward from the candidate departure time in 5-minute increments until a safe, conflict-free window is verified:
+If a temporal overlap or block overtake is detected, the engine projects forward from the candidate departure time in 5-minute increments until a safe, conflict-free window is verified:
 
 ```text
-Earliest Safe Time = min { t > T_candidate | checkAccident(t) == SAFE }
+Earliest Safe Departure = min { t > T_candidate | checkAccident(t) == SAFE }
 ```
+
+---
+
+## Progressive Web App (PWA)
+
+RailPulse Enterprise is fully configured as an installable Progressive Web App:
+
+- **Web App Manifest (`public/manifest.json`):**
+  - Unique application ID: `/`
+  - Display mode: `standalone` (executes without browser URL chrome)
+  - Color theme: `#0f172a` matching dark backoffice palette
+  - Platform shortcuts: Instant access to Ticket Booking, Operations Backoffice, and Executive Analytics
+- **Icon Suite (`public/icons/`):**
+  - Scalable vector icon (`icon.svg`)
+  - Standard launcher icons (`icon-192.png`, `icon-512.png`)
+  - Adaptive Android maskable icon with 10% safe zone padding (`icon-maskable-512.png`)
+  - iOS Safari home screen bookmark icon (`apple-touch-icon.png`)
+- **Service Worker (`public/sw.js`):** Pre-caches application shell, typography, and assets for offline reliability.
+- **In-App Install Prompt (`PWAInstallButton`):** Custom install button mounted in top navigation bars with guided fallback instructions for iOS Safari users.
 
 ---
 
@@ -155,48 +144,55 @@ Earliest Safe Time = min { t > T_candidate | checkAccident(t) == SAFE }
 
 ```text
 railpulse-enterprise/
-├── .github/workflows/ci.yml      # Automated GitHub Actions CI workflow
-├── .editorconfig                 # Unified formatting rules across editors
-├── .gitattributes                # Consistent LF line-ending normalization
-├── .env.example                  # Environment configuration template
-├── README.md                     # International bilingual documentation
-├── ARCHITECTURE.md               # Technical architecture & collision physics
-├── CONTRIBUTING.md               # Engineering guidelines & PR workflows
-├── SECURITY.md                   # Security policies & vulnerability reporting
-├── LICENSE                       # MIT Open Source License
-├── docs/screenshots/             # 12 paired bilingual screenshots (FA & EN)
-├── index.html                    # HTML5 entry with Vazirmatn & Plus Jakarta Sans
-├── package.json                  # Dependencies & build scripts
-├── tsconfig.json                 # TypeScript 5.8 strict compiler options
+├── .github/workflows/ci.yml       # GitHub Actions CI (lint, typecheck, build)
+├── .editorconfig                  # Consistent cross-editor formatting rules
+├── .gitattributes                 # LF line-ending normalization
+├── .env.example                   # Environment configuration template
+├── README.md                      # International standard documentation
+├── ARCHITECTURE.md                # System architecture & collision equations
+├── CONTRIBUTING.md                # Engineering contribution guidelines
+├── SECURITY.md                    # Security policies & vulnerability reporting
+├── LICENSE                        # MIT Open Source License
+├── docs/screenshots/              # 12 paired bilingual screenshots (FA & EN)
+├── public/
+│   ├── manifest.json              # Web App Manifest for PWA installation
+│   ├── sw.js                      # Service Worker for offline asset caching
+│   └── icons/                     # Vector and PNG icons (192px, 512px, maskable)
+├── index.html                     # HTML5 entry with PWA tags & typography
+├── package.json                   # Dependencies and scripts
+├── tsconfig.json                  # TypeScript 5.8 strict compiler options
 └── src/
-    ├── App.tsx                   # Top-level state coordinator & route engine
-    ├── config/env.ts             # Typed environment variable accessors
-    ├── types/domain.ts           # Enterprise normalized v2 domain models
-    ├── guards/RoleGuard.tsx      # Strict RBAC access enforcement
+    ├── App.tsx                    # Route engine, session manager & global toasts
+    ├── config/env.ts              # Typed environment variables
+    ├── types/domain.ts            # Normalized Enterprise v2 data models
+    ├── guards/RoleGuard.tsx       # RBAC route authorization guard
+    ├── hooks/
+    │   └── usePWAInstall.ts       # Hook managing beforeinstallprompt & PWA events
     ├── layouts/
-    │   ├── CustomerStorefrontLayout.tsx   # Public B2C passenger layout
-    │   └── EnterpriseBackofficeLayout.tsx # B2B command & dispatch layout
+    │   ├── CustomerStorefrontLayout.tsx   # Public B2C travel layout
+    │   └── EnterpriseBackofficeLayout.tsx # B2B vertical sidebar operational layout
     ├── services/
-    │   ├── authService.ts        # SHA-256 hashing, session tokens & validation
-    │   ├── collisionEngine.ts    # checkAccident math & alternate safe slot
-    │   ├── bookingEngine.ts      # Seat allocation, atomic wallet & PNR issuance
-    │   ├── alertCenterService.ts # Real-time reactive notification stream
-    │   ├── storageAndMigration.ts# Idempotent legacy v1 to v2 schema migration
-    │   └── qaTestSuite.ts        # 5-Phase automated programmatic test runner
+    │   ├── authService.ts         # SHA-256 hashing, session tokens & formatters
+    │   ├── collisionEngine.ts     # checkAccident math & alternate safe slot
+    │   ├── bookingEngine.ts       # Seat allocation, atomic wallet & PNR issuance
+    │   ├── alertCenterService.ts  # Reactive notification stream
+    │   ├── storageAndMigration.ts # Idempotent legacy v1 to v2 schema migration
+    │   └── qaTestSuite.ts         # 5-Phase automated programmatic test suite
     ├── components/
-    │   ├── SeatMapSelector.tsx   # Visual SVG coach seat selector
+    │   ├── SeatMapSelector.tsx    # Interactive coach layout with leather seats
     │   ├── DigitalBoardingPassModal.tsx # Verifiable QR boarding pass modal
-    │   ├── MareyChart.tsx        # Time-distance train movement diagram
-    │   ├── RevenueAnalysis.tsx   # Recharts 30-day & 12-month analytics
-    │   ├── QATestSuitePanel.tsx  # Interactive QA execution runner
+    │   ├── MareyChart.tsx         # Time-distance train movement diagram
+    │   ├── RevenueAnalysis.tsx    # Recharts 30-day & 12-month analytics
+    │   ├── QATestSuitePanel.tsx   # Built-in administrative QA test runner
     │   └── ui/
-    │       ├── RailPulseLogo.tsx # Modern vector SVG brand identity
-    │       ├── KpiStatCard.tsx   # Animated metric card
-    │       └── StatusBadge.tsx   # Semantic status pill
+    │       ├── RailPulseLogo.tsx  # Modern vector SVG brand identity
+    │       ├── PWAInstallButton.tsx # In-app PWA install trigger & iOS guide
+    │       ├── KpiStatCard.tsx    # Animated metric card with spring physics
+    │       └── StatusBadge.tsx    # Semantic status badge
     └── pages/
         ├── public/
-        │   ├── PublicHomePage.tsx# Storefront search & live departures
-        │   └── AuthPage.tsx      # Authentication portal
+        │   ├── PublicHomePage.tsx # Storefront search & live departures
+        │   └── AuthPage.tsx       # Authentication portal
         ├── passenger/
         │   └── PassengerDashboard.tsx # Booking, tickets & wallet
         ├── staff/
@@ -212,7 +208,7 @@ railpulse-enterprise/
 - **Semantic Landmark Roles:** `role="banner"`, `role="navigation"`, `role="dialog"`, `role="search"`, and `role="region"` applied across all views.
 - **Screen Reader Readiness:** Descriptive `aria-label`, `aria-current`, `aria-expanded`, and `aria-modal` attributes on every interactive element.
 - **Keyboard Navigation:** High-contrast `focus:ring-2 focus:ring-blue-500` outlines on all focusable targets.
-- **Color Contrast Compliance:** Exceeds 4.5:1 ratio for standard text and 3.0:1 for large graphical components.
+- **Color Contrast Compliance:** Exceeds 4.5:1 ratio for standard body text and 3.0:1 for large graphical interface components.
 
 ---
 
@@ -229,7 +225,7 @@ railpulse-enterprise/
 
 ---
 
-## Quickstart / راه‌اندازی
+## Quickstart
 
 ### Prerequisites
 - Node.js `20.x` or later
@@ -253,7 +249,7 @@ npm run dev
 ```
 Navigate to `http://localhost:3000`.
 
-### 4. Code Quality & Build
+### 4. Code Quality & Build Verification
 ```bash
 # Typecheck & lint
 npm run lint

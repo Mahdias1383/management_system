@@ -68,11 +68,6 @@ export const RailPulseLogo: React.FC<RailPulseLogoProps> = ({
           <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.3" />
         </linearGradient>
 
-        {/* Luminous Glow Filter */}
-        <filter id="rpGlow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="1.5" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
-        </filter>
       </defs>
 
       {/* Rounded Hexagonal / Squircle Emblem Base */}
@@ -134,8 +129,8 @@ export const RailPulseLogo: React.FC<RailPulseLogoProps> = ({
       />
 
       {/* Dual Modern High-Beam Headlights */}
-      <circle cx="18.5" cy="28.5" r="1.75" fill="#38BDF8" filter="url(#rpGlow)" />
-      <circle cx="29.5" cy="28.5" r="1.75" fill="#38BDF8" filter="url(#rpGlow)" />
+      <circle cx="18.5" cy="28.5" r="1.75" fill="#38BDF8" />
+      <circle cx="29.5" cy="28.5" r="1.75" fill="#38BDF8" />
 
       {/* Forward Cowcatcher / Kinetic Pilot Nose */}
       <path
@@ -150,7 +145,6 @@ export const RailPulseLogo: React.FC<RailPulseLogoProps> = ({
         strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
-        filter="url(#rpGlow)"
         opacity="0.9"
       />
 

@@ -112,8 +112,11 @@ import {
   AdminChartSkeleton,
   AdminKpiStripSkeleton,
   AdminTableSkeletonRows,
-} from '../components/ui/AdminSkeletons';
-import { useOnClickOutside } from '../hooks/useOnClickOutside';
+  AdminCommandPalette,
+  AdminShortcutsModal,
+} from '../components/ui';
+import { useOnClickOutside, useAdminShortcuts } from '../hooks';
+import { AdminSidebarSection, CommandItem } from '../types/shortcuts';
 
 interface AdminExecutivePortalProps {
   db: PlatformDatabaseV2;
@@ -126,12 +129,6 @@ interface AdminExecutivePortalProps {
   onLogout: () => void;
 }
 
-type AdminSidebarSection =
-  | 'OVERVIEW'
-  | 'ALERT_CENTER'
-  | 'STAFF_HR'
-  | 'AUDIT'
-  | 'QA_SUITE';
 
 const kpiGridVariants: Variants = {
   hidden: { opacity: 0 },
@@ -195,6 +192,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
 }) => {
   const isFa = lang === 'fa';
   const [activeSection, setActiveSection] = useState<AdminSidebarSection>('OVERVIEW');
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
 
   // Staff Provisioning Form State
   const [name, setName] = useState('');
@@ -1028,6 +1027,435 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
     window.setTimeout(() => setComplianceExportNotice(null), 6000);
   };
 
+  // Global Keyboard Shortcuts (Ctrl+K, ?, G+O, G+S, G+L, G+C, G+Q, Alt+1..5, Alt+E, Alt+R, Alt+N)
+  useAdminShortcuts({
+    onToggleCommandPalette: () => setIsCommandPaletteOpen((prev) => !prev),
+    onOpenShortcutsHelp: () => setIsShortcutsHelpOpen(true),
+    onNavigateSection: (section) => setActiveSection(section),
+    onExportCsv: () => handleExportAuditCsv('FILTERED'),
+    onSyncActiveData: () => {
+      if (activeSection === 'OVERVIEW') triggerAnalyticsSkeleton(720);
+      else if (activeSection === 'STAFF_HR') triggerStaffSkeleton(720);
+      else if (activeSection === 'AUDIT') triggerAuditSkeleton(720);
+    },
+    onToggleLang,
+    onToggleTheme,
+    onNewSpecialist: () => {
+      setActiveSection('STAFF_HR');
+      window.setTimeout(() => {
+        const formInput = document.querySelector<HTMLInputElement>(
+          '#admin-add-staff-form input, form input[type="text"]'
+        );
+        formInput?.focus();
+      }, 150);
+    },
+  });
+
+  // Comprehensive Command Palette Items (Navigation, Reports & Compliance, Operations & Staff, System)
+  const commandPaletteItems: CommandItem[] = useMemo(() => {
+    const items: CommandItem[] = [
+      // 1. Navigation
+      {
+        id: 'nav-overview',
+        titleFa: 'داشبورد کلان و تحلیل درآمد',
+        titleEn: 'Executive & Revenue Analytics',
+        descriptionFa: 'نمودارهای ۱۲ ماهه، سری‌های زمانی و شاخص‌های مالی شبکه',
+        descriptionEn: '12-month area/line trends and financial KPIs',
+        category: 'NAVIGATION',
+        shortcut: ['G', 'O'],
+        keywords: [
+          'داشبورد',
+          'درآمد',
+          'مالی',
+          'فروش',
+          'نمودار',
+          'revenue',
+          'overview',
+          'analytics',
+          'charts',
+          'financial',
+        ],
+        iconName: 'BarChart3',
+        targetSection: 'OVERVIEW',
+        action: () => setActiveSection('OVERVIEW'),
+      },
+      {
+        id: 'nav-staff',
+        titleFa: 'مدیریت کارشناسان و پرسنل ریلی',
+        titleEn: 'Operations Staff Directory',
+        descriptionFa: 'صدور مجوز دیسپاچینگ، ویرایش مشخصات و پایش کارشناسان',
+        descriptionEn: 'Specialist provisioning, credentials and assignments',
+        category: 'NAVIGATION',
+        shortcut: ['G', 'S'],
+        keywords: [
+          'کارشناسان',
+          'پرسنل',
+          'کاربران',
+          'مهندسان',
+          'دیسپاچینگ',
+          'staff',
+          'employees',
+          'users',
+          'directory',
+        ],
+        iconName: 'Users',
+        targetSection: 'STAFF_HR',
+        action: () => setActiveSection('STAFF_HR'),
+      },
+      {
+        id: 'nav-audit',
+        titleFa: 'پایشگر هوشمند فعالیت‌ها و دفتر کل ممیزی',
+        titleEn: 'Activity Monitor & Audit Logs',
+        descriptionFa: 'ردیابی بلادرنگ رزروها، زمانبندی‌ها و تغییرات مدیریتی',
+        descriptionEn: 'Real-time immutable audit trail and compliance reporting',
+        category: 'NAVIGATION',
+        shortcut: ['G', 'L'],
+        keywords: [
+          'لاگ',
+          'ممیزی',
+          'پایشگر',
+          'فعالیت',
+          'تراکنش',
+          'audit',
+          'logs',
+          'monitor',
+          'compliance',
+          'trail',
+        ],
+        iconName: 'Activity',
+        targetSection: 'AUDIT',
+        action: () => setActiveSection('AUDIT'),
+      },
+      {
+        id: 'nav-alerts',
+        titleFa: 'مرکز هشدارهای آنی و رادار ایمنی',
+        titleEn: 'Real-Time Alert Center',
+        descriptionFa: 'اعلان‌های خرید کلان و تداخلات رادار ضدبرخورد',
+        descriptionEn: 'High-revenue booking alerts and safety conflict stream',
+        category: 'NAVIGATION',
+        shortcut: ['G', 'C'],
+        keywords: [
+          'هشدار',
+          'اعلان',
+          'رادار',
+          'ضدبرخورد',
+          'ایمنی',
+          'alerts',
+          'radar',
+          'safety',
+          'conflicts',
+        ],
+        iconName: 'BellRing',
+        badge: unreadAlertsCount > 0 ? `${unreadAlertsCount}` : undefined,
+        targetSection: 'ALERT_CENTER',
+        action: () => setActiveSection('ALERT_CENTER'),
+      },
+      {
+        id: 'nav-qa',
+        titleFa: 'مرکز تست و تضمین کیفیت ۵ مرحله‌ای',
+        titleEn: '5-Phase Automated QA & Diagnostics',
+        descriptionFa: 'اجرای ۱۲ سناریوی خودکار اعتبارسنجی ریاضی، مهاجرت و RBAC',
+        descriptionEn: 'Run 12 unit, integration, migration, E2E & security suites',
+        category: 'NAVIGATION',
+        shortcut: ['G', 'Q'],
+        keywords: [
+          'تست',
+          'آزمون',
+          'تضمین کیفیت',
+          'مهندسی',
+          'qa',
+          'testing',
+          'diagnostics',
+          'suites',
+        ],
+        iconName: 'FileCode2',
+        targetSection: 'QA_SUITE',
+        action: () => setActiveSection('QA_SUITE'),
+      },
+
+      // 2. Reports & Compliance Audit
+      {
+        id: 'act-export-filtered-csv',
+        titleFa: 'خروجی گزارش ممیزی انطباق فیلترشده (CSV)',
+        titleEn: 'Export Filtered Compliance Audit (CSV)',
+        descriptionFa: 'دانلود فایل CSV رخدادهای منطبق بر فیلترهای جاری پایشگر',
+        descriptionEn: 'Download CSV of audit logs matching active filters',
+        category: 'REPORTS',
+        shortcut: ['Alt', 'E'],
+        keywords: [
+          'خروجی',
+          'اکسل',
+          'ممیزی',
+          'گزارش',
+          'انطباق',
+          'export',
+          'csv',
+          'audit',
+          'excel',
+          'compliance',
+        ],
+        iconName: 'FileSpreadsheet',
+        action: () => handleExportAuditCsv('FILTERED'),
+      },
+      {
+        id: 'act-export-full-csv',
+        titleFa: 'خروجی کامل کل دفتر لاگ‌های ممیزی (CSV)',
+        titleEn: 'Export Full Audit Ledger (CSV)',
+        descriptionFa: 'خروجی جامع تمامی تراکنش‌ها و رخدادهای ثبت‌شده در دیتابیس',
+        descriptionEn: 'Complete export of all historical system audit records',
+        category: 'REPORTS',
+        keywords: [
+          'خروجی کل',
+          'دفتر کامل',
+          'تمام لاگ‌ها',
+          'full export',
+          'all logs',
+          'compliance',
+        ],
+        iconName: 'Download',
+        action: () => handleExportAuditCsv('ALL'),
+      },
+      {
+        id: 'filter-audit-res',
+        titleFa: 'فیلتر لاگ‌ها: رزرو و استرداد بلیط مسافران',
+        titleEn: 'Filter Logs: Ticket Reservations & Refunds',
+        descriptionFa: 'نمایش صدور بلیط، تخصیص صندلی و استرداد وجه',
+        descriptionEn: 'View bookings, seat assignments and refund actions',
+        category: 'REPORTS',
+        keywords: ['رزرو', 'بلیط', 'استرداد', 'booking', 'ticket', 'refund'],
+        iconName: 'Ticket',
+        action: () => {
+          setActiveSection('AUDIT');
+          setActivityCategoryFilter('RESERVATIONS');
+        },
+      },
+      {
+        id: 'filter-audit-sch',
+        titleFa: 'فیلتر لاگ‌ها: تغییرات زمانبندی و ناوگان',
+        titleEn: 'Filter Logs: Schedule & Fleet Modifications',
+        descriptionFa: 'نمایش اعزام قطارها و ویرایش ساعات حرکت خطوط',
+        descriptionEn: 'View train dispatches and corridor timetable edits',
+        category: 'REPORTS',
+        keywords: ['زمانبندی', 'قطار', 'ناوگان', 'schedule', 'fleet', 'trains'],
+        iconName: 'Train',
+        action: () => {
+          setActiveSection('AUDIT');
+          setActivityCategoryFilter('SCHEDULES');
+        },
+      },
+      {
+        id: 'filter-audit-staff',
+        titleFa: 'فیلتر لاگ‌ها: مدیریت کارشناسان و حساب‌ها',
+        titleEn: 'Filter Logs: Staff & Account Governance',
+        descriptionFa: 'نمایش ایجاد، ویرایش و مدیریت پرسنل عملیاتی',
+        descriptionEn: 'View specialist provisioning and credential updates',
+        category: 'REPORTS',
+        keywords: [
+          'کارشناس',
+          'پرسنل',
+          'حساب',
+          'کاربر',
+          'governance',
+          'staff',
+          'accounts',
+        ],
+        iconName: 'ShieldCheck',
+        action: () => {
+          setActiveSection('AUDIT');
+          setActivityCategoryFilter('STAFF');
+        },
+      },
+      {
+        id: 'act-reset-audit-filters',
+        titleFa: 'حذف فیلترها و نمایش همه رخدادهای ممیزی',
+        titleEn: 'Reset Filters & Show All Audit Events',
+        descriptionFa: 'پاکسازی عبارت جستجو و بازه زمانی انتخابی',
+        descriptionEn: 'Clear active keywords and time window filters',
+        category: 'REPORTS',
+        keywords: ['حذف فیلتر', 'پاکسازی', 'همه رخدادها', 'reset filters', 'clear'],
+        iconName: 'Filter',
+        action: () => {
+          setActiveSection('AUDIT');
+          handleResetActivityFilters();
+        },
+      },
+      {
+        id: 'sim-res-act',
+        titleFa: 'شبیه‌سازی رخداد زنده رزرو بلیط مسافر',
+        titleEn: 'Simulate Live Passenger Ticket Reservation',
+        descriptionFa: 'تزریق آنی یک رزرو گروهی در پایشگر برای سنجش ممیزی',
+        descriptionEn: 'Inject a synthetic booking event into the audit trail',
+        category: 'REPORTS',
+        keywords: ['شبیه‌سازی', 'تست رزرو', 'تزریق رخداد', 'simulate', 'booking'],
+        iconName: 'PlayCircle',
+        action: () => {
+          setActiveSection('AUDIT');
+          handleSimulateReservationActivity();
+        },
+      },
+      {
+        id: 'sim-sch-act',
+        titleFa: 'شبیه‌سازی رخداد ویرایش زمانبندی قطار',
+        titleEn: 'Simulate Live Train Schedule Edit',
+        descriptionFa: 'تزریق آنی رخداد تغییر ساعت حرکت قطار با تایید رادار',
+        descriptionEn: 'Inject a synthetic schedule update into the audit trail',
+        category: 'REPORTS',
+        keywords: ['شبیه‌سازی', 'تغییر زمانبندی', 'تزریق قطار', 'simulate', 'schedule'],
+        iconName: 'PlayCircle',
+        action: () => {
+          setActiveSection('AUDIT');
+          handleSimulateScheduleModificationActivity();
+        },
+      },
+
+      // 3. Operations & Staff Management
+      {
+        id: 'act-new-specialist',
+        titleFa: 'ثبت کارشناس عملیات ریلی جدید',
+        titleEn: 'Provision New Operations Specialist',
+        descriptionFa: 'ورود اطلاعات و صدور دسترسی دیسپاچینگ برای پرسنل جدید',
+        descriptionEn: 'Open new dispatcher credential provisioning form',
+        category: 'ACTIONS',
+        shortcut: ['Alt', 'N'],
+        keywords: [
+          'ثبت کارشناس',
+          'پرسنل جدید',
+          'استخدام',
+          'ایجاد کاربر',
+          'add staff',
+          'new specialist',
+          'provision',
+        ],
+        iconName: 'UserPlus',
+        action: () => {
+          setActiveSection('STAFF_HR');
+          window.setTimeout(() => {
+            const formInput = document.querySelector<HTMLInputElement>(
+              '#admin-add-staff-form input, form input[type="text"]'
+            );
+            formInput?.focus();
+          }, 150);
+        },
+      },
+      {
+        id: 'act-sync-staff',
+        titleFa: 'همگام‌سازی و بازخوانی جدول کارشناسان',
+        titleEn: 'Sync & Refresh Staff Directory Table',
+        descriptionFa: 'فراخوانی اسکلتون بارگذاری و تازه کردن وضعیت پرسنل',
+        descriptionEn: 'Trigger zero-CLS skeleton and reload staff records',
+        category: 'ACTIONS',
+        keywords: [
+          'همگام‌سازی',
+          'بروزرسانی جدول',
+          'تازه کردن',
+          'sync staff',
+          'refresh table',
+        ],
+        iconName: 'RotateCcw',
+        action: () => {
+          setActiveSection('STAFF_HR');
+          triggerStaffSkeleton(720);
+        },
+      },
+      {
+        id: 'act-sync-analytics',
+        titleFa: 'همگام‌سازی و بازخوانی نمودارهای تحلیلی و مالی',
+        titleEn: 'Sync & Refresh Analytics & Revenue Charts',
+        descriptionFa: 'بروزرسانی داده‌های مساحتی ۱۲ ماهه و هوش درآمدی ۳۰ روزه',
+        descriptionEn: 'Refresh 12-month revenue area chart and 30-day analytics',
+        category: 'ACTIONS',
+        shortcut: ['Alt', 'R'],
+        keywords: [
+          'همگام‌سازی نمودار',
+          'بروزرسانی درآمد',
+          'sync analytics',
+          'refresh charts',
+        ],
+        iconName: 'RotateCcw',
+        action: () => {
+          setActiveSection('OVERVIEW');
+          triggerAnalyticsSkeleton(720);
+        },
+      },
+
+      // 4. Global & System Commands
+      {
+        id: 'sys-toggle-lang',
+        titleFa: 'تغییر زبان سیستم (فارسی / انگلیسی)',
+        titleEn: 'Switch Language (Persian / English)',
+        descriptionFa: 'جابجایی میان چیدمان راست‌به‌چپ و چپ‌به‌راست',
+        descriptionEn: 'Toggle between Persian RTL and English LTR layouts',
+        category: 'SYSTEM',
+        shortcut: ['Alt', 'L'],
+        keywords: ['زبان', 'فارسی', 'انگلیسی', 'language', 'lang', 'persian', 'english'],
+        iconName: 'Globe',
+        action: onToggleLang,
+      },
+      {
+        id: 'sys-toggle-theme',
+        titleFa: 'تغییر حالت تم (روشن / تاریک)',
+        titleEn: 'Toggle Visual Theme (Light / Dark)',
+        descriptionFa: 'تغییر پالت رنگی رابط کاربری سامانه',
+        descriptionEn: 'Switch between dark and light backoffice themes',
+        category: 'SYSTEM',
+        shortcut: ['Alt', 'T'],
+        keywords: ['تم', 'روشن', 'تاریک', 'شب', 'روز', 'theme', 'dark', 'light'],
+        iconName: theme === 'dark' ? 'Sun' : 'Moon',
+        action: onToggleTheme,
+      },
+      {
+        id: 'sys-mark-alerts',
+        titleFa: 'علامت‌گذاری تمام اعلان‌های آنی به‌عنوان خوانده‌شده',
+        titleEn: 'Mark All Real-Time Alerts as Read',
+        descriptionFa: 'صفر کردن نشانگرهای رادار و اعلان‌های رزروهای کلان',
+        descriptionEn: 'Clear unread counters across radar and VIP push streams',
+        category: 'SYSTEM',
+        keywords: ['خوانده شده', 'پاکسازی هشدار', 'mark read', 'clear alerts'],
+        iconName: 'CheckCheck',
+        action: () => markAllExecutiveAlertsRead(),
+      },
+      {
+        id: 'sys-show-shortcuts',
+        titleFa: 'راهنمای جامع کلیدهای میانبر سامانه',
+        titleEn: 'Keyboard Shortcuts Reference Cheatsheet',
+        descriptionFa: 'مشاهده لیست کامل کلیدهای میانبر جهت‌یابی و عملیات سریع',
+        descriptionEn: 'View all keyboard shortcuts for navigation and fast actions',
+        category: 'SYSTEM',
+        shortcut: ['?'],
+        keywords: ['میانبر', 'راهنما', 'کلیدها', 'کیبورد', 'shortcuts', 'keyboard', 'help'],
+        iconName: 'Keyboard',
+        action: () => setIsShortcutsHelpOpen(true),
+      },
+    ];
+
+    // Dynamic Employee Search Jump Entries:
+    db.employees.slice(0, 10).forEach((emp) => {
+      items.push({
+        id: `staff-jump-${emp.id}`,
+        titleFa: `مشاهده کارشناس: ${emp.name} ${emp.lastname}`,
+        titleEn: `View Specialist: ${emp.name} ${emp.lastname}`,
+        descriptionFa: `واحد: ${localizeDepartment(emp.department, 'fa')} (@${emp.username})`,
+        descriptionEn: `Department: ${localizeDepartment(emp.department, 'en')} (@${emp.username})`,
+        category: 'ACTIONS',
+        keywords: [emp.name, emp.lastname, emp.username, emp.email, emp.department],
+        iconName: 'Users',
+        badge: emp.status,
+        action: () => {
+          setActiveSection('STAFF_HR');
+          setSearchQuery(emp.name);
+        },
+      });
+    });
+
+    return items;
+  }, [
+    db.employees,
+    unreadAlertsCount,
+    theme,
+    onToggleLang,
+    onToggleTheme,
+  ]);
+
   const navItems: SidebarNavItem[] = [
     {
       id: 'OVERVIEW',
@@ -1367,6 +1795,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
       onLogout={onLogout}
       onToggleLang={onToggleLang}
       onToggleTheme={onToggleTheme}
+      onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+      onOpenShortcutsHelp={() => setIsShortcutsHelpOpen(true)}
       sidebarAlertSlot={sidebarAlertCenterWidget}
       sidebarCollapsedSlot={sidebarCollapsedAlertButton}
       headerActionSlot={headerAlertIndicator}
@@ -4151,6 +4581,22 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           </div>
         </div>
       )}
+
+      {/* Global Command Palette (Ctrl + K / Cmd + K) */}
+      <AdminCommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        commands={commandPaletteItems}
+        lang={lang}
+        onOpenShortcutsHelp={() => setIsShortcutsHelpOpen(true)}
+      />
+
+      {/* Global Keyboard Shortcuts Cheatsheet Modal (?) */}
+      <AdminShortcutsModal
+        isOpen={isShortcutsHelpOpen}
+        onClose={() => setIsShortcutsHelpOpen(false)}
+        lang={lang}
+      />
     </EnterpriseBackofficeLayout>
   );
 };

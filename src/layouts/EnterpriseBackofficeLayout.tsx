@@ -4,10 +4,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Globe,
+  Keyboard,
   LogOut,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
+  Search,
   Shield,
   Sun,
   Train,
@@ -44,6 +46,8 @@ interface EnterpriseBackofficeLayoutProps {
   sidebarAlertSlot?: React.ReactNode;
   sidebarCollapsedSlot?: React.ReactNode;
   headerActionSlot?: React.ReactNode;
+  onOpenCommandPalette?: () => void;
+  onOpenShortcutsHelp?: () => void;
   children: React.ReactNode;
 }
 
@@ -64,6 +68,8 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
   sidebarAlertSlot,
   sidebarCollapsedSlot,
   headerActionSlot,
+  onOpenCommandPalette,
+  onOpenShortcutsHelp,
   children,
 }) => {
   const isFa = lang === 'fa';
@@ -242,8 +248,41 @@ export const EnterpriseBackofficeLayout: React.FC<EnterpriseBackofficeLayoutProp
             </p>
           </div>
 
-          {/* Right Controls: Date/Time, PWA Install, Language, Theme */}
+          {/* Right Controls: Command Palette, Shortcuts, Date/Time, PWA Install, Language, Theme */}
           <div className="flex items-center gap-2.5 shrink-0">
+            {onOpenCommandPalette && (
+              <motion.button
+                type="button"
+                data-testid="backoffice-command-palette-trigger-btn"
+                onClick={onOpenCommandPalette}
+                {...BUTTON_HOVER_PROPS}
+                className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer"
+                title={isFa ? 'پالت جامع دستورات و جستجو (Ctrl+K)' : 'Command Palette & Search (Ctrl+K)'}
+                aria-label={isFa ? 'باز کردن پالت دستورات' : 'Open Command Palette'}
+              >
+                <Search className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                <span className="hidden lg:inline">{isFa ? 'جستجو یا دستور...' : 'Search or command...'}</span>
+                <kbd className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-bold rounded bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-300/80 dark:border-slate-700">
+                  {typeof window !== 'undefined' && /mac|iphone|ipad/i.test(navigator.userAgent) ? '⌘K' : 'Ctrl+K'}
+                </kbd>
+              </motion.button>
+            )}
+
+            {onOpenShortcutsHelp && (
+              <motion.button
+                type="button"
+                data-testid="backoffice-shortcuts-help-trigger-btn"
+                onClick={onOpenShortcutsHelp}
+                {...BUTTON_HOVER_PROPS}
+                className="p-2 sm:px-2.5 sm:py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium cursor-pointer inline-flex items-center gap-1.5"
+                title={isFa ? 'راهنمای کلیدهای میانبر (?)' : 'Keyboard Shortcuts Reference (?)'}
+                aria-label={isFa ? 'راهنمای کلیدهای میانبر' : 'Keyboard Shortcuts'}
+              >
+                <Keyboard className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline text-[11px] font-mono font-bold">?</span>
+              </motion.button>
+            )}
+
             {headerActionSlot}
             <span className="hidden xl:inline text-xs font-mono text-slate-500 dark:text-slate-400">
               {formatDateTime(new Date(), lang, 'full')}

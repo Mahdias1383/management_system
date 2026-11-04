@@ -6,3 +6,8 @@ export {
   type UseOnClickOutsideOptions,
 } from './useOnClickOutside';
 export { usePWAInstall } from './usePWAInstall';
+export {
+  useAdminShortcuts,
+  type UseAdminShortcutsOptions,
+} from './useAdminShortcuts';
+

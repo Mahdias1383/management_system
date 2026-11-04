@@ -191,4 +191,28 @@
 - [x] Web App Manifest, Service Worker & Runtime Splash Engine (`public/manifest.json`, `manifest.json`, `public/sw.js`, `index.html`, `src/utils/pwaSplashGenerator.ts`, `src/components/ui/PWAInstallButton.tsx`):
   - Updated `public/manifest.json` and `manifest.json` with all icon resolutions (`any`, `maskable`, `monochrome`), narrow/wide `screenshots`, `display_override`, and `launch_handler`.
   - Created `src/utils/pwaSplashGenerator.ts` (and unit tests in `src/utils/__tests__/pwaSplashGenerator.test.ts`) to compute adaptive splash screen geometry, render dynamic HTML5 Canvas previews, and synchronize `<meta name="theme-color">` and startup splash attributes with active theme/locale.
-
+### Phase 17: Global Keyboard Shortcuts & Command Palette (Ctrl+K / Cmd+K) for Admin Portal
+- [x] Pure Command Palette & Shortcut Catalog Engine (`src/types/shortcuts.ts`, `src/utils/commandPaletteUtils.ts`, `src/utils/__tests__/commandPaletteUtils.test.ts`):
+  - Defined normalized domain types: `AdminSidebarSection`, `CommandCategory` (`ALL`, `NAVIGATION`, `REPORTS`, `ACTIONS`, `SYSTEM`), `CommandIconName`, `CommandItem`, and `ShortcutGuideItem`.
+  - Implemented pure utility functions in `src/utils/commandPaletteUtils.ts`:
+    - `isEditableElement(target)`: Duck-typed check for `<input>`, `<textarea>`, `<select>`, and `isContentEditable` across SSR, iframes, and browser DOMs.
+    - `normalizeSearchTerm(term)`: Normalizes Persian and English characters, removes diacritics, unifies Arabic kaf/yeh with Persian ke/ye, and maps English/Persian numerals.
+    - `filterCommands(commands, query, category, lang)`: Scores and filters commands by title, description, category, and keywords across both languages.
+    - `formatShortcutForPlatform(keys, isMac)`: Generates clean platform-specific display strings (`⌘K`, `Ctrl+K`, `Alt+1`, etc.).
+    - `getDefaultShortcutsCatalog(lang)`: Comprehensive cheatsheet catalog covering Navigation (`Ctrl+K`, `?`, `g` then `o`/`s`/`l`/`c`/`q`, `Alt+1..5`), Reports (`Alt+E`), Actions (`Alt+R`, `Alt+N`), and System (`Alt+L`, `Alt+T`).
+  - Added 8 comprehensive automated unit tests in `src/utils/__tests__/commandPaletteUtils.test.ts` (all passed, raising test suite to 58 tests across 6 files).
+- [x] Keyboard Shortcut Listener Hook (`src/hooks/useAdminShortcuts.ts` & `src/hooks/index.ts`):
+  - Created `useAdminShortcuts` hook supporting:
+    - Global `Ctrl + K` / `Cmd + K` trigger (active universally, even when typing).
+    - Help modal shortcut (`?` / `Shift + /`).
+    - Two-key sequence shortcuts (`g` then `o` for Overview, `g` then `s` for Staff Directory, `g` then `l`/`a` for Audit Logs, `g` then `c` for Alert Center, `g` then `q` for QA Suite) with automatic 1-second timeout.
+    - Direct hotkeys: `Alt + 1..5`, `Alt + E` (export CSV), `Alt + R` (refresh/sync data), `Alt + N` (new specialist), `Alt + L` (switch language), `Alt + T` (toggle theme).
+    - Typing guard preventing key interception when users type inside text inputs, textareas, or selects.
+- [x] Admin Command Palette & Shortcuts Modal Components (`src/components/ui/AdminCommandPalette.tsx`, `src/components/ui/AdminShortcutsModal.tsx`, `src/components/ui/index.ts`):
+  - `AdminCommandPalette`: High-polish modal with search input, category chips, keyboard arrow navigation (`↑`/`↓`/`Enter`), scroll-into-view, command execution with auto-dismiss, footer shortcut hints, and outside-click dismissal (`useOnClickOutside`).
+  - `AdminShortcutsModal`: Categorized keyboard shortcuts cheatsheet modal grouped into Screen Navigation, Reports & Audit Compliance, Actions & Quick Operations, and System & Accessibility.
+- [x] Layout & Admin Portal Integration (`src/layouts/EnterpriseBackofficeLayout.tsx` & `src/pages/AdminExecutivePortal.tsx`):
+  - Integrated command palette trigger button (`data-testid="backoffice-command-palette-trigger-btn"`) with `Ctrl+K` kbd pill in the backoffice command header.
+  - Integrated keyboard shortcuts help trigger button (`data-testid="backoffice-shortcuts-help-trigger-btn"`) with `?` kbd pill.
+  - Wireframed in `AdminExecutivePortal.tsx` with full command catalog (Navigation, Reports, Operations, System Actions).
+  - Verified in browser via Playwright (opening via `Ctrl+K` and header button, search filtering, arrow navigation, enter execution, sequence `g` then `o`, shortcuts help via `?`, and outside click dismissal).

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Monochrome Silhouette Icon for OS Status Bars, Pinned Tabs, and Themed Launchers -->
+  <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Converging Railway Tracks -->
+    <path d="M160 440 L234 290 M352 440 L278 290" stroke-width="14" />
+    <path d="M180 408 H332 M204 364 H308 M222 324 H290" stroke-width="12" />
+
+    <!-- Aerodynamic Bullet Train Silhouette -->
+    <path d="M256 88 C294 88 338 136 342 208 L346 320 C346 340 330 356 310 356 H202 C182 356 166 340 166 320 L170 208 C174 136 218 88 256 88 Z"
+          fill="currentColor" stroke="none" />
+
+    <!-- Cutout Cockpit Window & Headlights (using white mask/knockout look) -->
+    <path d="M256 122 C282 122 306 152 310 194 H202 C206 152 230 122 256 122 Z"
+          fill="#000000" fill-opacity="0.65" stroke="none" />
+  </g>
+  <!-- Telemetry Pulse Wave -->
+  <path d="M96 276 H172 L202 238 L230 314 L256 254 L282 314 L310 238 L340 276 H416"
+        fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

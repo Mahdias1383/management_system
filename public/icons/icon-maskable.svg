@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="maskBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#060b14" />
+      <stop offset="55%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#075985" />
+    </linearGradient>
+    <linearGradient id="maskTrainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="maskPulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.25" />
+      <stop offset="50%" stop-color="#38bdf8" stop-opacity="1" />
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0.25" />
+    </linearGradient>
+  </defs>
+
+  <!-- Full-bleed background required for Android Maskable Icons (no rounded corners so OS mask never shows transparent corners) -->
+  <rect width="512" height="512" fill="url(#maskBgGrad)" />
+
+  <!-- Subtle radial safe-zone ring inside central 76% (r=194) -->
+  <circle cx="256" cy="256" r="184" fill="none" stroke="#38bdf8" stroke-width="2" stroke-opacity="0.2" stroke-dasharray="6 6" />
+
+  <!-- All artwork scaled inside the central 72% safe zone (76px..436px) -->
+  <g transform="translate(256, 256) scale(0.76) translate(-256, -256)">
+    <!-- Converging perspective railway tracks -->
+    <g opacity="0.45" stroke="#38bdf8" stroke-width="4" stroke-linecap="round">
+      <line x1="164" y1="436" x2="236" y2="284" />
+      <line x1="348" y1="436" x2="276" y2="284" />
+      <line x1="184" y1="406" x2="328" y2="406" stroke-width="4.5" />
+      <line x1="204" y1="364" x2="308" y2="364" stroke-width="3.5" />
+      <line x1="222" y1="326" x2="290" y2="326" stroke-width="3" />
+    </g>
+
+    <!-- High-Speed Aerodynamic Locomotive Nose -->
+    <path d="M256 96 C290 96 332 140 336 210 L340 320 C340 338 326 352 308 352 L204 352 C186 352 172 338 172 320 L176 210 C180 140 222 96 256 96 Z"
+          fill="url(#maskTrainGrad)" stroke="#7dd3fc" stroke-width="3.5" />
+
+    <!-- Aerodynamic Windshield -->
+    <path d="M256 128 C280 128 304 156 308 196 L204 196 C208 156 232 128 256 128 Z"
+          fill="#0c4a6e" stroke="#38bdf8" stroke-width="3" />
+
+    <!-- Center LED High-Beam -->
+    <circle cx="256" cy="226" r="10" fill="#ffffff" />
+
+    <!-- Dual Aerodynamic Headlights -->
+    <ellipse cx="206" cy="310" rx="14" ry="7" fill="#f8fafc" />
+    <ellipse cx="306" cy="310" rx="14" ry="7" fill="#f8fafc" />
+    <ellipse cx="206" cy="310" rx="9" ry="4" fill="#38bdf8" />
+    <ellipse cx="306" cy="310" rx="9" ry="4" fill="#38bdf8" />
+
+    <!-- Digital Telemetry Pulse Wave -->
+    <path d="M124 280 L180 280 L204 250 L228 310 L256 260 L284 310 L308 250 L332 280 L388 280"
+          fill="none" stroke="url(#maskPulseGrad)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Center Radar Signal Node -->
+    <circle cx="256" cy="260" r="8" fill="#10b981" />
+  </g>
+</svg>

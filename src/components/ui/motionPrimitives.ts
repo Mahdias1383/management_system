@@ -130,3 +130,62 @@ export const filterControlEntranceVariants: Variants = {
     },
   },
 };
+
+export const skeletonPulseVariants: Variants = {
+  initial: { opacity: 0.5 },
+  animate: {
+    opacity: [0.5, 0.92, 0.5],
+    transition: {
+      duration: 1.35,
+      repeat: Infinity,
+      ease: 'easeInOut',
+    },
+  },
+};
+
+export const skeletonStaggerContainerVariants: Variants = {
+  hidden: { opacity: 1 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.035,
+    },
+  },
+  exit: {
+    opacity: 0,
+    transition: { duration: 0.1 },
+  },
+};
+
+export const skeletonRowVariants: Variants = {
+  hidden: { opacity: 0.85, y: 0 },
+  visible: (idx: number = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: 'spring',
+      stiffness: 360,
+      damping: 28,
+      delay: Math.min((typeof idx === 'number' ? idx : 0) * 0.025, 0.15),
+    },
+  }),
+  exit: {
+    opacity: 0,
+    transition: { duration: 0.1 },
+  },
+};
+
+export const skeletonBarGrowVariants: Variants = {
+  initial: { opacity: 0.45, scaleY: 0.92 },
+  animate: (idx: number = 0) => ({
+    opacity: [0.45, 0.88, 0.45],
+    scaleY: [0.92, 1, 0.92],
+    transition: {
+      duration: 1.45,
+      repeat: Infinity,
+      ease: 'easeInOut',
+      delay: ((typeof idx === 'number' ? idx : 0) % 10) * 0.06,
+    },
+  }),
+};
+

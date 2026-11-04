@@ -108,6 +108,11 @@ import {
   filterToolbarVariants,
   SOFT_SPRING_TRANSITION,
 } from '../components/ui/motionPrimitives';
+import {
+  AdminChartSkeleton,
+  AdminKpiStripSkeleton,
+  AdminTableSkeletonRows,
+} from '../components/ui/AdminSkeletons';
 import { useOnClickOutside } from '../hooks/useOnClickOutside';
 
 interface AdminExecutivePortalProps {
@@ -206,6 +211,52 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
   // Staff Directory Search & Sort
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'username' | 'department'>('name');
+
+  // Admin Dashboard Skeleton Loading States (Analytics Charts & Data Tables)
+  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
+  const [isStaffLoading, setIsStaffLoading] = useState(false);
+  const [isAuditLoading, setIsAuditLoading] = useState(false);
+  const analyticsTimerRef = useRef<number | null>(null);
+  const staffTimerRef = useRef<number | null>(null);
+  const auditTimerRef = useRef<number | null>(null);
+
+  const triggerAnalyticsSkeleton = (durationMs: number = 680) => {
+    if (analyticsTimerRef.current) {
+      window.clearTimeout(analyticsTimerRef.current);
+    }
+    setIsAnalyticsLoading(true);
+    analyticsTimerRef.current = window.setTimeout(() => {
+      setIsAnalyticsLoading(false);
+    }, durationMs);
+  };
+
+  const triggerStaffSkeleton = (durationMs: number = 680) => {
+    if (staffTimerRef.current) {
+      window.clearTimeout(staffTimerRef.current);
+    }
+    setIsStaffLoading(true);
+    staffTimerRef.current = window.setTimeout(() => {
+      setIsStaffLoading(false);
+    }, durationMs);
+  };
+
+  const triggerAuditSkeleton = (durationMs: number = 680) => {
+    if (auditTimerRef.current) {
+      window.clearTimeout(auditTimerRef.current);
+    }
+    setIsAuditLoading(true);
+    auditTimerRef.current = window.setTimeout(() => {
+      setIsAuditLoading(false);
+    }, durationMs);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (analyticsTimerRef.current) window.clearTimeout(analyticsTimerRef.current);
+      if (staffTimerRef.current) window.clearTimeout(staffTimerRef.current);
+      if (auditTimerRef.current) window.clearTimeout(auditTimerRef.current);
+    };
+  }, []);
 
   // Staff Edit Modal State
   const [editingStaff, setEditingStaff] = useState<Employee | null>(null);
@@ -1309,7 +1360,10 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
       portalSubtitleEn={activeMeta.subtitleEn}
       navItems={navItems}
       activeTabId={activeSection}
-      onSelectTab={(id) => setActiveSection(id as AdminSidebarSection)}
+      onSelectTab={(id) => {
+        const nextTab = id as AdminSidebarSection;
+        setActiveSection(nextTab);
+      }}
       onLogout={onLogout}
       onToggleLang={onToggleLang}
       onToggleTheme={onToggleTheme}
@@ -1410,13 +1464,21 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           ===================================================================== */}
       {activeSection === 'OVERVIEW' && (
         <div className="space-y-6 rp-animate-in">
-          {/* 5 Executive KPI Cards */}
-          <motion.div
-            variants={kpiGridVariants}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"
-          >
+          {/* 5 Executive KPI Cards (with zero-CLS Framer Motion Skeleton) */}
+          {isAnalyticsLoading ? (
+            <AdminKpiStripSkeleton
+              key="exec-5-kpi-skeleton"
+              variant="EXECUTIVE_5"
+              testId="admin-executive-kpi-skeleton"
+            />
+          ) : (
+            <motion.div
+              key="exec-5-kpi-loaded"
+              variants={kpiGridVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"
+            >
             <motion.div
               variants={kpiCardVariants}
               whileHover="hover"
@@ -1554,7 +1616,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   : 'Zero active track collisions'}
               </div>
             </motion.div>
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* 12-Month Ticket Sales Revenue AreaChart Section */}
           <motion.section
@@ -1568,30 +1631,62 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
             }}
           >
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                  <BarChart3 className="w-5 h-5" />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <BarChart3 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                      {isFa
+                        ? 'نمودار مساحتی درآمد فروش بلیط در ۱۲ ماه گذشته'
+                        : '12-Month Ticket Sales Revenue AreaChart'}
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {isFa
+                        ? `روند ۱۲ ماهه فروش ناخالص بلیط (${formatCurrency(annualRevenueSummary.annualGross, 'Rial')}) و درآمد خالص محقق‌شده (${formatCurrency(annualRevenueSummary.annualNet, 'Rial')})`
+                        : `12-month gross ticket sales (${formatCurrency(annualRevenueSummary.annualGross, 'USD')}) and realized net revenue (${formatCurrency(annualRevenueSummary.annualNet, 'USD')})`}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                    {isFa
-                      ? 'نمودار مساحتی درآمد فروش بلیط در ۱۲ ماه گذشته'
-                      : '12-Month Ticket Sales Revenue AreaChart'}
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {isFa
-                      ? `روند ۱۲ ماهه فروش ناخالص بلیط (${formatCurrency(annualRevenueSummary.annualGross, 'Rial')}) و درآمد خالص محقق‌شده (${formatCurrency(annualRevenueSummary.annualNet, 'Rial')})`
-                      : `12-month gross ticket sales (${formatCurrency(annualRevenueSummary.annualGross, 'USD')}) and realized net revenue (${formatCurrency(annualRevenueSummary.annualNet, 'USD')})`}
-                  </p>
-                </div>
+
+                <motion.button
+                  type="button"
+                  data-testid="admin-refresh-analytics-btn"
+                  onClick={() => triggerAnalyticsSkeleton(720)}
+                  {...BUTTON_HOVER_PROPS}
+                  aria-label={
+                    isFa
+                      ? 'همگام‌سازی و بازخوانی نمودارهای تحلیلی'
+                      : 'Synchronize and refresh analytics charts'
+                  }
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer shrink-0"
+                >
+                  <RotateCcw
+                    className={`w-3.5 h-3.5 text-blue-600 dark:text-blue-400 ${
+                      isAnalyticsLoading ? 'animate-spin' : ''
+                    }`}
+                  />
+                  <span>
+                    {isFa ? 'همگام‌سازی داده‌ها' : 'Sync Analytics'}
+                  </span>
+                </motion.button>
               </div>
 
-              <motion.div
-                variants={kpiGridVariants}
-                initial="hidden"
-                animate="visible"
-                className="grid grid-cols-2 sm:grid-cols-4 gap-2.5"
-              >
+              {isAnalyticsLoading ? (
+                <AdminKpiStripSkeleton
+                  key="area-12m-kpi-skeleton"
+                  variant="REVENUE_4"
+                  testId="admin-12m-area-kpi-skeleton"
+                />
+              ) : (
+                <motion.div
+                  key="area-12m-kpi-loaded"
+                  variants={kpiGridVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-2 sm:grid-cols-4 gap-2.5"
+                >
                 <motion.div
                   variants={kpiCardVariants}
                   whileHover="hover"
@@ -1647,7 +1742,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     {formatCurrency(annualRevenueSummary.bestMonth.netRevenue, isFa ? 'Rial' : 'USD')}
                   </span>
                 </motion.div>
-              </motion.div>
+                </motion.div>
+              )}
             </div>
 
             <div
@@ -1657,9 +1753,25 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
               }}
             >
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={monthlyRevenueData}
+              {isAnalyticsLoading ? (
+                <AdminChartSkeleton
+                  key="area-12m-chart-skeleton"
+                  heightClass="h-80"
+                  variant="AREA"
+                  barCount={12}
+                  lang={lang}
+                  testId="admin-12m-area-chart-skeleton"
+                />
+              ) : (
+                <motion.div
+                  key="area-12m-chart-loaded"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="w-full h-full"
+                >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={monthlyRevenueData}
                   margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
                   style={{
                     fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
@@ -1827,7 +1939,9 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     fill="url(#ticketTargetAreaGrad)"
                   />
                 </AreaChart>
-              </ResponsiveContainer>
+                    </ResponsiveContainer>
+                </motion.div>
+              )}
             </div>
           </motion.section>
 
@@ -1858,12 +1972,20 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                 </div>
               </div>
 
-              <motion.div
-                variants={kpiGridVariants}
-                initial="hidden"
-                animate="visible"
-                className="grid grid-cols-3 gap-3 text-xs"
-              >
+              {isAnalyticsLoading ? (
+                <AdminKpiStripSkeleton
+                  key="line-12m-kpi-skeleton"
+                  variant="REVENUE_3"
+                  testId="admin-12m-line-kpi-skeleton"
+                />
+              ) : (
+                <motion.div
+                  key="line-12m-kpi-loaded"
+                  variants={kpiGridVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-3 gap-3 text-xs"
+                >
                 <motion.div
                   variants={kpiCardVariants}
                   whileHover="hover"
@@ -1903,13 +2025,30 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     {annualRevenueSummary.bestMonth.monthLabel}
                   </div>
                 </motion.div>
-              </motion.div>
+                </motion.div>
+              )}
             </div>
 
             <div className="h-72 w-full" dir="ltr">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={monthlyRevenueData}
+              {isAnalyticsLoading ? (
+                <AdminChartSkeleton
+                  key="line-12m-chart-skeleton"
+                  heightClass="h-72"
+                  variant="LINE"
+                  barCount={12}
+                  lang={lang}
+                  testId="admin-12m-line-chart-skeleton"
+                />
+              ) : (
+                <motion.div
+                  key="line-12m-chart-loaded"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="w-full h-full"
+                >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={monthlyRevenueData}
                   margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
                   style={{
                     fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
@@ -2050,12 +2189,19 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     dot={false}
                   />
                 </LineChart>
-              </ResponsiveContainer>
+                    </ResponsiveContainer>
+                </motion.div>
+              )}
             </div>
           </motion.div>
 
           {/* 30-Day Recharts Revenue Analysis */}
-          <RevenueAnalysis transactions={db.transactions} lang={lang} />
+          <RevenueAnalysis
+            transactions={db.transactions}
+            lines={db.lines}
+            lang={lang}
+            isLoading={isAnalyticsLoading}
+          />
         </div>
       )}
 
@@ -2289,6 +2435,26 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                     {isFa ? 'مرتب‌سازی: واحد سازمانی' : 'Sort: Department'}
                   </option>
                 </select>
+
+                <motion.button
+                  type="button"
+                  data-testid="staff-refresh-table-btn"
+                  onClick={() => triggerStaffSkeleton(680)}
+                  {...BUTTON_HOVER_PROPS}
+                  aria-label={
+                    isFa
+                      ? 'همگام‌سازی و بازخوانی فهرست کارشناسان'
+                      : 'Synchronize and refresh staff directory'
+                  }
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+                >
+                  <RotateCcw
+                    className={`w-3.5 h-3.5 text-blue-600 dark:text-blue-400 ${
+                      isStaffLoading ? 'animate-spin' : ''
+                    }`}
+                  />
+                  <span>{isFa ? 'بروزرسانی' : 'Sync'}</span>
+                </motion.button>
               </div>
             </div>
 
@@ -2314,6 +2480,15 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {isStaffLoading ? (
+                    <AdminTableSkeletonRows
+                      variant="STAFF_DIRECTORY"
+                      rowCount={Math.max(3, Math.min(filteredEmployees.length || 4, 6))}
+                      lang={lang}
+                      testId="staff-directory-table-skeleton"
+                    />
+                  ) : (
+                    <>
                   {filteredEmployees.map((emp) => (
                     <tr
                       key={emp.id}
@@ -2395,6 +2570,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       </td>
                     </tr>
                   )}
+                    </>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -2407,13 +2584,21 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
           ===================================================================== */}
       {activeSection === 'AUDIT' && (
         <div className="space-y-6 rp-animate-in">
-          {/* 4 Activity Monitor KPI Summary Cards */}
-          <motion.div
-            variants={kpiGridVariants}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-          >
+          {/* 4 Activity Monitor KPI Summary Cards (with zero-CLS Framer Motion Skeleton) */}
+          {isAuditLoading ? (
+            <AdminKpiStripSkeleton
+              key="audit-4-kpi-skeleton"
+              variant="AUDIT_4"
+              testId="activity-monitor-kpi-skeleton"
+            />
+          ) : (
+            <motion.div
+              key="audit-4-kpi-loaded"
+              variants={kpiGridVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+            >
             <motion.div
               variants={kpiCardVariants}
               whileHover="hover"
@@ -2529,7 +2714,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   : 'Staff provisioning, role updates & wallet ledger'}
               </div>
             </motion.div>
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* Live Action Simulator & Snapshot Controls Toolbar */}
           <motion.div
@@ -2799,6 +2985,32 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                       ? `خروجی جدول (${formatNumber(filteredAuditLogs.length, 'fa')})`
                       : `Export CSV (${filteredAuditLogs.length})`}
                   </span>
+                </motion.button>
+
+                <motion.button
+                  variants={filterControlEntranceVariants}
+                  {...BUTTON_HOVER_PROPS}
+                  type="button"
+                  data-testid="activity-refresh-logs-btn"
+                  onClick={() => triggerAuditSkeleton(680)}
+                  aria-label={
+                    isFa
+                      ? 'همگام‌سازی و بازخوانی جدول پایشگر فعالیت‌ها'
+                      : 'Synchronize and refresh activity monitor audit logs'
+                  }
+                  title={
+                    isFa
+                      ? 'همگام‌سازی و بازخوانی جدول پایشگر فعالیت‌ها'
+                      : 'Synchronize and refresh activity monitor audit logs'
+                  }
+                  className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                >
+                  <RotateCcw
+                    className={`w-3.5 h-3.5 text-blue-600 dark:text-blue-400 ${
+                      isAuditLoading ? 'animate-spin' : ''
+                    }`}
+                  />
+                  <span>{isFa ? 'بروزرسانی' : 'Sync'}</span>
                 </motion.button>
               </motion.div>
             </div>
@@ -3099,6 +3311,15 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {isAuditLoading ? (
+                    <AdminTableSkeletonRows
+                      variant="AUDIT_LOGS"
+                      rowCount={Math.max(5, Math.min(visibleAuditLogs.length || 6, 8))}
+                      lang={lang}
+                      testId="activity-audit-table-skeleton"
+                    />
+                  ) : (
+                    <>
                   {visibleAuditLogs.map((log) => {
                     const cat = classifyAuditCategory(log.action);
                     const isRowSelected = selectedAuditLogIds.includes(log.id);
@@ -3201,6 +3422,8 @@ export const AdminExecutivePortal: React.FC<AdminExecutivePortalProps> = ({
                           : 'No activity log entries match the selected filters.'}
                       </td>
                     </tr>
+                  )}
+                    </>
                   )}
                 </tbody>
               </table>

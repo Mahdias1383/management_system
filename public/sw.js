@@ -1,14 +1,37 @@
-// RailPulse Enterprise Service Worker v1.0.0
-const CACHE_NAME = 'railpulse-v1.0.0';
+// RailPulse Enterprise Service Worker v1.1.0
+const CACHE_NAME = 'railpulse-v1.1.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icons/icon.svg',
+  '/icons/icon-maskable.svg',
+  '/icons/icon-monochrome.svg',
+  '/icons/icon-72.png',
+  '/icons/icon-96.png',
+  '/icons/icon-128.png',
+  '/icons/icon-144.png',
+  '/icons/icon-152.png',
+  '/icons/icon-180.png',
   '/icons/icon-192.png',
+  '/icons/icon-384.png',
   '/icons/icon-512.png',
+  '/icons/icon-1024.png',
+  '/icons/icon-maskable-192.png',
+  '/icons/icon-maskable-384.png',
   '/icons/icon-maskable-512.png',
-  '/icons/apple-touch-icon.png'
+  '/icons/icon-maskable-1024.png',
+  '/icons/icon-monochrome-512.png',
+  '/icons/apple-touch-icon.png',
+  '/icons/splash-dark.svg',
+  '/icons/splash-light.svg',
+  '/icons/splash-portrait-750x1334.png',
+  '/icons/splash-portrait-1170x2532.png',
+  '/icons/splash-portrait-light-1170x2532.png',
+  '/icons/splash-portrait-1290x2796.png',
+  '/icons/splash-landscape-2532x1170.png',
+  '/icons/splash-tablet-1668x2388.png',
+  '/icons/splash-tablet-landscape-2388x1668.png'
 ];
 
 self.addEventListener('install', (event) => {

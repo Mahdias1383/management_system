@@ -175,4 +175,20 @@
   - Made the backoffice `<aside>` sticky (`sticky top-0 h-screen`) and stacked the portal subtitle underneath the breadcrumb trail in `EnterpriseBackofficeLayout.tsx` so breadcrumbs never truncate and the operator card/sign-out button stay anchored at the bottom of the viewport.
   - Wrapped intermediate station nodes (`flex-wrap items-center gap-y-2 gap-x-1.5`) in `StaffOperationsPortal.tsx` corridor cards to prevent horizontal overflow, upgraded the Edit Staff department input to a localized `<select>` dropdown in `AdminExecutivePortal.tsx`, and added `staggerChildren` propagation to `filterControlEntranceVariants`.
 
+### Phase 15: Framer Motion Skeleton Loading Screens for Admin Dashboard Tables & Charts
+- [x] Reusable Framer Motion Skeleton Primitives & Pure Geometry Engine (`src/components/ui/motionPrimitives.ts` & `src/components/ui/AdminSkeletons.tsx`):
+  - Added `skeletonPulseVariants`, `skeletonStaggerContainerVariants`, `skeletonRowVariants`, and `skeletonBarGrowVariants` in `src/components/ui/motionPrimitives.ts`.
+  - Created `AdminChartSkeleton`, `AdminKpiStripSkeleton`, and `AdminTableSkeletonRows` in `src/components/ui/AdminSkeletons.tsx`, backed by pure deterministic geometry calculators (`computeChartSkeletonBars`, `computeTableSkeletonSpec`, `computeKpiSkeletonConfig`) to guarantee zero Cumulative Layout Shift (`CLS = 0`).
+  - Added unit tests in `src/components/ui/__tests__/AdminSkeletons.test.ts`.
+- [x] Admin Dashboard Integration (`src/components/RevenueAnalysis.tsx` & `src/pages/AdminExecutivePortal.tsx`):
+  - Integrated `AnimatePresence mode="wait"` chart and KPI skeletons into `RevenueAnalysis.tsx` (`h-72` chart container and 4-card financial strip) with interactive sync (`data-testid="revenue-30d-refresh-btn"`) and automatic transitions on corridor/chart-mode changes.
+  - Integrated Framer Motion skeletons across `AdminExecutivePortal.tsx` for Executive & Revenue Analytics (`h-80` 12-Month AreaChart, `h-72` 12-Month LineChart, 30-Day Revenue Analysis, and KPI strips via `data-testid="admin-refresh-analytics-btn"`), Operations Staff Directory 5-column data table (`data-testid="staff-refresh-table-btn"`), and Activity Monitor 6-column Audit Logs data table & 4-card KPI strip (`data-testid="activity-refresh-logs-btn"`).
+
+### Phase 16: Adaptive PWA Splash Screen Generation & High-Resolution Icons (`manifest.json` & `public/icons`)
+- [x] High-Resolution & Adaptive Icon Asset Suite (`scripts/generate-pwa-assets.mjs` & `public/icons/`):
+  - Generated standard high-resolution PNG icons (`72x72`, `96x96`, `128x128`, `144x144`, `152x152`, `180x180`, `192x192`, `384x384`, `512x512`, `1024x1024`), adaptive maskable icons (`icon-maskable.svg`, `192x192`, `384x384`, `512x512`, `1024x1024` with full-bleed background and 15% safe-zone margin), and monochrome pinned/badge icons (`icon-monochrome.svg`, `512x512`).
+  - Generated adaptive mobile and tablet startup splash screens (`splash-dark.svg`, `splash-light.svg`, `splash-portrait-750x1334.png`, `splash-portrait-1170x2532.png`, `splash-portrait-light-1170x2532.png`, `splash-portrait-1290x2796.png`, `splash-landscape-2532x1170.png`, `splash-tablet-1668x2388.png`, `splash-tablet-landscape-2388x1668.png`).
+- [x] Web App Manifest, Service Worker & Runtime Splash Engine (`public/manifest.json`, `manifest.json`, `public/sw.js`, `index.html`, `src/utils/pwaSplashGenerator.ts`, `src/components/ui/PWAInstallButton.tsx`):
+  - Updated `public/manifest.json` and `manifest.json` with all icon resolutions (`any`, `maskable`, `monochrome`), narrow/wide `screenshots`, `display_override`, and `launch_handler`.
+  - Created `src/utils/pwaSplashGenerator.ts` (and unit tests in `src/utils/__tests__/pwaSplashGenerator.test.ts`) to compute adaptive splash screen geometry, render dynamic HTML5 Canvas previews, and synchronize `<meta name="theme-color">` and startup splash attributes with active theme/locale.
 

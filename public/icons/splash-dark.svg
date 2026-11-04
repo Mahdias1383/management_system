@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1170 2532" width="1170" height="2532">
+  <defs>
+    <linearGradient id="splashDarkBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#060b14" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#0b1f3a" />
+    </linearGradient>
+    <radialGradient id="splashDarkGlow" cx="50%" cy="42%" r="45%">
+      <stop offset="0%" stop-color="#0284c7" stop-opacity="0.28" />
+      <stop offset="60%" stop-color="#1e3a8a" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="splashTrainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+    <linearGradient id="splashPulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.2" />
+      <stop offset="50%" stop-color="#38bdf8" stop-opacity="1" />
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0.2" />
+    </linearGradient>
+  </defs>
+
+  <!-- Full Mobile Portrait Canvas -->
+  <rect width="1170" height="2532" fill="url(#splashDarkBg)" />
+  <rect width="1170" height="2532" fill="url(#splashDarkGlow)" />
+
+  <!-- Subtle Horizon Grid -->
+  <g stroke="#1e293b" stroke-width="2" opacity="0.55">
+    <line x1="140" y1="2100" x2="1030" y2="2100" />
+    <line x1="240" y1="2180" x2="930" y2="2180" />
+    <line x1="340" y1="2250" x2="830" y2="2250" />
+  </g>
+
+  <!-- Central High-Resolution Emblem Squircle (Centered at 585, 1020) -->
+  <g transform="translate(385, 820)">
+    <rect width="400" height="400" rx="92" fill="#090d16" stroke="#1e293b" stroke-width="4" />
+    <rect x="14" y="14" width="372" height="372" rx="80" fill="none" stroke="#38bdf8" stroke-width="2" stroke-opacity="0.3" />
+
+    <!-- Converging Tracks -->
+    <g opacity="0.4" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round">
+      <line x1="120" y1="345" x2="182" y2="220" />
+      <line x1="280" y1="345" x2="218" y2="220" />
+      <line x1="138" y1="320" x2="262" y2="320" />
+      <line x1="156" y1="286" x2="244" y2="286" />
+      <line x1="172" y1="254" x2="228" y2="254" />
+    </g>
+
+    <!-- Aerodynamic Bullet Train -->
+    <path d="M200 72 C228 72 262 108 265 162 L268 250 C268 264 256 276 242 276 H158 C144 276 132 264 132 250 L135 162 C138 108 172 72 200 72 Z"
+          fill="url(#splashTrainGrad)" stroke="#7dd3fc" stroke-width="3" />
+    <path d="M200 98 C220 98 238 120 242 152 H158 C162 120 180 98 200 98 Z"
+          fill="#0c4a6e" stroke="#38bdf8" stroke-width="2.5" />
+
+    <!-- Headlights -->
+    <circle cx="162" cy="242" r="9" fill="#38bdf8" />
+    <circle cx="238" cy="242" r="9" fill="#38bdf8" />
+
+    <!-- Telemetry Pulse Wave -->
+    <path d="M72 216 H138 L158 190 L178 242 L200 200 L222 242 L242 190 L262 216 H328"
+          fill="none" stroke="url(#splashPulseGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="200" cy="200" r="7" fill="#10b981" />
+  </g>
+
+  <!-- Brand Lockup Typography -->
+  <text x="585" y="1335" text-anchor="middle" fill="#f8fafc" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-size="64" font-weight="800" letter-spacing="-1">
+    RailPulse Enterprise
+  </text>
+  <text x="585" y="1408" text-anchor="middle" fill="#38bdf8" font-family="Vazirmatn, system-ui, sans-serif" font-size="38" font-weight="700">
+    سامانه هوشمند خطوط ریلی و رزرواسیون بلیط
+  </text>
+  <text x="585" y="1468" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="24" font-weight="600" letter-spacing="2">
+    TEMPORAL-SPATIAL COLLISION RADAR &amp; BOOKING OS
+  </text>
+
+  <!-- Bottom Safety Telemetry Indicator Pill -->
+  <g transform="translate(365, 2240)">
+    <rect width="440" height="68" rx="34" fill="#0f172a" stroke="#1e293b" stroke-width="2.5" />
+    <circle cx="44" cy="34" r="9" fill="#10b981" />
+    <text x="236" y="42" text-anchor="middle" fill="#cbd5e1" font-family="Plus Jakarta Sans, sans-serif" font-size="22" font-weight="600">
+      100% Dispatch Safety Verified
+    </text>
+  </g>
+</svg>

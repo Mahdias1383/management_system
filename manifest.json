@@ -6,12 +6,16 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "lang": "fa",
   "dir": "rtl",
   "categories": ["travel", "business", "productivity"],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "/icons/icon.svg",
@@ -20,8 +24,50 @@
       "purpose": "any"
     },
     {
+      "src": "/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384.png",
+      "sizes": "384x384",
       "type": "image/png",
       "purpose": "any"
     },
@@ -32,10 +78,75 @@
       "purpose": "any"
     },
     {
+      "src": "/icons/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "/icons/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-monochrome.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "monochrome"
+    },
+    {
+      "src": "/icons/icon-monochrome-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "monochrome"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/splash-portrait-1170x2532.png",
+      "sizes": "1170x2532",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "RailPulse Enterprise — صفحه آغازین تطبیقی موبایل (حالت تیره)"
+    },
+    {
+      "src": "/icons/splash-portrait-light-1170x2532.png",
+      "sizes": "1170x2532",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "RailPulse Enterprise — Adaptive Mobile Splash Screen (Light Mode)"
+    },
+    {
+      "src": "/icons/splash-tablet-landscape-2388x1668.png",
+      "sizes": "2388x1668",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "RailPulse Enterprise — داشبورد فرماندهی و رزرواسیون عریض"
     }
   ],
   "shortcuts": [
@@ -47,7 +158,8 @@
       "icons": [
         {
           "src": "/icons/icon-192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
@@ -59,7 +171,8 @@
       "icons": [
         {
           "src": "/icons/icon-192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
@@ -71,7 +184,8 @@
       "icons": [
         {
           "src": "/icons/icon-192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }

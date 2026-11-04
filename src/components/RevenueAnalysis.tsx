@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { motion, Variants } from 'framer-motion';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion, Variants } from 'framer-motion';
 import {
   Area,
   AreaChart,
@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { BarChart3, TrendingUp } from 'lucide-react';
+import { BarChart3, RotateCcw, TrendingUp } from 'lucide-react';
 import { Language, TicketRecord, TrainLine, WalletTransaction } from '../types/domain';
 import {
   formatCompactRial,
@@ -25,12 +25,17 @@ import {
   BUTTON_HOVER_PROPS,
   fadeSlideUpVariants,
 } from './ui/motionPrimitives';
+import {
+  AdminChartSkeleton,
+  AdminKpiStripSkeleton,
+} from './ui/AdminSkeletons';
 
 interface RevenueAnalysisProps {
   transactions: WalletTransaction[];
   tickets?: TicketRecord[];
   lines?: TrainLine[];
   lang: Language;
+  isLoading?: boolean;
 }
 
 export interface DailyRevenuePoint {
@@ -74,10 +79,33 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
   transactions,
   lines = [],
   lang,
+  isLoading = false,
 }) => {
   const isFa = lang === 'fa';
   const [chartMode, setChartMode] = useState<'AREA' | 'BAR'>('AREA');
   const [corridorFilter, setCorridorFilter] = useState<string>('ALL');
+  const [isInternalRefreshing, setIsInternalRefreshing] = useState(false);
+  const refreshTimerRef = useRef<number | null>(null);
+
+  const triggerChartRefresh = (durationMs: number = 420) => {
+    if (refreshTimerRef.current) {
+      window.clearTimeout(refreshTimerRef.current);
+    }
+    setIsInternalRefreshing(true);
+    refreshTimerRef.current = window.setTimeout(() => {
+      setIsInternalRefreshing(false);
+    }, durationMs);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showSkeleton = Boolean(isLoading || isInternalRefreshing);
 
   const dailyData = useMemo<DailyRevenuePoint[]>(() => {
     const ticketTxList = (transactions || []).filter(
@@ -194,7 +222,10 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
           {lines.length > 0 && (
             <select
               value={corridorFilter}
-              onChange={(e) => setCorridorFilter(e.target.value)}
+              onChange={(e) => {
+                setCorridorFilter(e.target.value);
+                triggerChartRefresh(320);
+              }}
               className="px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">{isFa ? 'همه خطوط ریلی' : 'All Railway Corridors'}</option>
@@ -209,7 +240,12 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
           <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
             <motion.button
               type="button"
-              onClick={() => setChartMode('AREA')}
+              onClick={() => {
+                if (chartMode !== 'AREA') {
+                  setChartMode('AREA');
+                  triggerChartRefresh(260);
+                }
+              }}
               {...BUTTON_HOVER_PROPS}
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer whitespace-nowrap ${
                 chartMode === 'AREA'
@@ -221,7 +257,12 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
             </motion.button>
             <motion.button
               type="button"
-              onClick={() => setChartMode('BAR')}
+              onClick={() => {
+                if (chartMode !== 'BAR') {
+                  setChartMode('BAR');
+                  triggerChartRefresh(260);
+                }
+              }}
               {...BUTTON_HOVER_PROPS}
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer whitespace-nowrap ${
                 chartMode === 'BAR'
@@ -232,77 +273,110 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
               {isFa ? 'نمودار ستونی' : 'Daily Bars'}
             </motion.button>
           </div>
+
+          <motion.button
+            type="button"
+            data-testid="revenue-30d-refresh-btn"
+            onClick={() => triggerChartRefresh(680)}
+            {...BUTTON_HOVER_PROPS}
+            aria-label={
+              isFa ? 'همگام‌سازی مجدد نمودار ۳۰ روزه' : 'Refresh 30-day revenue chart'
+            }
+            title={
+              isFa ? 'همگام‌سازی مجدد نمودار ۳۰ روزه' : 'Refresh 30-day revenue chart'
+            }
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+          >
+            <RotateCcw
+              className={`w-3.5 h-3.5 text-blue-600 dark:text-blue-400 ${
+                showSkeleton ? 'animate-spin' : ''
+              }`}
+            />
+            <span className="hidden sm:inline">
+              {isFa ? 'بروزرسانی' : 'Sync'}
+            </span>
+          </motion.button>
         </div>
       </div>
 
-      {/* 30-Day Financial Metrics Strip */}
-      <motion.div
-        variants={revenueKpiGridVariants}
-        initial="hidden"
-        animate="visible"
-        className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5"
-      >
+      {/* 30-Day Financial Metrics Strip (with zero-CLS Framer Motion Skeleton) */}
+      {showSkeleton ? (
+        <AdminKpiStripSkeleton
+          key="rev-30d-kpi-skeleton"
+          variant="REVENUE_4"
+          className="mb-5"
+          testId="revenue-30d-kpi-skeleton"
+        />
+      ) : (
         <motion.div
-          variants={revenueKpiCardVariants}
-          whileHover="hover"
-          whileTap={{ scale: 0.985 }}
-          className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
+          key="rev-30d-kpi-loaded"
+          variants={revenueKpiGridVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5"
         >
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">
-            {isFa ? 'درآمد خالص ۳۰ روزه' : '30-Day Net Ticket Revenue'}
-          </div>
-          <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">
-            {formatCurrency(summary.totalNet30d, isFa ? 'Rial' : 'USD')}
-          </div>
-        </motion.div>
+            <motion.div
+              variants={revenueKpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
+            >
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                {isFa ? 'درآمد خالص ۳۰ روزه' : '30-Day Net Ticket Revenue'}
+              </div>
+              <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">
+                {formatCurrency(summary.totalNet30d, isFa ? 'Rial' : 'USD')}
+              </div>
+            </motion.div>
 
-        <motion.div
-          variants={revenueKpiCardVariants}
-          whileHover="hover"
-          whileTap={{ scale: 0.985 }}
-          className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
-        >
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">
-            {isFa ? 'میانگین درآمد روزانه' : 'Average Daily Revenue'}
-          </div>
-          <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
-            {formatCurrency(summary.avgDaily, isFa ? 'Rial' : 'USD')}
-          </div>
-        </motion.div>
+            <motion.div
+              variants={revenueKpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
+            >
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                {isFa ? 'میانگین درآمد روزانه' : 'Average Daily Revenue'}
+              </div>
+              <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
+                {formatCurrency(summary.avgDaily, isFa ? 'Rial' : 'USD')}
+              </div>
+            </motion.div>
 
-        <motion.div
-          variants={revenueKpiCardVariants}
-          whileHover="hover"
-          whileTap={{ scale: 0.985 }}
-          className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
-        >
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">
-            {isFa ? 'بیشترین فروش روزانه' : 'Peak Revenue Day'}
-          </div>
-          <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-blue-600 dark:text-blue-400 mt-0.5">
-            {formatCurrency(summary.peakDay.netRevenue, isFa ? 'Rial' : 'USD')}{' '}
-            <span className="text-xs font-normal text-slate-400">
-              ({toPersianDigits(summary.peakDay.label, lang)})
-            </span>
-          </div>
-        </motion.div>
+            <motion.div
+              variants={revenueKpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
+            >
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                {isFa ? 'بیشترین فروش روزانه' : 'Peak Revenue Day'}
+              </div>
+              <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-blue-600 dark:text-blue-400 mt-0.5">
+                {formatCurrency(summary.peakDay.netRevenue, isFa ? 'Rial' : 'USD')}{' '}
+                <span className="text-xs font-normal text-slate-400">
+                  ({toPersianDigits(summary.peakDay.label, lang)})
+                </span>
+              </div>
+            </motion.div>
 
-        <motion.div
-          variants={revenueKpiCardVariants}
-          whileHover="hover"
-          whileTap={{ scale: 0.985 }}
-          className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
-        >
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">
-            {isFa ? 'تعداد تراکنش‌های خرید بلیط' : 'Completed Ticket Orders'}
-          </div>
-          <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
-            {formatNumber(summary.totalTxCount30d, lang)}
-          </div>
-        </motion.div>
-      </motion.div>
+            <motion.div
+              variants={revenueKpiCardVariants}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
+              className="rp-card-hover p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 cursor-default"
+            >
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                {isFa ? 'تعداد تراکنش‌های خرید بلیط' : 'Completed Ticket Orders'}
+              </div>
+              <div className="text-base sm:text-lg font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
+                {formatNumber(summary.totalTxCount30d, lang)}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
 
-      {/* Recharts 30-Day Visualization */}
+      {/* Recharts 30-Day Visualization (locked h-72 w-full container to prevent CLS) */}
       <div
         className="h-72 w-full"
         dir="ltr"
@@ -310,8 +384,24 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
           fontFamily: "'Vazirmatn FD', 'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
         }}
       >
-        <ResponsiveContainer width="100%" height="100%">
-          {chartMode === 'AREA' ? (
+        {showSkeleton ? (
+          <AdminChartSkeleton
+            key="rev-30d-chart-skeleton"
+            heightClass="h-72"
+            variant={chartMode}
+            barCount={20}
+            lang={lang}
+            testId="revenue-30d-chart-skeleton"
+          />
+        ) : (
+          <motion.div
+            key={`rev-30d-chart-loaded-${chartMode}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="w-full h-full"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              {chartMode === 'AREA' ? (
             <AreaChart
               data={dailyData}
               margin={{ top: 10, right: 16, left: 8, bottom: 0 }}
@@ -516,7 +606,9 @@ export const RevenueAnalysis: React.FC<RevenueAnalysisProps> = ({
               <Bar dataKey="netRevenue" fill="#3B82F6" radius={[4, 4, 0, 0]} />
             </BarChart>
           )}
-        </ResponsiveContainer>
+            </ResponsiveContainer>
+          </motion.div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 border-t border-slate-200/70 dark:border-slate-800/70 text-[11px] text-slate-500 dark:text-slate-400">

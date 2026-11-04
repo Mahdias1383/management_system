@@ -17,6 +17,7 @@ import { PublicHomePage, AuthPage } from './pages/public';
 import { PassengerDashboard } from './pages/passenger';
 import { StaffOperationsPortal } from './pages/staff';
 import { AdminExecutivePortal } from './pages/admin';
+import { syncAdaptiveSplashScreensInDom } from './utils/pwaSplashGenerator';
 
 type AppRoute =
   | 'HOME'
@@ -109,14 +110,15 @@ export default function App() {
     document.documentElement.setAttribute('lang', lang);
   }, [lang]);
 
-  // Synchronize Dark/Light Mode class on <html>
+  // Synchronize Dark/Light Mode class on <html> & adaptive PWA splash metadata
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [theme]);
+    syncAdaptiveSplashScreensInDom(theme, lang);
+  }, [theme, lang]);
 
   const handleUpdateDb = (nextDb: PlatformDatabaseV2) => {
     setDb(nextDb);
